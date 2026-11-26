@@ -156,6 +156,44 @@ function init() {
       simulated INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS BidJob (
+      id TEXT PRIMARY KEY,
+      hirer_id TEXT NOT NULL,
+      trade TEXT NOT NULL,
+      description TEXT NOT NULL,
+      site_lat REAL,
+      site_lng REAL,
+      site_address TEXT,
+      status TEXT NOT NULL DEFAULT 'OPEN'
+        CHECK (status IN ('OPEN','ACCEPTED','CLOSED_NO_HIRE')),
+      job_id TEXT,
+      created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS Bid (
+      id TEXT PRIMARY KEY,
+      bid_job_id TEXT NOT NULL,
+      worker_phone TEXT NOT NULL,
+      worker_name TEXT,
+      amount INTEGER NOT NULL,
+      note TEXT,
+      earliest_start TEXT,
+      worker_lat REAL,
+      worker_lng REAL,
+      status TEXT NOT NULL DEFAULT 'LIVE'
+        CHECK (status IN ('LIVE','EXPIRED','NOT_SELECTED','ACCEPTED')),
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS BidJobPhoto (
+      id TEXT PRIMARY KEY,
+      bid_job_id TEXT NOT NULL,
+      url TEXT NOT NULL,
+      taken_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_bidjob_hirer ON BidJob(hirer_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_bidjob_status ON BidJob(status, created_at);
+    CREATE INDEX IF NOT EXISTS idx_bid_job ON Bid(bid_job_id, amount);
+    CREATE INDEX IF NOT EXISTS idx_bidjobphoto_job ON BidJobPhoto(bid_job_id);
     CREATE INDEX IF NOT EXISTS idx_locationtrail_job ON LocationTrail(job_id, id);
     CREATE INDEX IF NOT EXISTS idx_jobversion_job ON JobVersion(job_id, version_no);
     CREATE INDEX IF NOT EXISTS idx_event_job ON Event(job_id, id);
@@ -212,7 +250,7 @@ function now() {
 }
 
 function clearAllTables() {
-  const tables = ['LocationTrail', 'LocationShare', 'PassportEntry', 'Billing', 'WorkerToken', 'Session', 'Otp',
+  const tables = ['Bid', 'BidJobPhoto', 'BidJob', 'LocationTrail', 'LocationShare', 'PassportEntry', 'Billing', 'WorkerToken', 'Session', 'Otp',
     'ChangeProposal', 'DisputeStatement', 'Dispute', 'Photo', 'Payment',
     'Event', 'JobVersion', 'Job', 'User'];
   for (const t of tables) db.prepare(`DELETE FROM ${t}`).run();

@@ -120,7 +120,27 @@ var I18N={
 'site.hint':{bn:'ম্যাপে ট্যাপ করে পিন বসান, অথবা আপনার বর্তমান লোকেশন ব্যবহার করুন। জায়গা না দিলে দূরত্ব/ETA দেখাবে না — শেয়ারিং তবুও চলবে।',en:'Tap the map to drop a pin, or use your current location. Without a site there is no distance or ETA — sharing still works.'},
 'site.address':{bn:'ঠিকানা',en:'Address'},
 'site.me':{bn:'আমার বর্তমান লোকেশন ব্যবহার করুন',en:'Use my current location'},
-'site.clear':{bn:'জায়গা মুছুন',en:'Clear site'}
+'site.clear':{bn:'জায়গা মুছুন',en:'Clear site'},
+'nav.bid':{bn:'মিস্ত্রি খুঁজুন',en:'Find a repairer'},
+'bid.postBtn':{bn:'মিস্ত্রি খুঁজুন — ছবি দিয়ে কাজ দিন',en:'Find a repairer — post with a photo'},
+'bid.findBtn':{bn:'কাজ খুঁজুন — দর দিন',en:'Find work — bid on jobs'},
+'bid.back':{bn:'← সব কাজ',en:'← All jobs'},
+'bid.postTitle':{bn:'মিস্ত্রি খুঁজুন — ছবি দিয়ে কাজ দিন',en:'Find a repairer — post a job with a photo'},
+'bid.postText':{bn:'সমস্যার ছবি তুলুন, কাজের ধরন আর বিবরণ লিখুন। কাছের মিস্ত্রিরা দাম দেবেন — আপনি একজনকে বেছে নিলে তবেই রেকর্ড তৈরি হয়, দুই পক্ষের OTP দিয়ে। দর দিলেই চুক্তি হয় না।',en:'Take a photo of the problem, pick the trade, write a short description. Nearby repairers bid a price — a record is made only when you pick one and both sides confirm by OTP. A bid alone is not an agreement.'},
+'bid.trade':{bn:'কাজের ধরন — Trade',en:'Trade — type of work'},
+'bid.desc':{bn:'সমস্যাটা কী (সর্বোচ্চ ৫০০ অক্ষর)',en:'What is wrong? (max 500 characters)'},
+'bid.photos':{bn:'সমস্যার ছবি (সর্বোচ্চ ৩টি)',en:'Photos of the problem (max 3)'},
+'bid.address':{bn:'কাজের জায়গা',en:'Job site'},
+'bid.me':{bn:'আমার বর্তমান লোকেশন ব্যবহার করুন',en:'Use my current location'},
+'bid.clear':{bn:'জায়গা মুছুন',en:'Clear site'},
+'bid.post':{bn:'দরের জন্য কাজ দিন',en:'Post job for bids'},
+'bid.mine':{bn:'আমার দর-খোলা কাজ',en:'My open bid jobs'},
+'bid.findTitle':{bn:'কাজ খুঁজুন — দর দিন',en:'Find work — bid on jobs'},
+'bid.findText':{bn:'খোলা কাজগুলো দেখুন — কাছের কাজ আগে। দর দিলেই কাজ পাওয়া যায় না — Hirer বেছে নিলে রেকর্ড তৈরি হয়, দুই পক্ষের OTP দিয়ে।',en:'Browse open jobs — nearest first. A bid alone does not win the job — the hirer picks one, then a record is made and both sides confirm by OTP.'},
+'bid.useLoc':{bn:'আমার লোকেশন ব্যবহার করুন — কাছের কাজ আগে',en:'Use my location — nearest first'},
+'bid.refresh':{bn:'আপডেট করুন',en:'Refresh'},
+'bid.acceptNote':{bn:'দর দিলেই চুক্তি হয় না — বেছে নিলে রেকর্ড তৈরি হয়, তারপর দুই পক্ষের OTP দিয়ে নিশ্চিত করতে হয়।',en:'A bid alone is not an agreement — picking one creates a record, which both sides must then confirm by OTP.'},
+'bid.closeNoHire':{bn:'দর বন্ধ করুন — কাউকে বাছা হয়নি',en:'Close bidding — nobody picked'}
 };
 var NOT_DECIDED={bn:'ঠিক হয়নি',en:'Not decided'};
 function t(key){var d=I18N[key];return d?(d[lang]||d.en):key;}
@@ -207,7 +227,7 @@ async function api(path,opts){
  if(!res.ok){var m=(data&&(data.error||data.message))||('HTTP '+res.status);throw new Error(m);}
  return data;
 }
-function showView(id){['view-login','view-jobs','view-new','view-detail'].forEach(function(v){var el=$(v);if(el)el.hidden=(v!==id);});}
+function showView(id){['view-login','view-jobs','view-new','view-detail','view-bid-post','view-find-work','view-bid-detail'].forEach(function(v){var el=$(v);if(el)el.hidden=(v!==id);});}
 
 /* ---------- FairScope ---------- */
 var FAIRSCOPE={
@@ -711,6 +731,126 @@ function initDetail(){
   }catch(e){showErr(e.message);}});
 }
 
+/* ---------- find a repairer: photo + nearby bidding (separate mode) ---------- */
+/* A bid alone is never an agreement. Picking a bid creates a normal Job
+   (pre-filled from the bid) which still needs dual OTP confirmation. */
+var bidTrade='ELECTRICIAN', bidSite=null, findLoc=null, currentBidJobId=null;
+function bidPhotosHtml(photos){
+ if(!photos||!photos.length)return '<p class="small">—</p>';
+ return '<div class="photo-grid">'+photos.map(function(u){
+  return '<figure class="photo"><a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" alt="'+(lang==='bn'?'সমস্যার ছবি':'Problem photo')+'" loading="lazy"></a></figure>';
+ }).join('')+'</div>';
+}
+function bidDistText(b){
+ if(b.distanceKm==null)return lang==='bn'?'দূরত্ব জানা নেই — লোকেশন দিন':'Distance unavailable — share your location';
+ return (lang==='bn'?'দূরত্ব: ':'Distance: ')+b.distanceKm+' km';
+}
+async function loadMyBidJobs(){
+ var box=$('bid-mine-list'); if(!box)return; box.innerHTML='<p class="small">LOADING…</p>';
+ try{var r=await api('/api/bid-jobs/mine'); var rows=r.bidJobs||[];
+  box.innerHTML=rows.length?rows.map(function(b){
+   return '<div class="job-row"><div><div class="t">'+esc(b.trade)+' — '+esc((b.description||'').slice(0,60))+'</div><div class="m">'+esc(b.status)+' · '+esc(b.liveBids||0)+' live bids · '+esc(fmtDate(b.created_at))+'</div></div><button class="btn btn-dark btn-sm" type="button" data-bidjob="'+esc(b.id)+'">'+(lang==='bn'?'দর দেখুন':'See bids')+'</button></div>';
+  }).join(''):'<p class="small">'+(lang==='bn'?'এখনো কোনো দর-খোলা কাজ নেই।':'No open bid jobs yet.')+'</p>';
+  box.querySelectorAll('[data-bidjob]').forEach(function(btn){btn.addEventListener('click',function(){openBidDetail(btn.getAttribute('data-bidjob'));});});
+ }catch(e){box.innerHTML='<p class="small">'+esc(e.message)+'</p>';}
+}
+async function openBidDetail(id){
+ currentBidJobId=id; clearErr();
+ try{var r=await api('/api/bid-jobs/'+encodeURIComponent(id));
+  var b=r.bidJob; var bids=r.bids||[];
+  $('bid-detail-title').textContent=b.trade+' — '+((b.description||'').slice(0,80));
+  $('bid-detail-meta').textContent=b.status+' · '+esc(fmtDate(b.created_at))+(b.siteArea?' · '+esc(b.siteArea):'');
+  $('bid-detail-photos').innerHTML=bidPhotosHtml(b.photos);
+  var bl=$('bid-list');
+  bl.innerHTML=bids.length?bids.map(function(bd){
+   var pass=bd.passport||{};
+   var facts=[];
+   if(pass.completedJobs!=null)facts.push((lang==='bn'?'সম্পন্ন কাজ: ':'Completed jobs: ')+pass.completedJobs);
+   if(pass.trades&&pass.trades.length)facts.push((lang==='bn'?'কাজের ধরন: ':'Trades: ')+pass.trades.join(', '));
+   return '<div class="job-row"><div><div class="t">'+taka(bd.amount)+' · '+esc(bd.workerName||bd.workerPhone||'')+'</div><div class="m">'+esc(bd.note||'')+(bd.earliestStart?' · '+(lang==='bn'?'শুরু: ':'Starts: ')+esc(bd.earliestStart):'')+'</div><div class="m">'+(bd.distanceKm!=null?(lang==='bn'?'দূরত্ব: ':'Distance: ')+bd.distanceKm+' km':(lang==='bn'?'দূরত্ব জানা নেই':'Distance unavailable'))+' · '+esc(facts.join(' · '))+'</div><div class="m">'+esc(bd.status)+' · '+(lang==='bn'?'মেয়াদ: ':'Expires: ')+esc(fmtDT(bd.expires_at))+'</div></div>'+
+   (bd.status==='LIVE'?'<button class="btn btn-dark btn-sm" type="button" data-accept="'+esc(bd.id)+'">'+(lang==='bn'?'বেছে নিন':'Pick this bid')+'</button>':'')+'</div>';
+  }).join(''):'<p class="small">'+(lang==='bn'?'এখনো কোনো দর আসেনি।':'No bids yet.')+'</p>';
+  bl.querySelectorAll('[data-accept]').forEach(function(btn){btn.addEventListener('click',async function(){
+   clearErr();
+   try{var acc=await api('/api/bid-jobs/'+encodeURIComponent(currentBidJobId)+'/bids/'+encodeURIComponent(btn.getAttribute('data-accept'))+'/accept',{method:'POST',body:'{}'});
+    showNotice(lang==='bn'?'দর বেছে নেওয়া হয়েছে — এখন রেকর্ড তৈরি হয়েছে। দুই পক্ষের OTP দিয়ে নিশ্চিত করুন।':'Bid picked — the record is created. Both sides must now confirm by OTP.');
+    if(acc&&acc.job&&acc.job.id)openJob(acc.job.id);
+   }catch(e){showErr(e.message);}
+  });});
+  showView('view-bid-detail');
+ }catch(e){showErr(e.message);}
+}
+async function loadOpenBidJobs(){
+ var box=$('find-work-list'); if(!box)return; box.innerHTML='<p class="small">LOADING…</p>';
+ var q=findLoc?('?lat='+findLoc.lat+'&lng='+findLoc.lng):'';
+ $('find-loc-note').textContent=findLoc?(lang==='bn'?'আপনার লোকেশন: ':'Your location: ')+findLoc.lat+', '+findLoc.lng+' — '+(lang==='bn'?'কাছের কাজ আগে':'nearest first'):(lang==='bn'?'লোকেশন ছাড়া — নতুন কাজ আগে। দূরত্ব দেখতে “Use my location” চাপুন।':'No location — newest first. Tap “Use my location” to see distance.');
+ try{var r=await api('/api/bid-jobs/open'+q); var rows=r.bidJobs||[];
+  box.innerHTML=rows.length?rows.map(function(b){
+   return '<div class="job-row" style="display:block"><div><div class="t">'+esc(b.trade)+' — '+esc((b.description||'').slice(0,80))+'</div><div class="m">'+bidDistText(b)+' · '+esc(b.bidCount||0)+' '+(lang==='bn'?'টি দর':'bids')+' · '+esc(fmtDate(b.created_at))+(b.siteArea?' · '+esc(b.siteArea):'')+'</div></div>'+
+   bidPhotosHtml(b.photos)+
+   '<div class="field-grid"><div><label>'+(lang==='bn'?'আপনার দাম (৳)':'Your price (৳)')+'</label><input type="number" min="1" inputmode="numeric" class="bid-amount" placeholder="4000"></div>'+
+   '<div><label>'+(lang==='bn'?'কবে শুরু করতে পারবেন?':'Earliest start')+'</label><input type="text" class="bid-start" placeholder="e.g. 2026-11-28"></div></div>'+
+   '<label>'+(lang==='bn'?'নোট (ঐচ্ছিক)':'Note (optional)')+'</label><input type="text" class="bid-note" maxlength="280" placeholder="'+(lang==='bn'?'যেমন: মালামালসহ':'e.g. including materials')+'">'+
+   '<div class="btn-row"><button class="btn btn-dark btn-sm" type="button" data-bid="'+esc(b.id)+'">'+(lang==='bn'?'দর দিন':'Place bid')+'</button></div></div>';
+  }).join(''):'<p class="small">'+(lang==='bn'?'এখন কোনো খোলা কাজ নেই।':'No open jobs right now.')+'</p>';
+  box.querySelectorAll('[data-bid]').forEach(function(btn){btn.addEventListener('click',async function(){
+   clearErr();
+   var card=btn.closest('.job-row'); var amt=Number(card.querySelector('.bid-amount').value);
+   if(!(amt>0)){showErr(lang==='bn'?'দাম ০-এর বেশি হতে হবে।':'Price must be more than 0.');return;}
+   try{await api('/api/bid-jobs/'+encodeURIComponent(btn.getAttribute('data-bid'))+'/bids',{method:'POST',body:JSON.stringify({
+     amount:amt,
+     note:card.querySelector('.bid-note').value.trim()||undefined,
+     earliestStart:card.querySelector('.bid-start').value.trim()||undefined,
+     workerLat:findLoc?findLoc.lat:undefined, workerLng:findLoc?findLoc.lng:undefined})});
+    showNotice(lang==='bn'?'দর দেওয়া হয়েছে — ২৪ ঘণ্টা কার্যকর থাকবে।':'Bid placed — valid for 24 hours.');
+    loadOpenBidJobs();
+   }catch(e){showErr(e.message);}
+  });});
+ }catch(e){box.innerHTML='<p class="small">'+esc(e.message)+'</p>';}
+}
+function initBidding(){
+ var picker=$('bid-trade-picker');
+ if(picker)picker.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){
+  bidTrade=b.getAttribute('data-trade');
+  picker.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false');});});});
+ $('btn-bid-post').addEventListener('click',function(){showView('view-bid-post');loadMyBidJobs();});
+ $('btn-find-work').addEventListener('click',function(){showView('view-find-work');loadOpenBidJobs();});
+ $('btn-bid-back').addEventListener('click',function(){showView('view-jobs');loadJobs();});
+ $('btn-find-back').addEventListener('click',function(){showView('view-jobs');loadJobs();});
+ $('btn-bid-detail-back').addEventListener('click',function(){showView('view-bid-post');loadMyBidJobs();});
+ $('btn-bid-me').addEventListener('click',function(){
+  if(!('geolocation' in navigator)){showErr(lang==='bn'?'এই ডিভাইসে লোকেশন পাওয়া যাচ্ছে না।':'Location is not available on this device.');return;}
+  navigator.geolocation.getCurrentPosition(function(p){bidSite={lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6)};
+   var el=$('bid-picked');el.hidden=false;el.textContent='SITE: '+bidSite.lat+', '+bidSite.lng;},
+   function(e){showErr(e.message);},{enableHighAccuracy:true,timeout:10000});});
+ $('btn-bid-clear').addEventListener('click',function(){bidSite=null;$('bid-address').value='';var el=$('bid-picked');if(el)el.hidden=true;});
+ $('btn-find-loc').addEventListener('click',function(){
+  if(!('geolocation' in navigator)){showErr(lang==='bn'?'এই ডিভাইসে লোকেশন পাওয়া যাচ্ছে না।':'Location is not available on this device.');return;}
+  navigator.geolocation.getCurrentPosition(function(p){findLoc={lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6)};loadOpenBidJobs();},
+   function(e){showErr(e.message);},{enableHighAccuracy:true,timeout:10000});});
+ $('btn-find-refresh').addEventListener('click',loadOpenBidJobs);
+ $('btn-bid-close').addEventListener('click',async function(){clearErr();
+  try{await api('/api/bid-jobs/'+encodeURIComponent(currentBidJobId)+'/close',{method:'POST',body:'{}'});
+   showNotice(lang==='bn'?'দর বন্ধ করা হয়েছে — কাউকে বাছা হয়নি।':'Bidding closed — nobody was picked.');
+   showView('view-bid-post');loadMyBidJobs();
+  }catch(e){showErr(e.message);}});
+ $('form-bid-post').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
+  var desc=$('bid-desc').value.trim();
+  if(!desc){showErr(lang==='bn'?'সমস্যার বিবরণ লিখুন।':'Write a short description of the problem.');return;}
+  try{var r=await api('/api/bid-jobs',{method:'POST',body:JSON.stringify({trade:bidTrade,description:desc,
+    site:bidSite?{lat:bidSite.lat,lng:bidSite.lng,address:$('bid-address').value.trim()||undefined}:($('bid-address').value.trim()?{address:$('bid-address').value.trim()}:undefined)})});
+   var id=r.bidJob&&r.bidJob.id; if(!id)throw new Error('No bid job id returned');
+   var files=$('bid-photos').files||[];
+   for(var i=0;i<Math.min(files.length,3);i++){
+    var fd=new FormData(); fd.append('photo',files[i]);
+    await api('/api/bid-jobs/'+encodeURIComponent(id)+'/photos',{method:'POST',body:fd});
+   }
+   showNotice(lang==='bn'?'কাজটি দরের জন্য দেওয়া হয়েছে।':'Job posted for bids.');
+   $('form-bid-post').reset(); bidSite=null; var el=$('bid-picked'); if(el)el.hidden=true;
+   loadMyBidJobs(); openBidDetail(id);
+  }catch(e){showErr(e.message);}});
+}
+
 /* ---------- demo ---------- */
 async function loadDemo(){
  clearErr();
@@ -761,7 +901,7 @@ document.addEventListener('DOMContentLoaded',function(){
  renderDotMap($('map-hero'),{w:560,h:480});
  renderDotMap($('map-footer'),{w:560,h:300,step:15});
  renderDotMap($('map-journey'),{w:520,h:360,step:16});
- initJourney(); initAuth(); initNewJob(); initDetail(); renderFairScope();
+ initJourney(); initAuth(); initNewJob(); initDetail(); initBidding(); renderFairScope();
  $('cta-demo').addEventListener('click',loadDemo);
  $('btn-demo').addEventListener('click',loadDemo);
  $('cta-start').addEventListener('click',function(){ if(token){showView('view-jobs');loadJobs();} });

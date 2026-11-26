@@ -32,6 +32,7 @@
     <a href="#why" data-i18n="nav.why">কেন</a>
     <a href="#faq" data-i18n="nav.faq">প্রশ্ন</a>
     <a href="#app" data-i18n="nav.app">অ্যাপ</a>
+    <a href="#bid" data-i18n="nav.bid">মিস্ত্রি খুঁজুন</a>
   </nav>
   <div class="lang-toggle" role="group" aria-label="Language / ভাষা">
     <button type="button" id="lang-bn" aria-pressed="true">বাংলা</button>
@@ -182,8 +183,59 @@
     <p id="me-line" class="mono grey"></p>
     <div class="btn-row"><button class="btn btn-dark" type="button" id="btn-new-job" data-i18n="jobs.new">+ New job — FairScope</button>
     <button class="btn btn-dark-ghost" type="button" id="btn-refresh" data-i18n="jobs.refresh">Refresh list</button></div>
+    <div class="btn-row"><button class="btn btn-orange" type="button" id="btn-bid-post" data-i18n="bid.postBtn">Find a repairer — ছবি দিয়ে কাজ দিন</button>
+    <button class="btn btn-dark-ghost" type="button" id="btn-find-work" data-i18n="bid.findBtn">Find work — কাজের জন্য দর দিন</button></div>
     <div class="job-list" id="job-list"></div>
     <p class="small" id="jobs-empty" hidden data-i18n="jobs.empty">No jobs yet. Start a record above.</p>
+  </div>
+
+  <!-- FIND A REPAIRER — photo + nearby bidding (separate mode) -->
+  <div class="app-card view" id="view-bid-post" hidden>
+    <button class="btn btn-dark-ghost btn-sm" type="button" id="btn-bid-back" data-i18n="bid.back">← All jobs</button>
+    <h2 style="margin-top:16px" data-i18n="bid.postTitle">মিস্ত্রি খুঁজুন — ছবি দিয়ে কাজ দিন</h2>
+    <p data-i18n="bid.postText">সমস্যার ছবি তুলুন, কাজের ধরন আর বিবরণ লিখুন। কাছের মিস্ত্রিরা দাম দেবেন — আপনি একজনকে বেছে নিলে তবেই রেকর্ড তৈরি হয়, দুই পক্ষের OTP দিয়ে। দর দিলেই চুক্তি হয় না।</p>
+    <form id="form-bid-post">
+      <label data-i18n="bid.trade">Trade — কাজের ধরন</label>
+      <div class="opt-row" id="bid-trade-picker">
+        <button type="button" data-trade="ELECTRICIAN" aria-pressed="true">ELECTRICIAN · ইলেকট্রিশিয়ান</button>
+        <button type="button" data-trade="PAINTER" aria-pressed="false">PAINTER · পেইন্টার</button>
+        <button type="button" data-trade="PLUMBER" aria-pressed="false">PLUMBER · প্লাম্বার</button>
+      </div>
+      <label for="bid-desc" data-i18n="bid.desc">What is wrong? — সমস্যাটা কী (সর্বোচ্চ ৫০০ অক্ষর)</label>
+      <textarea id="bid-desc" rows="3" maxlength="500" placeholder="যেমন: বাথরুমের পাইপ ফেটে পানি পড়ছে"></textarea>
+      <label for="bid-photos" data-i18n="bid.photos">Photos of the problem — সমস্যার ছবি (সর্বোচ্চ ৩টি)</label>
+      <input id="bid-photos" type="file" accept="image/*" multiple>
+      <label for="bid-address" data-i18n="bid.address">Job site — কাজের জায়গা</label>
+      <input id="bid-address" type="text" placeholder="e.g. House 12, Road 5, Dhanmondi, Dhaka">
+      <div class="btn-row"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-bid-me" data-i18n="bid.me">Use my current location</button><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-bid-clear" data-i18n="bid.clear">Clear site</button></div>
+      <p class="small mono" id="bid-picked" hidden></p>
+      <div class="btn-row"><button class="btn btn-dark" type="submit" data-i18n="bid.post">Post job for bids</button></div>
+    </form>
+    <hr class="hr">
+    <h3 data-i18n="bid.mine">আমার দর-খোলা কাজ</h3>
+    <div id="bid-mine-list"><p class="small">—</p></div>
+  </div>
+
+  <!-- FIND WORK — workers browse open bid jobs, nearest first -->
+  <div class="app-card view" id="view-find-work" hidden>
+    <button class="btn btn-dark-ghost btn-sm" type="button" id="btn-find-back" data-i18n="bid.back">← All jobs</button>
+    <h2 style="margin-top:16px" data-i18n="bid.findTitle">কাজ খুঁজুন — দর দিন</h2>
+    <p data-i18n="bid.findText">খোলা কাজগুলো দেখুন — কাছের কাজ আগে। দর দিলেই কাজ পাওয়া যায় না — Hirer বেছে নিলে রেকর্ড তৈরি হয়, দুই পক্ষের OTP দিয়ে।</p>
+    <div class="btn-row"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-find-loc" data-i18n="bid.useLoc">Use my location — nearest first</button>
+    <button class="btn btn-dark-ghost btn-sm" type="button" id="btn-find-refresh" data-i18n="bid.refresh">Refresh</button></div>
+    <p class="small mono" id="find-loc-note"></p>
+    <div id="find-work-list"><p class="small">—</p></div>
+  </div>
+
+  <!-- HIRER BIDS — see bids on one bid job, cheapest first, accept one -->
+  <div class="app-card view" id="view-bid-detail" hidden>
+    <button class="btn btn-dark-ghost btn-sm" type="button" id="btn-bid-detail-back" data-i18n="bid.back">← All jobs</button>
+    <h2 id="bid-detail-title" style="margin-top:16px">—</h2>
+    <p id="bid-detail-meta" class="mono grey"></p>
+    <div id="bid-detail-photos" class="photo-grid"></div>
+    <p class="small" data-i18n="bid.acceptNote">দর দিলেই চুক্তি হয় না — বেছে নিলে রেকর্ড তৈরি হয়, তারপর দুই পক্ষের OTP দিয়ে নিশ্চিত করতে হয়।</p>
+    <div id="bid-list"></div>
+    <div class="btn-row"><button class="btn btn-dark-ghost" type="button" id="btn-bid-close" data-i18n="bid.closeNoHire">Close bidding — nobody picked</button></div>
   </div>
 
   <!-- NEW JOB -->

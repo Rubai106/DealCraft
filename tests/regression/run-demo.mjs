@@ -387,6 +387,131 @@ try {
   const qr = await req(`/api/passport/${WORKER}/qr.png`);
   check(qr.status === 200 && (qr.headers.get('content-type') || '').includes('png'), 'passport QR PNG serves');
 
+  console.log('== find a repairer: photo + nearby bidding ==');
+  const bidHirer = token;
+  const postBid = await req('/api/bid-jobs', aj(bidHirer, { trade: 'PLUMBER', description: 'Bathroom pipe burst, water leaking through the wall', site: { lat: 23.8103, lng: 90.4125, address: 'Dhanmondi, Dhaka' } }));
+  check(postBid.status === 201 && postBid.body?.bidJob?.status === 'OPEN', 'hirer posted a bid job (OPEN, no price set)');
+  const bidJobId = postBid.body.bidJob.id;
+  const bidForm = () => { const f = new FormData(); f.append('photo', new Blob([png], { type: 'image/png' }), 'problem.png'); return f; };
+  const bp1 = await fetch(BASE + `/api/bid-jobs/${bidJobId}/photos`, { method: 'POST', headers: { Authorization: 'Bearer ' + bidHirer }, body: bidForm() });
+  check(bp1.status === 201, 'problem photo 1 uploaded to the bid job');
+  const bp2 = await fetch(BASE + `/api/bid-jobs/${bidJobId}/photos`, { method: 'POST', headers: { Authorization: 'Bearer ' + bidHirer }, body: bidForm() });
+  check(bp2.status === 201, 'problem photo 2 uploaded to the bid job');
+  const bp3 = await fetch(BASE + `/api/bid-jobs/${bidJobId}/photos`, { method: 'POST', headers: { Authorization: 'Bearer ' + bidHirer }, body: bidForm() });
+  check(bp3.status === 201, 'problem photo 3 uploaded to the bid job');
+  const bp4 = await fetch(BASE + `/api/bid-jobs/${bidJobId}/photos`, { method: 'POST', headers: { Authorization: 'Bearer ' + bidHirer }, body: bidForm() });
+  check(bp4.status === 400, '4th photo on a bid job is refused (max 3)');
+  const openNoAuth = await req('/api/bid-jobs/open');
+  check(openNoAuth.status === 401, 'open bid jobs without auth is refused (401)');
+  async function workerLogin(phone, name) {
+    const o = await req('/api/auth/request-otp', j({ phone, name, role: 'worker' }));
+    if (o.status !== 200 || !o.body?.sandbox?.otp) throw new Error('OTP for ' + phone + ' failed: ' + o.status);
+    const l = await req('/api/auth/verify-otp', j({ phone, code: o.body.sandbox.otp }));
+    if (l.status !== 200 || !l.body?.token) throw new Error('login for ' + phone + ' failed: ' + l.status);
+    return l.body.token;
+  }
+  const workerA = await workerLogin('01900000010', 'Bid Worker A');
+  const workerB = await workerLogin('01900000011', 'Bid Worker B');
+  const openNoLoc = await req('/api/bid-jobs/open', { headers: auth(workerA) });
+  check(openNoLoc.status === 200 && openNoLoc.body?.bidJobs?.length === 1, 'worker sees the open bid job');
+  check(openNoLoc.body.bidJobs[0]?.distanceKm === null, 'no location shared -> distance is unavailable (null)');
+  check(!JSON.stringify(openNoLoc.body).includes('01700000001') && !JSON.stringify(openNoLoc.body).includes('Rahim Uddin'), 'open listing never shows the hirer phone or name');
+  check(openNoLoc.body.bidJobs[0]?.photos?.length === 3, 'open listing shows the 3 problem photos');
+  const openNear = await req('/api/bid-jobs/open?lat=23.811&lng=90.413', { headers: auth(workerA) });
+  check(openNear.body?.bidJobs?.[0]?.distanceKm != null && openNear.body.bidJobs[0].distanceKm < 1, 'with a location, distance to the site is shown (< 1 km)');
+  const bidA = await req(`/api/bid-jobs/${bidJobId}/bids`, aj(workerA, { amount: 4500, note: 'Including materials', earliestStart: '2026-11-28', workerLat: 23.8115, workerLng: 90.4135 }));
+  check(bidA.status === 201 && bidA.body?.bid?.status === 'LIVE', 'worker A placed a live bid of BDT 4,500');
+  check(typeof bidA.body?.bid?.expires_at === 'string', 'bid carries a 24-hour expiry');
+  const bidADup = await req(`/api/bid-jobs/${bidJobId}/bids`, aj(workerA, { amount: 4400 }));
+  check(bidADup.status === 409, 'second live bid by the same worker is rejected (409)');
+  const bidSelf = await req(`/api/bid-jobs/${bidJobId}/bids`, aj(bidHirer, { amount: 1000 }));
+  check(bidSelf.status === 403, 'hirer cannot bid on their own posted job (403)');
+  const bidZero = await req(`/api/bid-jobs/${bidJobId}/bids`, aj(workerB, { amount: 0 }));
+  check(bidZero.status === 400, 'bid of BDT 0 is rejected (400)');
+  const bidB = await req(`/api/bid-jobs/${bidJobId}/bids`, aj(workerB, { amount: 3800, note: 'Can start tomorrow', earliestStart: '2026-11-28', workerLat: 23.9, workerLng: 90.5 }));
+  check(bidB.status === 201 && bidB.body?.bid?.status === 'LIVE', 'worker B placed a live bid of BDT 3,800 from farther away');
+  // Fill the job to the 10-live-bid cap, then the 11th bid must be refused.
+  const extraWorkers = [];
+  for (let i = 0; i < 8; i++) {
+    const ph = '019000000' + (12 + i);
+    const tk = await workerLogin(ph, 'Extra Worker ' + i);
+    extraWorkers.push({ phone: ph, token: tk });
+    const b = await req(`/api/bid-jobs/${bidJobId}/bids`, aj(tk, { amount: 5000 + i * 100 }));
+    if (b.status !== 201) throw new Error('extra bid ' + i + ' failed with ' + b.status);
+  }
+  const eleventh = await workerLogin('01900000020', 'Eleventh Worker');
+  const bid11 = await req(`/api/bid-jobs/${bidJobId}/bids`, aj(eleventh, { amount: 6000 }));
+  check(bid11.status === 409, '11th live bid is refused — max 10 live bids per job (409)');
+  const bidsList = await req(`/api/bid-jobs/${bidJobId}/bids`, { headers: auth(bidHirer) });
+  check(bidsList.status === 200 && bidsList.body?.bids?.length === 10, 'hirer sees all 10 live bids');
+  check(bidsList.body.bids[0]?.amount === 3800, 'bids are sorted cheapest first (BDT 3,800 first)');
+  check(bidsList.body.bids[0]?.distanceKm != null && bidsList.body.bids[0].distanceKm > 1, 'cheapest bid shows its distance (farther worker)');
+  const nearBid = bidsList.body.bids.find((b) => b.workerPhone === '01900000010');
+  check(nearBid && nearBid.distanceKm != null && nearBid.distanceKm < 1, 'nearby bid shows a short distance');
+  check(bidsList.body.bids.every((b) => b.passport && typeof b.passport.completedJobs === 'number' && Array.isArray(b.passport.trades)), 'each bid shows WorkPassport facts (completed jobs + trades)');
+  check(!JSON.stringify(bidsList.body).includes('"rating"') && !JSON.stringify(bidsList.body).includes('"score"'), 'no ratings or scores anywhere in the bids');
+  const bidsOther = await req(`/api/bid-jobs/${bidJobId}/bids`, { headers: auth(otherLogin.body.token) });
+  check(bidsOther.status === 403, 'another hirer cannot see the bids (403)');
+  // Bid expiry: backdate one extra worker's bid, then it must show EXPIRED and refuse acceptance.
+  {
+    const { DatabaseSync } = await import('node:sqlite');
+    const dbPath = path.resolve(import.meta.dirname, '..', '..', 'server', 'data', 'dealcraft.db');
+    const db = new DatabaseSync(dbPath);
+    const victim = db.prepare("SELECT id FROM Bid WHERE bid_job_id = ? AND worker_phone = ?").get(bidJobId, '01900000012');
+    db.prepare("UPDATE Bid SET expires_at = ? WHERE id = ?").run(new Date(Date.now() - 1000).toISOString(), victim.id);
+    db.close();
+    const afterExpiry = await req(`/api/bid-jobs/${bidJobId}/bids`, { headers: auth(bidHirer) });
+    const expiredBid = afterExpiry.body.bids.find((b) => b.id === victim.id);
+    check(expiredBid?.status === 'EXPIRED', 'bid past its 24-hour window shows EXPIRED');
+    const acceptExpired = await req(`/api/bid-jobs/${bidJobId}/bids/${victim.id}/accept`, aj(bidHirer, {}));
+    check(acceptExpired.status === 400, 'accepting an expired bid is refused (400)');
+  }
+  const bidAccept = await req(`/api/bid-jobs/${bidJobId}/bids/${bidB.body.bid.id}/accept`, aj(bidHirer, {}));
+  check(bidAccept.status === 201 && bidAccept.body?.job?.price === undefined && bidAccept.body?.job?.status === 'DRAFT', 'accepting a bid creates a DRAFT job (a bid alone is not an agreement)');
+  const acceptedJobId = bidAccept.body.job.id;
+  check(typeof bidAccept.body?.workerLink === 'string' && bidAccept.body.workerLink.includes('token='), 'acceptance returns a worker link for the new job');
+  check(Array.isArray(bidAccept.body?.missingTerms) && bidAccept.body.missingTerms.length === 5, 'accepted job carries all 5 plumber FairScope questions as missing terms');
+  const openAfterAccept = await req('/api/bid-jobs/open', { headers: auth(workerA) });
+  check(!openAfterAccept.body?.bidJobs?.some((b) => b.id === bidJobId), 'accepted job leaves the open list');
+  const bidsAfter = await req(`/api/bid-jobs/${bidJobId}/bids`, { headers: auth(bidHirer) });
+  check(bidsAfter.body.bids.find((b) => b.id === bidB.body.bid.id)?.status === 'ACCEPTED', 'winning bid is ACCEPTED');
+  check(bidsAfter.body.bids.find((b) => b.workerPhone === '01900000010')?.status === 'NOT_SELECTED', 'losing bid is marked NOT_SELECTED');
+  const acceptedToken = bidAccept.body.workerLink.split('token=')[1];
+  const acceptedDetail = await req(`/api/jobs/${acceptedJobId}?token=${acceptedToken}`);
+  const accTypes = acceptedDetail.body.events.map((e) => e.type);
+  check(accTypes.includes('BID_JOB_POSTED') && accTypes.includes('BID_PLACED') && accTypes.includes('BID_ACCEPTED') && accTypes.includes('BID_NOT_SELECTED'), 'bidding history is in the new job event log');
+  check(acceptedDetail.body.job.status === 'DRAFT', 'accepted job is NOT ACTIVE before dual OTP');
+  check(acceptedDetail.body.photos.length >= 2 && acceptedDetail.body.photos.every((p) => p.kind === 'BEFORE'), 'problem photos carried onto the job as BEFORE photos');
+  const acceptedV1 = acceptedDetail.body.versions.find((v) => v.version_no === 1);
+  check(acceptedV1?.price === 3800 && acceptedV1?.fingerprint === fingerprint({ job_id: acceptedJobId, version_no: 1, scope: 'Bathroom pipe burst, water leaking through the wall', price: 3800, deadline: null }), 'accepted job V1 price is the bid price with a valid fingerprint');
+  // Dual OTP confirmation of the bid-created job (fee first, as in the main flow).
+  const accHirerOtp = await req('/api/auth/request-otp', j({ phone: HIRER, purpose: 'hirer-confirm' }));
+  check(accHirerOtp.status === 200 && accHirerOtp.body?.sandbox?.otp, 'hirer-confirm OTP issued for the bid job');
+  const accHc = await req(`/api/jobs/${acceptedJobId}/hirer-confirm`, aj(bidHirer, { otpCode: accHirerOtp.body.sandbox.otp }));
+  check(accHc.status === 200 && accHc.body?.job?.status === 'PENDING', 'hirer confirmed the bid-created job (PENDING)');
+  const accCharge = await req('/api/billing/caas', aj(bidHirer, { jobId: acceptedJobId }));
+  check(accCharge.status === 200 && accCharge.body?.sandboxOtp, 'CaaS fee charged for the bid-created job');
+  const accVerify = await req(`/api/billing/caas/${accCharge.body.chargeId}/verify`, aj(bidHirer, { otpCode: accCharge.body.sandboxOtp }));
+  check(accVerify.status === 200 && accVerify.body?.status === 'VERIFIED', 'CaaS fee verified for the bid-created job');
+  const accWcOtp = await req(`/api/worker/${acceptedToken}/request-otp`, j({ purpose: 'worker-confirm' }));
+  check(accWcOtp.status === 200 && accWcOtp.body?.sandbox?.otp, 'worker-confirm OTP issued for the bid job');
+  const accWc = await req(`/api/worker/${acceptedToken}/confirm`, j({ otpCode: accWcOtp.body.sandbox.otp }));
+  check(accWc.status === 200 && accWc.body?.job?.status === 'ACTIVE', 'worker confirmed -> bid-created job is ACTIVE');
+  // Closing bidding without picking anyone.
+  const postBid2 = await req('/api/bid-jobs', aj(bidHirer, { trade: 'ELECTRICIAN', description: 'Ceiling fan not working', site: { lat: 23.8103, lng: 90.4125 } }));
+  check(postBid2.status === 201, 'second bid job posted');
+  const bidJob2 = postBid2.body.bidJob.id;
+  const bid2 = await req(`/api/bid-jobs/${bidJob2}/bids`, aj(workerA, { amount: 3000 }));
+  check(bid2.status === 201, 'worker bid on the second bid job');
+  const closeBid = await req(`/api/bid-jobs/${bidJob2}/close`, aj(bidHirer, {}));
+  check(closeBid.status === 200 && closeBid.body?.bidJob?.status === 'CLOSED_NO_HIRE', 'hirer closed bidding without picking anyone');
+  const bidsAfterClose = await req(`/api/bid-jobs/${bidJob2}/bids`, { headers: auth(bidHirer) });
+  check(bidsAfterClose.body.bids[0]?.status === 'NOT_SELECTED', 'bid on a closed-without-hire job is NOT_SELECTED');
+  const acceptAfterClose = await req(`/api/bid-jobs/${bidJob2}/bids/${bid2.body.bid.id}/accept`, aj(bidHirer, {}));
+  check(acceptAfterClose.status === 400, 'accepting after bidding closed is refused (400)');
+  const openAfterClose = await req('/api/bid-jobs/open', { headers: auth(workerA) });
+  check(!openAfterClose.body?.bidJobs?.some((b) => b.id === bidJob2), 'closed-without-hire job leaves the open list');
+
   console.log('== AppLink log + public pages ==');
   const log = await req('/api/applink/log', { headers: auth(token) });
   const apis = (log.body?.entries || []).map((e) => e.api);
