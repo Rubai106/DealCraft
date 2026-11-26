@@ -1,6 +1,9 @@
 // DealCraft — AppLink adapter selector.
 // APPLINK_MODE env: 'sandbox' (default) or 'live'.
-// Both adapters expose identical interfaces:
+// Live mode needs APPLINK_APP_ID + APPLINK_PASSWORD (see live.js and
+// README.md); without them the live adapter throws a clear error on first
+// use instead of silently falling back to sandbox.
+// Both adapters expose identical interfaces for the core calls:
 //   sendOtp(phone, purpose) -> {messageId, status} (+ sandbox code, sandbox only)
 //   verifyOtp(phone, code, purpose) -> bool
 //   sendSms(phone, message) -> {messageId, status}
@@ -24,7 +27,15 @@ function getMode() {
 function getAdapter() {
   const mode = getMode();
   if (mode === 'live') {
-    return { mode, ...live };
+    return {
+      mode,
+      ...live,
+      // Live has no local "last SMS" store; getLastSms() returns null.
+      unsubscribe: live.unsubscribe,
+      getChargingInfo: live.getChargingInfo,
+      getBaseSize: live.getBaseSize,
+      getSmsDeliveryStatus: live.getSmsDeliveryStatus,
+    };
   }
   return {
     mode: 'sandbox',
@@ -36,6 +47,7 @@ function getAdapter() {
     verifyCharge: sandboxCaas.verifyCharge,
     subscribe: sandboxSubscription.subscribe,
     getSubscription: sandboxSubscription.getSubscription,
+    unsubscribe: sandboxSubscription.unsubscribe,
   };
 }
 

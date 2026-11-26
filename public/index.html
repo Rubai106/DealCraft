@@ -17,13 +17,16 @@
 <meta name="twitter:title" content="DealCraft — Bangla-first work record">
 <meta name="twitter:description" content="A phone call can start a job. It shouldn't be the only record of what was promised.">
 <link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 <script>document.documentElement.classList.add('m-enter')</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="nav"><a class="skip-link" href="#top">Skip to content</a><div class="wrap nav-in">
   <a class="brand" href="#top">DEALCRAFT<i>.</i></a>
-  <nav class="nav-links" aria-label="Main">
+  <button class="menu-btn" type="button" id="menu-btn" aria-expanded="false" aria-controls="main-nav"><span aria-hidden="true">☰</span> <span data-i18n="nav.menu">মেনু</span></button>
+  <nav class="nav-links" id="main-nav" aria-label="Main">
     <a href="#journey" data-i18n="nav.how">কীভাবে কাজ করে</a>
     <a href="#price" data-i18n="nav.price">খরচ</a>
     <a href="#why" data-i18n="nav.why">কেন</a>
@@ -50,7 +53,7 @@
     <div class="hero-meta">
       <span class="mono grey" data-i18n="hero.meta1">Workers — free, always</span>
       <span class="mono grey" data-i18n="hero.meta2">Hirer — ৳10 / record · ৳70 / month</span>
-      <span class="live-pill" data-i18n="hero.meta3">Live — AppLink SMS</span>
+      <span class="live-pill" data-i18n="hero.meta3">Sandbox — demo</span>
     </div>
   </div>
 </div>
@@ -65,7 +68,7 @@
   <div class="journey-grid">
     <div class="journey-steps-col">
   <div class="journey-steps" id="journey-steps">
-    <article class="jstep" data-step="0"><div class="jstep-num">01</div><div><h3 data-i18n="j1t">FairScope — আগে প্রশ্ন, পরে কাজ</h3><p data-i18n="j1p">কে মাল কিনবে, কয় কোট, কয় পয়েন্ট — প্রতিটি প্রশ্নের উত্তর ঠিক করুন। যা ঠিক হয়নি, তা লুকানো যাবে না।</p><span class="tag"><b>V1</b> · <span data-i18n="j1tag">7 questions · electrician</span></span></div></article>
+    <article class="jstep" data-step="0"><div class="jstep-num">01</div><div><h3 data-i18n="j1t">FairScope — আগে প্রশ্ন, পরে কাজ</h3><p data-i18n="j1p">কে মাল কিনবে, কয় কোট, কয় পয়েন্ট — প্রতিটি প্রশ্নের উত্তর ঠিক করুন। যা ঠিক হয়নি, তা লুকানো যাবে না।</p><span class="tag"><b>V1</b> · <span data-i18n="j1tag">8 questions · electrician</span></span></div></article>
     <article class="jstep" data-step="1"><div class="jstep-num">02</div><div><h3 data-i18n="j2t">দুজনেই নিশ্চিত করুন — OTP</h3><p data-i18n="j2p">Hirer আর worker — দুজনেই ফোনে OTP দিয়ে রেকর্ডটি নিশ্চিত করেন। একজনের কথায় রেকর্ড হয় না।</p><span class="tag"><b>V1</b> · <span data-i18n="j2tag">Mutual confirmation</span></span></div></article>
     <article class="jstep" data-step="2"><div class="jstep-num">03</div><div><h3 data-i18n="j3t">কাজ চলাকালীন — মাইলস্টোন আর ছবি</h3><p data-i18n="j3p">প্রতিটি ধাপ শেষ হলে worker ছবি দিয়ে জানান, hirer অনুমোদন দেন। সবকিছু সময়সহ লেখা থাকে।</p><span class="tag"><b>V1</b> · <span data-i18n="j3tag">Timeline · photos</span></span></div></article>
     <article class="jstep" data-step="3"><div class="jstep-num">04</div><div><h3 data-i18n="j4t">টাকা দিলে — PayProof</h3><p data-i18n="j4p">অগ্রিম বা কিস্তি দিলে রেকর্ড করুন। Worker “পেয়েছি” বললে তবেই টাকাটা স্বীকৃত হয়। বাকি টাকা সবসময় চোখের সামনে।</p><span class="tag"><b>V1</b> · <span data-i18n="j4tag">৳5,000 advance acknowledged</span></span></div></article>
@@ -142,6 +145,7 @@
   <div class="sec-head"><span class="sec-num">06 / APP</span><h2 class="sec-title" data-i18n="app.title">অ্যাপ — রেকর্ড শুরু করুন</h2></div>
   <p class="lede" data-i18n="app.lede">ফোন নম্বর দিয়ে লগইন করুন। OTP আসবে SMS-এ। ডেমোতে OTP স্ক্রিনেই দেখানো হয় — এটি লাইভ AppLink কল নয়।</p>
   <div id="app-error" class="error" role="alert" hidden></div>
+  <div id="app-notice" class="notice blue" role="status" hidden></div>
 
   <!-- LOGIN -->
   <div class="app-card view" id="view-login" data-ui="dealcraft-app">
@@ -219,6 +223,13 @@
       </div>
       <label for="job-scope" data-i18n="new.scope">Scope — কাজের বিবরণ</label>
       <textarea id="job-scope" rows="3" placeholder="যেমন: পুরো ফ্ল্যাটের রিওয়্যারিং, ১২ পয়েন্ট"></textarea>
+      <h3 data-i18n="site.title">Job site — কাজের জায়গা (optional)</h3>
+      <p class="small" data-i18n="site.hint">Tap the map to drop a pin, or use your current location. No site = no distance or ETA — location sharing still works.</p>
+      <div id="site-map"></div>
+      <label for="site-address" data-i18n="site.address">Address — ঠিকানা</label>
+      <input id="site-address" type="text" placeholder="e.g. House 12, Road 5, Dhanmondi, Dhaka">
+      <div class="btn-row"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-site-me" data-i18n="site.me">Use my current location</button><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-site-clear" data-i18n="site.clear">Clear site</button></div>
+      <p class="small mono" id="site-picked" hidden></p>
       <h3 data-i18n="new.milestones">Milestones — ধাপ (optional)</h3>
       <div id="milestone-rows">
         <div class="field-grid"><div><input type="text" class="ms-title" placeholder="Milestone title — যেমন: Wiring complete"></div><div><input type="number" class="ms-amount" min="0" inputmode="numeric" placeholder="Amount ৳"></div></div>
@@ -229,6 +240,7 @@
     </div>
     <div id="new-step-4" hidden>
       <div class="record" id="review-record"></div>
+      <div class="notice blue" hidden id="create-link-box"><b data-i18n="detail.workerLinkTitle">Worker link</b><p><a id="create-link-url" href="#" target="_blank" rel="noopener">—</a></p><div class="btn-row"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-resend-link-create" data-i18n="detail.resendLink">Resend worker link</button></div></div>
       <div class="sandbox" hidden id="sandbox-create"><b>SANDBOX — not a live AppLink call.</b><br><span id="sandbox-create-text"></span></div>
       <div class="btn-row"><button class="btn btn-dark-ghost" type="button" id="back-step-3" data-i18n="new.back">Back</button>
       <button class="btn btn-dark" type="button" id="btn-create-job" data-i18n="new.create">Create job &amp; send to worker</button></div>
@@ -247,12 +259,30 @@
       <div><div class="amt" id="bal-rem">৳0</div><div class="lbl" data-i18n="bal.rem">Remaining</div></div>
     </div>
     <div class="bar" aria-hidden="true"><i id="bar-paid" style="width:0%"></i><em id="bar-agreed" style="width:0%"></em></div>
+    <div id="loc-box" class="notice" hidden>
+      <b data-i18n="loc.title">Live location — লাইভ লোকেশন</b>
+      <p><span class="pill" id="loc-status-pill">—</span> <span id="loc-text">—</span></p>
+      <p class="small" id="loc-sim" hidden><b>SIMULATED — not a real phone.</b> Demo movement only. / ডেমো চলাচল — আসল ফোন নয়।</p>
+      <div id="loc-map" hidden></div>
+      <p class="small" id="loc-nomap" hidden>Map did not load — showing text only. / ম্যাপ লোড হয়নি — শুধু লেখা দেখানো হচ্ছে।</p>
+      <div class="btn-row"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-loc-sim" data-i18n="loc.sim">Simulate worker moving — ডেমো</button><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-loc-sim-stop" hidden data-i18n="loc.simStop">Stop simulation</button></div>
+      <p class="small" data-i18n="loc.privacy">Worker shares only if they tap Share — only you can see it, only while the job is active. It stops when the job closes.</p>
+    </div>
     <div id="detail-warn" class="warn" hidden><h4 data-i18n="warn.title">Missing terms — ঠিক হয়নি</h4><ul id="detail-missing"></ul></div>
     <div id="detail-confirm" class="notice" hidden>
       <b data-i18n="detail.confirmTitle">Hirer confirmation needed</b>
       <p data-i18n="detail.confirmText">Worker নিশ্চিত করেছেন। আপনার OTP দিয়ে রেকর্ডটি চূড়ান্ত করুন।</p>
       <div class="sandbox" id="sandbox-confirm" hidden><b>SANDBOX — not a live AppLink call.</b><br><span id="sandbox-confirm-text"></span></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="confirm-otp" type="text" inputmode="numeric" placeholder="OTP" style="max-width:180px"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-confirm-send-otp" data-i18n="detail.sendOtp">Send confirm OTP</button><button class="btn btn-dark btn-sm" type="button" id="btn-hirer-confirm" data-i18n="detail.confirmBtn">Confirm with OTP</button></div>
+    </div>
+    <div id="detail-wait" class="notice blue" hidden>
+      <b data-i18n="detail.waitTitle">Waiting for worker confirmation</b>
+      <p data-i18n="detail.waitText">The worker has not confirmed yet. Once the worker confirms by OTP from their link, you can confirm here.</p>
+    </div>
+    <div id="worker-link-box" class="notice blue" hidden>
+      <b data-i18n="detail.workerLinkTitle">Worker link</b>
+      <p><a id="worker-link-url" href="#" target="_blank" rel="noopener">—</a></p>
+      <div class="btn-row"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-resend-link" data-i18n="detail.resendLink">Resend worker link</button></div>
     </div>
     <div class="record" id="detail-record" hidden></div>
     <div class="tabs" role="tablist" aria-label="Job sections">
@@ -268,7 +298,7 @@
       <ol class="timeline" id="timeline-list"></ol>
       <h3 data-i18n="detail.photos">Photos</h3>
       <div id="photo-list" class="small">—</div>
-      <form id="form-photo"><label for="photo-input" data-i18n="detail.addPhoto">Add a photo</label><input id="photo-input" type="file" accept="image/*"><div class="btn-row"><button class="btn btn-dark btn-sm" type="submit" data-i18n="detail.upload">Upload photo</button></div></form>
+      <form id="form-photo"><label for="photo-input" data-i18n="detail.addPhoto">Add a photo</label><input id="photo-input" type="file" accept="image/*"><label for="photo-kind" data-i18n="detail.photoKind">Photo kind</label><select id="photo-kind"><option value="BEFORE" data-i18n="detail.photoBefore">BEFORE — before work</option><option value="AFTER" selected data-i18n="detail.photoAfter">AFTER — after work</option></select><div class="btn-row"><button class="btn btn-dark btn-sm" type="submit" data-i18n="detail.upload">Upload photo</button></div></form>
     </div>
     <div class="tabpanel" id="tab-change" hidden>
       <h3 data-i18n="change.title">Propose a change — ChangeLock</h3>
@@ -325,6 +355,8 @@
     <div class="tabpanel" id="tab-billing" hidden>
       <h3 data-i18n="bill.title">Billing</h3>
       <p data-i18n="bill.text">একটি রেকর্ড ৳10, অথবা মাসে ৳70-তে সীমাহীন। Worker ফ্রি।</p>
+      <div id="billing-status" class="notice blue" hidden></div>
+      <p class="small" data-i18n="bill.smsNote">MT SMS is charged at 2.00 BDT to the subscriber.</p>
       <div class="btn-row"><button class="btn btn-dark" type="button" id="btn-caas" data-i18n="bill.caas">Pay ৳10 for this record</button>
       <button class="btn btn-dark-ghost" type="button" id="btn-sub" data-i18n="bill.sub">Subscribe ৳70 / month</button></div>
       <div id="billing-box"></div>

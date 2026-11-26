@@ -25,16 +25,22 @@ npm start          # listens on PORT (default 3000)
 - `server/src/tokens.js` — random token helpers.
 - `server/src/applink/` — adapters with identical interfaces:
   `otp.js`, `sms.js`, `caas.js`, `subscription.js`, `live.js`, `index.js`
-  (selects by `APPLINK_MODE`, default `sandbox`). Every call is logged to
-  `server/data/applink-log.jsonl`. Sandbox OTP/SMS/CaaS calls return the
-  code flagged `sandbox:true`; the live adapter never returns a code.
+  (selects by `APPLINK_MODE`, default `sandbox`). Live mode talks to the
+  real AppLink API at https://api.applink.com.bd (`applicationId` +
+  `password` in the POST body, success = body `statusCode` "S1000",
+  CaaS "P1003" = OTP sent, not charged). Every call is logged to
+  `server/data/applink-log.jsonl` with safe fields only. Sandbox OTP/SMS/CaaS
+  calls return the code flagged `sandbox:true`; the live adapter never
+  returns a code.
 - `server/data/dealcraft.db` — SQLite file (gitignored).
 - `uploads/` — milestone photos, served at `/uploads/*`.
 
 ## Auth
 
 Phone + OTP only. `POST /api/auth/request-otp`, then
-`POST /api/auth/verify-otp` returns a Bearer token. Workers use a
+`POST /api/auth/verify-otp` returns a Bearer token. Sessions expire 7 days
+after login. OTP verify is rate limited: 5 failed attempts per
+phone+purpose per 15 minutes, then 429 ("too many wrong codes"). Workers use a
 `?token=` worker token scoped to one job (7-day expiry), no account needed.
 
 ## Key endpoints
@@ -63,3 +69,9 @@ Phone + OTP only. `POST /api/auth/request-otp`, then
 Rahim Uddin, worker 01800000002 Karim Mistri, electrician rewiring,
 BDT 18,000, deadline 2026-12-05) and returns sandbox OTPs for both
 confirm steps. `npm run regression` boots the server and checks health.
+
+**Demo endpoints are dangerous by design** (seed/reset wipe every table):
+they return 404 when `NODE_ENV=production`, and when
+`DEALCRAFT_DEMO_TOKEN` is set they need the same value as the
+`x-demo-token` header (or a `demoToken` body/query field). Set
+`NODE_ENV=production` on any public deployment.

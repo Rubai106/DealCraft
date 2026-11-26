@@ -6,14 +6,18 @@ const crypto = require('node:crypto');
 const { db, now } = require('../db');
 const { newId } = require('../tokens');
 const { appendLog } = require('./log');
+const { checkOtpAttempt, recordOtpAttempt, checkOtpSend, recordOtpSend } = require('./otp-rate-limit');
 
-const OTP_TTL_MS = 10 * 60 * 1000;
+const OTP_TTL_MS = 5 * 60 * 1000; // AppLink OTPs are valid for 5 minutes.
 
 function generateCode() {
   return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
 }
 
 function sendOtp(phone, purpose = 'login') {
+  // 429 when this phone+purpose has had too many codes sent in the window.
+  checkOtpSend(phone, purpose);
+  recordOtpSend(phone, purpose);
   const code = generateCode();
   const expiresAt = new Date(Date.now() + OTP_TTL_MS).toISOString();
   db.prepare(
@@ -30,6 +34,8 @@ function sendOtp(phone, purpose = 'login') {
 }
 
 function verifyOtp(phone, code, purpose = 'login') {
+  // 429 when this phone+purpose has failed too many times in the window.
+  checkOtpAttempt(phone, purpose);
   const row = db.prepare(
     `SELECT * FROM Otp WHERE phone = ? AND purpose = ? AND code = ? AND used = 0
      ORDER BY expires_at DESC LIMIT 1`
@@ -39,6 +45,7 @@ function verifyOtp(phone, code, purpose = 'login') {
     db.prepare('UPDATE Otp SET used = 1 WHERE id = ?').run(row.id);
     ok = true;
   }
+  recordOtpAttempt(phone, purpose, ok);
   appendLog({ api: 'otp.verify', request: { phone, purpose }, response: { ok }, mode: 'sandbox' });
   return ok;
 }

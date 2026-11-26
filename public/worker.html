@@ -5,76 +5,127 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DealCraft — Worker</title>
 <meta name="theme-color" content="#000000">
+<link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="style.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;800&family=Oswald:wght@500;600&display=swap" rel="stylesheet">
 </head>
 <body class="light-page">
-<header class="topbar"><span style="font-family:'Oswald',sans-serif;font-size:20px">DEALCRAFT<span style="color:#FF5A1F">.</span></span><span class="mono" style="color:#bbb">WORKER · শ্রমিক</span></header>
+<header class="topbar"><span style="font-family:'Oswald',sans-serif;font-size:20px">DEALCRAFT<span style="color:#FF5A1F">.</span></span><div class="lang-toggle" role="group" aria-label="Language / ভাষা"><button type="button" id="lang-bn" aria-pressed="true">বাংলা</button><button type="button" id="lang-en" aria-pressed="false">EN</button></div><span class="mono" style="color:#bbb">WORKER · শ্রমিক</span></header>
 <main>
   <p class="mono" style="color:#666">ONE ACTION PER SCREEN · এক স্ক্রিনে এক কাজ</p>
-  <h1 id="w-title" style="font-family:'Oswald','Noto Sans Bengali',sans-serif;font-size:34px;line-height:1.1;text-transform:uppercase;margin:8px 0">কাজের রেকর্ড</h1>
+  <h1 id="w-title" data-i18n="w.title" style="font-family:'Oswald','Noto Sans Bengali',sans-serif;font-size:34px;line-height:1.1;text-transform:uppercase;margin:8px 0">কাজের রেকর্ড</h1>
   <div id="w-err" class="error" hidden></div>
   <div id="w-sandbox" class="sandbox" hidden><b>SANDBOX — not a live AppLink call.</b><br><span id="w-sandbox-text"></span></div>
 
   <section id="w-record" hidden>
     <div class="record" id="w-summary"></div>
     <div id="w-missing" class="warn" hidden><h4>ঠিক হয়নি — Missing terms</h4><ul id="w-missing-list"></ul></div>
-    <button class="big-btn orange" id="w-confirm" type="button">সম্মত — OTP দিয়ে নিশ্চিত করুন</button>
+    <button class="big-btn orange" id="w-confirm" type="button" data-i18n="w.confirm">সম্মত — OTP দিয়ে নিশ্চিত করুন</button>
     <div id="w-otp-box" hidden>
       <label for="w-otp">OTP কোড</label>
       <input id="w-otp" type="text" inputmode="numeric" placeholder="6-digit code">
-      <button class="big-btn" id="w-confirm-send" type="button">নিশ্চিত করুন</button>
+      <button class="big-btn" id="w-confirm-send" type="button" data-i18n="w.confirmSend">নিশ্চিত করুন</button>
     </div>
   </section>
 
   <section id="w-change" hidden>
-    <h2 style="font-family:'Oswald',sans-serif;text-transform:uppercase">পরিবর্তনের প্রস্তাব</h2>
+    <h2 data-i18n="w.changeTitle" style="font-family:'Oswald',sans-serif;text-transform:uppercase">পরিবর্তনের প্রস্তাব</h2>
     <div id="w-change-text" class="notice"></div>
-    <button class="big-btn" id="w-ch-accept" type="button">মানলাম — Accept</button>
-    <button class="big-btn ghost" id="w-ch-reject" type="button">মানলাম না — Reject</button>
-    <button class="big-btn ghost" id="w-ch-ask" type="button">জিজ্ঞাসা করুন — Ask</button>
+    <button class="big-btn" id="w-ch-accept" type="button" data-i18n="w.chAccept">মানলাম — Accept</button>
+    <button class="big-btn ghost" id="w-ch-reject" type="button" data-i18n="w.chReject">মানলাম না — Reject</button>
+    <button class="big-btn ghost" id="w-ch-ask" type="button" data-i18n="w.chAsk">জিজ্ঞাসা করুন — Ask</button>
     <div id="w-ch-otp-box" hidden>
       <label for="w-ch-otp">OTP কোড</label>
       <input id="w-ch-otp" type="text" inputmode="numeric" placeholder="6-digit code">
-      <button class="big-btn" id="w-ch-send" type="button">OTP দিয়ে পাঠান</button>
+      <button class="big-btn" id="w-ch-send" type="button" data-i18n="w.chSend">OTP দিয়ে পাঠান</button>
     </div>
   </section>
 
   <section id="w-pay" hidden>
-    <h2 style="font-family:'Oswald',sans-serif;text-transform:uppercase">টাকা পেয়েছেন?</h2>
+    <h2 data-i18n="w.payTitle" style="font-family:'Oswald',sans-serif;text-transform:uppercase">টাকা পেয়েছেন?</h2>
     <div id="w-pay-text" class="notice"></div>
-    <button class="big-btn" id="w-pay-ok" type="button">পেয়েছি — Received</button>
-    <button class="big-btn ghost" id="w-pay-bad" type="button">টাকার পরিমাণ ভুল — Amount is incorrect</button>
+    <button class="big-btn" id="w-pay-ok" type="button" data-i18n="w.payOk">পেয়েছি — Received</button>
+    <button class="big-btn ghost" id="w-pay-bad" type="button" data-i18n="w.payBad">টাকার পরিমাণ ভুল — Amount is incorrect</button>
     <div id="w-pay-otp-box" hidden>
       <label for="w-pay-otp">OTP কোড</label>
       <input id="w-pay-otp" type="text" inputmode="numeric" placeholder="6-digit code">
-      <button class="big-btn" id="w-pay-send" type="button">নিশ্চিত করুন</button>
+      <button class="big-btn" id="w-pay-send" type="button" data-i18n="w.paySend">নিশ্চিত করুন</button>
     </div>
   </section>
 
   <section id="w-mile" hidden>
-    <h2 style="font-family:'Oswald',sans-serif;text-transform:uppercase">মাইলস্টোন</h2>
+    <h2 data-i18n="w.mileTitle" style="font-family:'Oswald',sans-serif;text-transform:uppercase">মাইলস্টোন</h2>
     <div id="w-mile-list"></div>
-    <h2 style="font-family:'Oswald',sans-serif;text-transform:uppercase">ছবি যোগ করুন</h2>
+    <h2 data-i18n="w.photoTitle" style="font-family:'Oswald',sans-serif;text-transform:uppercase">ছবি যোগ করুন</h2>
     <label for="w-photo">ছবি — Photo</label>
     <input id="w-photo" type="file" accept="image/*">
-    <button class="big-btn" id="w-photo-send" type="button">ছবি আপলোড করুন</button>
+    <label for="w-photo-kind" data-i18n="w.photoKind">ছবির ধরন — Photo kind</label>
+    <select id="w-photo-kind"><option value="BEFORE" data-i18n="w.kindBefore">BEFORE — আগে</option><option value="AFTER" selected data-i18n="w.kindAfter">AFTER — পরে</option></select>
+    <button class="big-btn" id="w-photo-send" type="button" data-i18n="w.photoSend">ছবি আপলোড করুন</button>
+  </section>
+
+  <section id="w-loc" hidden>
+    <h2 data-i18n="w.locTitle" style="font-family:'Oswald',sans-serif;text-transform:uppercase">লাইভ লোকেশন</h2>
+    <p class="small">আপনি চাইলে Hirer-কে আপনার লাইভ লোকেশন দেখাতে পারেন — শুধু এই কাজের Hirer দেখবেন, শুধু কাজ চলাকালীন। কাজ শেষ হলে বন্ধ হয়ে যাবে। / Share your live location with this job's hirer only, while the job is active.</p>
+    <p><span class="pill" id="w-loc-status">বন্ধ — Stopped</span></p>
+    <p class="small" id="w-loc-info">—</p>
+    <button class="big-btn orange" id="w-loc-share" type="button" data-i18n="w.locShare">লাইভ লোকেশন শেয়ার করুন — Share live location</button>
+    <button class="big-btn" id="w-loc-pause" type="button" hidden data-i18n="w.locPause">বিরতি — Pause</button>
+    <button class="big-btn" id="w-loc-resume" type="button" hidden data-i18n="w.locResume">আবার শুরু — Resume</button>
+    <button class="big-btn ghost" id="w-loc-stop" type="button" hidden data-i18n="w.locStop">বন্ধ করুন — Stop sharing</button>
+    <p><label style="display:flex;gap:10px;align-items:center;font-size:15px"><input type="checkbox" id="w-loc-saver" style="width:auto"> <span>ব্যাটারি সেভার — ৩০ সেকেন্ডে একবার (Battery saver — every 30s)</span></label></p>
   </section>
 
   <section id="w-say" hidden>
-    <h2 style="font-family:'Oswald',sans-serif;text-transform:uppercase">আপনার বক্তব্য যোগ করুন</h2>
+    <h2 data-i18n="w.sayTitle" style="font-family:'Oswald',sans-serif;text-transform:uppercase">আপনার বক্তব্য যোগ করুন</h2>
     <label for="w-stmt">বক্তব্য — Statement</label>
     <textarea id="w-stmt" rows="3" placeholder="সংক্ষেপে লিখুন"></textarea>
-    <button class="big-btn" id="w-stmt-send" type="button">পাঠান — Send</button>
+    <button class="big-btn" id="w-stmt-send" type="button" data-i18n="w.stmtSend">পাঠান — Send</button>
   </section>
 
-  <p class="small" style="margin-top:28px;color:#666">DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়।</p>
+  <p class="small" data-i18n="w.foot" style="margin-top:28px;color:#666">DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়।</p>
   <p class="small"><a href="index.html">DealCraft হোম</a> · <a href="passport.html">WorkPassport</a></p>
 </main>
 <script>
 (function(){'use strict';
 var q=new URLSearchParams(location.search), token=q.get('token')||'';
+/* Language toggle — same pattern as index.html (dc_lang, default bn).
+   The worker page stays Bangla-first: bn is the primary text, EN is the
+   secondary toggle for the main labels. Dynamic status lines stay bilingual. */
+var wLang=localStorage.getItem('dc_lang')||'bn';
+var WI18N={
+ 'w.title':{bn:'কাজের রেকর্ড',en:'Work record'},
+ 'w.changeTitle':{bn:'পরিবর্তনের প্রস্তাব',en:'Change proposal'},
+ 'w.payTitle':{bn:'টাকা পেয়েছেন?',en:'Did you receive the money?'},
+ 'w.mileTitle':{bn:'মাইলস্টোন',en:'Milestones'},
+ 'w.photoTitle':{bn:'ছবি যোগ করুন',en:'Add a photo'},
+ 'w.photoKind':{bn:'ছবির ধরন — Photo kind',en:'Photo kind'},
+ 'w.kindBefore':{bn:'BEFORE — আগে',en:'BEFORE — before work'},
+ 'w.kindAfter':{bn:'AFTER — পরে',en:'AFTER — after work'},
+ 'w.locTitle':{bn:'লাইভ লোকেশন',en:'Live location'},
+ 'w.sayTitle':{bn:'আপনার বক্তব্য যোগ করুন',en:'Add your statement'},
+ 'w.confirm':{bn:'সম্মত — OTP দিয়ে নিশ্চিত করুন',en:'Agree — confirm with OTP'},
+ 'w.confirmSend':{bn:'নিশ্চিত করুন',en:'Confirm'},
+ 'w.chAccept':{bn:'মানলাম — Accept',en:'Accept'},
+ 'w.chReject':{bn:'মানলাম না — Reject',en:'Reject'},
+ 'w.chAsk':{bn:'জিজ্ঞাসা করুন — Ask',en:'Ask a question'},
+ 'w.chSend':{bn:'OTP দিয়ে পাঠান',en:'Send with OTP'},
+ 'w.payOk':{bn:'পেয়েছি — Received',en:'Received'},
+ 'w.payBad':{bn:'টাকার পরিমাণ ভুল — Amount is incorrect',en:'Amount is incorrect'},
+ 'w.paySend':{bn:'নিশ্চিত করুন',en:'Confirm'},
+ 'w.photoSend':{bn:'ছবি আপলোড করুন',en:'Upload photo'},
+ 'w.locShare':{bn:'লাইভ লোকেশন শেয়ার করুন — Share live location',en:'Share live location'},
+ 'w.locPause':{bn:'বিরতি — Pause',en:'Pause'},
+ 'w.locResume':{bn:'আবার শুরু — Resume',en:'Resume'},
+ 'w.locStop':{bn:'বন্ধ করুন — Stop sharing',en:'Stop sharing'},
+ 'w.stmtSend':{bn:'পাঠান — Send',en:'Send'},
+ 'w.foot':{bn:'DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়।',en:'DealCraft holds no money — it records payment acknowledgements only. AppLink reaches Banglalink subscribers only.'}
+};
+function wApplyLang(){document.documentElement.lang=wLang;
+ document.querySelectorAll('[data-i18n]').forEach(function(el){var v=WI18N[el.getAttribute('data-i18n')];if(v)el.textContent=v[wLang]||v.bn;});
+ var b=$('lang-bn'),e=$('lang-en');
+ if(b)b.setAttribute('aria-pressed',wLang==='bn'?'true':'false');
+ if(e)e.setAttribute('aria-pressed',wLang==='en'?'true':'false');
+ localStorage.setItem('dc_lang',wLang);}
 var payDecision='received', payId=q.get('paymentId')||null, changeId=null, changeDecision=null;
 var jobId=null, disputeId=null;
 function $(id){return document.getElementById(id);}
@@ -129,7 +180,59 @@ async function load(){
    show('w-mile');}
   events.forEach(function(ev){if(ev.type==='DISPUTE_OPENED'){var p=parsePayload(ev);if(p.disputeId)disputeId=p.disputeId;}});
   if(disputeId)show('w-say');
+  /* Live location: only while the job is ACTIVE, and only if the worker
+     taps Share. Nothing is sent before that — off by default. */
+  if(job.status==='ACTIVE')show('w-loc');
  }catch(e){err('রেকর্ড খোলা যায়নি: '+e.message+' / Could not open record: '+e.message);}}
+/* ---------- live location (worker side) ---------- */
+var locState='off', locWatch=null, locTimer=null, locLatest=null;
+function locSet(s){locState=s;
+ var st=$('w-loc-status');
+ st.textContent=s==='sharing'?'শেয়ার হচ্ছে — Sharing':s==='paused'?'বিরতি — Paused':'বন্ধ — Stopped';
+ $('w-loc-share').hidden=s!=='off'; $('w-loc-pause').hidden=s!=='sharing';
+ $('w-loc-resume').hidden=s!=='paused'; $('w-loc-stop').hidden=s==='off';}
+function locQueue(){try{return JSON.parse(localStorage.getItem('dc_loc_queue')||'[]');}catch(e){return[];}}
+function locSaveQueue(q){try{localStorage.setItem('dc_loc_queue',JSON.stringify(q.slice(-20)));}catch(e){}}
+async function locPost(p){
+ try{await api('/api/worker/'+encodeURIComponent(token)+'/location',{method:'POST',body:JSON.stringify(p)});return true;}
+ catch(e){var q=locQueue();q.push(p);locSaveQueue(q);return false;}}
+async function locFlush(){
+ var q=locQueue(); if(!q.length)return;
+ var rest=[];
+ for(var i=0;i<q.length;i++){var ok=await locPost(q[i]); if(!ok){rest=q.slice(i);break;}}
+ locSaveQueue(rest);}
+function locSend(){
+ if(locState!=='sharing'||!locLatest)return;
+ locPost({lat:locLatest.lat,lng:locLatest.lng,accuracy:locLatest.accuracy,simulated:false})
+  .then(function(){locFlush();});}
+function locStartWatch(){
+ if(!('geolocation' in navigator)){err('এই ফোনে লোকেশন পাওয়া যাচ্ছে না। / Location is not available on this phone.');return;}
+ var interval=$('w-loc-saver').checked?30000:10000;
+ locWatch=navigator.geolocation.watchPosition(function(pos){
+   locLatest={lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy};
+   var acc=pos.coords.accuracy||9999;
+   var signal=acc<=20?'ভালো — Good':acc<=50?'মোটামুটি — OK':'দুর্বল — Weak';
+   $('w-loc-info').textContent='নির্ভুলতা / Accuracy: ±'+Math.round(acc)+' m · সংকেত / Signal: '+signal+' · '+(locState==='sharing'?'পাঠানো হচ্ছে প্রতি '+(interval/1000)+' সেকেন্ডে':'পাঠানো বন্ধ আছে');
+  },function(e){err('লোকেশন পাওয়া যায়নি: '+e.message+' / Could not get location: '+e.message);},
+  {enableHighAccuracy:true,timeout:10000,maximumAge:5000});
+ locTimer=setInterval(locSend,interval);
+ locSend();}
+function locStopWatch(){if(locWatch!=null){try{navigator.geolocation.clearWatch(locWatch);}catch(e){}locWatch=null;}
+ if(locTimer){clearInterval(locTimer);locTimer=null;}}
+$('w-loc-share').addEventListener('click',async function(){
+ try{await api('/api/worker/'+encodeURIComponent(token)+'/location/start',{method:'POST',body:'{}'});
+  locSet('sharing'); locStartWatch();}catch(e){err(e.message);}});
+$('w-loc-pause').addEventListener('click',async function(){
+ try{await api('/api/worker/'+encodeURIComponent(token)+'/location/pause',{method:'POST',body:'{}'});
+  locSet('paused');}catch(e){err(e.message);}});
+$('w-loc-resume').addEventListener('click',async function(){
+ try{await api('/api/worker/'+encodeURIComponent(token)+'/location/resume',{method:'POST',body:'{}'});
+  locSet('sharing');}catch(e){err(e.message);}});
+$('w-loc-stop').addEventListener('click',async function(){
+ try{await api('/api/worker/'+encodeURIComponent(token)+'/location/stop',{method:'POST',body:'{}'});}catch(e){}
+ locStopWatch(); locSet('off');});
+window.addEventListener('online',locFlush);
+
 $('w-confirm').addEventListener('click',async function(){try{await requestOtp('worker-confirm');$('w-otp-box').hidden=false;$('w-otp').focus();}catch(e){err(e.message);}});
 $('w-confirm-send').addEventListener('click',async function(){try{await api('/api/worker/'+encodeURIComponent(token)+'/confirm',{method:'POST',body:JSON.stringify({otpCode:$('w-otp').value.trim()})});
   $('w-confirm').disabled=true;$('w-confirm').textContent='নিশ্চিত হয়েছে — Confirmed';}catch(e){err(e.message);}});
@@ -151,11 +254,15 @@ $('w-pay-send').addEventListener('click',async function(){try{await api('/api/pa
   $('w-pay').hidden=true;}catch(e){err(e.message);}});
 $('w-photo-send').addEventListener('click',async function(){var f=$('w-photo').files[0];if(!f){err('একটি ছবি বেছে নিন। / Choose a photo first.');return;}
  var fd=new FormData();fd.append('photo',f);
+ var pk=$('w-photo-kind'); if(pk)fd.append('kind',pk.value);
  try{var r=await fetch('/api/jobs/'+encodeURIComponent(jobId)+'/photos'+wt(),{method:'POST',body:fd});
   if(!r.ok){var d=null;try{d=await r.json();}catch(e){}throw new Error((d&&(d.error||d.message))||('HTTP '+r.status));}
   $('w-photo-send').textContent='আপলোড হয়েছে — Uploaded';}catch(e){err(e.message);}});
 $('w-stmt-send').addEventListener('click',async function(){var t=$('w-stmt').value.trim();if(!t||!disputeId){err('বক্তব্য লিখুন। / Write a statement first.');return;}
  try{await api('/api/disputes/'+encodeURIComponent(disputeId)+'/statements'+wt(),{method:'POST',body:JSON.stringify({side:'worker',text:t})});$('w-stmt').value='';$('w-stmt-send').textContent='পাঠানো হয়েছে — Sent';}catch(e){err(e.message);}});
+$('lang-bn').addEventListener('click',function(){wLang='bn';wApplyLang();});
+$('lang-en').addEventListener('click',function(){wLang='en';wApplyLang();});
+wApplyLang();
 load();
 })();
 </script>

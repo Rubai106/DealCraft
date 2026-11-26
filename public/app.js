@@ -14,11 +14,11 @@ var I18N={
 'hero.title':{bn:'ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থাকুক।',en:'A phone call can start a job. Keep the work record in writing.'},
 'hero.sub':{bn:'Electrician, painter, plumber — কাজের আগে দুই পক্ষ একসাথে লিখে নিন: কী কাজ, কত টাকা, কবে শেষ। দুজনেই OTP দিয়ে নিশ্চিত করলে রেকর্ড তৈরি হয়। DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।',en:'Electrician, painter, plumber — before work starts, both sides write it down together: what work, how much, by when. The record is made only when both confirm by OTP. DealCraft holds no money — it records payment acknowledgements only.'},
 'hero.cta1':{bn:'রেকর্ড শুরু করুন',en:'Start a record'},'hero.cta2':{bn:'ডেমো কাজ দেখুন',en:'See demo job'},
-'hero.meta1':{bn:'Worker — সবসময় ফ্রি',en:'Workers — free, always'},'hero.meta2':{bn:'Hirer — ৳১০ / রেকর্ড · ৳৭০ / মাস',en:'Hirer — ৳10 / record · ৳70 / month'},'hero.meta3':{bn:'লাইভ — AppLink SMS',en:'Live — AppLink SMS'},
+'hero.meta1':{bn:'Worker — সবসময় ফ্রি',en:'Workers — free, always'},'hero.meta2':{bn:'Hirer — ৳১০ / রেকর্ড · ৳৭০ / মাস',en:'Hirer — ৳10 / record · ৳70 / month'},'hero.meta3':{bn:'স্যান্ডবক্স — ডেমো',en:'Sandbox — demo'},'hero.meta3Live':{bn:'লাইভ — AppLink SMS',en:'Live — AppLink SMS'},
 'hero.map':{bn:'ঢাকা — চট্টগ্রাম · ডটেড ম্যাপ, লাইভ রুট',en:'Dhaka — Chattogram · dotted map, live route'},
 'journey.title':{bn:'ফোন থেকে লিখিত রেকর্ড',en:'From a phone call to a written record'},
 'j1t':{bn:'FairScope — আগে প্রশ্ন, পরে কাজ',en:'FairScope — questions first, work after'},'j1p':{bn:'কে মাল কিনবে, কয় কোট, কয় পয়েন্ট — প্রতিটি প্রশ্নের উত্তর ঠিক করুন। যা ঠিক হয়নি, তা লুকানো যাবে না।',en:'Who buys materials, how many coats, how many points — settle every question. What is undecided cannot be hidden.'},
-'j1tag':{bn:'৭টি প্রশ্ন · ইলেকট্রিশিয়ান',en:'7 questions · electrician'},
+'j1tag':{bn:'৮টি প্রশ্ন · ইলেকট্রিশিয়ান',en:'8 questions · electrician'},
 'j2t':{bn:'দুজনেই নিশ্চিত করুন — OTP',en:'Both sides confirm — OTP'},'j2p':{bn:'Hirer আর worker — দুজনেই ফোনে OTP দিয়ে রেকর্ডটি নিশ্চিত করেন। একজনের কথায় রেকর্ড হয় না।',en:'Hirer and worker both confirm the record by OTP on their phones. One side alone cannot make a record.'},
 'j2tag':{bn:'দুই পক্ষের সম্মতি',en:'Mutual confirmation'},
 'j3t':{bn:'কাজ চলাকালীন — মাইলস্টোন আর ছবি',en:'During work — milestones and photos'},'j3p':{bn:'প্রতিটি ধাপ শেষ হলে worker ছবি দিয়ে জানান, hirer অনুমোদন দেন। সবকিছু সময়সহ লেখা থাকে।',en:'When a step finishes, the worker reports it with a photo and the hirer approves. Everything is kept with its time.'},
@@ -71,6 +71,22 @@ var I18N={
 'detail.confirmBtn':{bn:'OTP দিয়ে নিশ্চিত করুন',en:'Confirm with OTP'},
 'detail.sendOtp':{bn:'নিশ্চিতকরণের OTP পাঠান',en:'Send confirm OTP'},
 'detail.force':{bn:'তবুও বন্ধ করুন — সব মাইলস্টোন এখনো অনুমোদিত হয়নি',en:'Close anyway — not all milestones are approved yet'},
+'detail.waitTitle':{bn:'Worker-এর নিশ্চিতকরণের অপেক্ষায়',en:'Waiting for worker confirmation'},
+'detail.waitText':{bn:'Worker এখনো নিশ্চিত করেননি। Worker তাঁর লিংক থেকে OTP দিয়ে নিশ্চিত করলে আপনি এখানে নিশ্চিত করতে পারবেন।',en:'The worker has not confirmed yet. Once the worker confirms by OTP from their link, you can confirm here.'},
+'detail.workerLinkTitle':{bn:'Worker-এর লিংক',en:'Worker link'},
+'detail.resendLink':{bn:'Worker-এর লিংক আবার পাঠান',en:'Resend worker link'},
+'detail.resendOk':{bn:'Worker-এর লিংক আবার পাঠানো হয়েছে।',en:'Worker link resent.'},
+'detail.photoKind':{bn:'ছবির ধরন',en:'Photo kind'},
+'detail.photoBefore':{bn:'আগে — BEFORE',en:'BEFORE — before work'},
+'detail.photoAfter':{bn:'পরে — AFTER',en:'AFTER — after work'},
+'nav.menu':{bn:'মেনু',en:'Menu'},
+'bill.statusTitle':{bn:'বিলিং অবস্থা',en:'Billing status'},
+'bill.subActive':{bn:'সাবস্ক্রিপশন সক্রিয় — ৳৭০ / মাস',en:'Subscription active — ৳70 / month'},
+'bill.subInactive':{bn:'কোনো সক্রিয় সাবস্ক্রিপশন নেই',en:'No active subscription'},
+'bill.paidJobs':{bn:'পরিশোধিত কাজ',en:'Paid jobs'},
+'bill.unpaidJobs':{bn:'অপরিশোধিত কাজ',en:'Unpaid jobs'},
+'bill.statusUnknown':{bn:'বিলিং অবস্থা এখন দেখা যাচ্ছে না — পরে আবার চেষ্টা করুন।',en:'Billing status is unavailable right now — please try again later.'},
+'bill.smsNote':{bn:'MT SMS-এর জন্য গ্রাহকের কাছ থেকে ২.০০ টাকা চার্জ করা হয়।',en:'MT SMS is charged at 2.00 BDT to the subscriber.'},
 'detail.passport':{bn:'WorkPassport',en:'WorkPassport'},
 'detail.passportText':{bn:'কাজ বন্ধ হওয়ার পর worker-এর WorkPassport-এ যোগ করুন। কী দেখানো হবে, তা বেছে নিন।',en:'After the job closes, add it to the worker\u2019s WorkPassport. Choose what is shown.'},
 'detail.passportBtn':{bn:'WorkPassport-এ যোগ করুন',en:'Add to WorkPassport'},
@@ -87,12 +103,36 @@ var I18N={
 'dispute.title':{bn:'Dispute',en:'Dispute'},'dispute.cat':{bn:'বিভাগ',en:'Category'},'dispute.text':{bn:'আপনার বক্তব্য',en:'Your statement'},'dispute.open':{bn:'Dispute খুলুন',en:'Open dispute'},
 'bill.title':{bn:'বিলিং',en:'Billing'},'bill.text':{bn:'একটি রেকর্ড ৳১০, অথবা মাসে ৳৭০-তে সীমাহীন। Worker ফ্রি।',en:'One record is ৳10, or ৳70/month for unlimited records. Workers are free.'},
 'bill.caas':{bn:'এই রেকর্ডের জন্য ৳১০ দিন',en:'Pay ৳10 for this record'},'bill.sub':{bn:'সাবস্ক্রাইব করুন ৳৭০ / মাস',en:'Subscribe ৳70 / month'},
-'foot.text':{bn:'অনানুষ্ঠানিক কাজের জন্য বাংলা-প্রথম কাজের রেকর্ড। DealCraft কোনো টাকা রাখে না, শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়।',en:'Bangla-first work record for informal jobs. DealCraft holds no money, records payment acknowledgements only. AppLink reaches Banglalink subscribers only.'}
+'foot.text':{bn:'অনানুষ্ঠানিক কাজের জন্য বাংলা-প্রথম কাজের রেকর্ড। DealCraft কোনো টাকা রাখে না, শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়।',en:'Bangla-first work record for informal jobs. DealCraft holds no money, records payment acknowledgements only. AppLink reaches Banglalink subscribers only.'},
+'loc.title':{bn:'লাইভ লোকেশন',en:'Live location'},
+'loc.sim':{bn:'ডেমো — Worker-কে চলতে দেখান',en:'Simulate worker moving — demo'},
+'loc.simStop':{bn:'সিমুলেশন বন্ধ করুন',en:'Stop simulation'},
+'loc.privacy':{bn:'Worker নিজে Share চাপলেই কেবল আপনি দেখতে পাবেন — শুধু কাজ চলাকালীন। কাজ বন্ধ হলে লোকেশন মুছে যায়।',en:'You can see it only if the worker taps Share — only while the job is active. Location is deleted when the job closes.'},
+'loc.notSharing':{bn:'শেয়ার করছে না — Not sharing',en:'Not sharing'},
+'loc.stopped':{bn:'শেয়ার বন্ধ — Sharing stopped',en:'Sharing stopped'},
+'loc.enRoute':{bn:'আসছে — En route',en:'En route'},
+'loc.arriving':{bn:'কাছে আসছে — Arriving',en:'Arriving'},
+'loc.arrived':{bn:'পৌঁছেছে — Arrived on site',en:'Arrived on site'},
+'loc.onSite':{bn:'কাজের জায়গায় আছে — On site',en:'On site'},
+'loc.paused':{bn:'বিরতি — Paused',en:'Paused'},
+'loc.away':{bn:'দূরত্ব',en:'away'},'loc.eta':{bn:'পৌঁছাতে',en:'ETA'},
+'site.title':{bn:'কাজের জায়গা (ঐচ্ছিক)',en:'Job site (optional)'},
+'site.hint':{bn:'ম্যাপে ট্যাপ করে পিন বসান, অথবা আপনার বর্তমান লোকেশন ব্যবহার করুন। জায়গা না দিলে দূরত্ব/ETA দেখাবে না — শেয়ারিং তবুও চলবে।',en:'Tap the map to drop a pin, or use your current location. Without a site there is no distance or ETA — sharing still works.'},
+'site.address':{bn:'ঠিকানা',en:'Address'},
+'site.me':{bn:'আমার বর্তমান লোকেশন ব্যবহার করুন',en:'Use my current location'},
+'site.clear':{bn:'জায়গা মুছুন',en:'Clear site'}
 };
 var NOT_DECIDED={bn:'ঠিক হয়নি',en:'Not decided'};
 function t(key){var d=I18N[key];return d?(d[lang]||d.en):key;}
+/* The hero pill must never claim "Live" for a simulated call: it shows
+   "Live" only when the server reports live mode WITH credentials configured;
+   anything else (including a failed mode check) shows the sandbox text. */
+var applinkMode={mode:'sandbox',live:false};
+function updateModePill(){var el=document.querySelector('[data-i18n="hero.meta3"]');if(!el)return;
+ el.textContent=t(applinkMode.live?'hero.meta3Live':'hero.meta3');}
 function applyI18n(){document.documentElement.lang=lang;
  document.querySelectorAll('[data-i18n]').forEach(function(el){var v=t(el.getAttribute('data-i18n'));if(v)el.textContent=v;});
+ updateModePill();
  var b=document.getElementById('lang-bn'),e=document.getElementById('lang-en');
  if(b)b.setAttribute('aria-pressed',lang==='bn'?'true':'false');
  if(e)e.setAttribute('aria-pressed',lang==='en'?'true':'false');
@@ -148,11 +188,15 @@ function initJourney(){
 
 /* ---------- helpers ---------- */
 function $(id){return document.getElementById(id);}
-function showErr(msg){var e=$('app-error');if(!e)return;e.hidden=false;e.textContent=msg;}
+function showErr(msg){var e=$('app-error');if(!e)return;e.hidden=false;e.textContent=msg;clearNotice();}
 function clearErr(){var e=$('app-error');if(e){e.hidden=true;e.textContent='';}}
+/* Neutral info/success notice (blue) — info must never use the red error box. */
+function showNotice(msg){var e=$('app-notice');if(!e)return;e.hidden=false;e.textContent=msg;clearErr();}
+function clearNotice(){var e=$('app-notice');if(e){e.hidden=true;e.textContent='';}}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function taka(n){if(n==null||n==='')return '—';return '৳'+Number(n).toLocaleString('en-IN');}
 function fmtDate(d){if(!d)return '—';try{return new Date(d).toLocaleDateString(lang==='bn'?'bn-BD':'en-GB',{day:'numeric',month:'short',year:'numeric'});}catch(e){return String(d);}}
+function fmtDT(d){if(!d)return '—';try{return new Date(d).toLocaleString(lang==='bn'?'bn-BD':'en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return String(d);}}
 async function api(path,opts){
  opts=opts||{}; opts.headers=opts.headers||{};
  if(!(opts.body instanceof FormData))opts.headers['Content-Type']='application/json';
@@ -223,6 +267,113 @@ function newStep(n){
  var steps=document.querySelectorAll('#new-steps span'); steps.forEach(function(s){s.classList.toggle('on',+s.getAttribute('data-step')===n);});
 }
 
+/* ---------- job site picker (Leaflet, tap to drop a pin) ---------- */
+var siteMap=null, siteMarker=null;
+function setSite(lat,lng,silent){
+ draft.site={lat:+lat.toFixed(6),lng:+lng.toFixed(6),address:($('site-address')||{}).value?$('site-address').value.trim():''};
+ if(siteMap){if(siteMarker)siteMarker.setLatLng([lat,lng]);else siteMarker=L.marker([lat,lng]).addTo(siteMap);if(!silent)siteMap.setView([lat,lng],15);}
+ var p=$('site-picked'); if(p){p.hidden=false;p.textContent='SITE: '+draft.site.lat+', '+draft.site.lng+(draft.site.address?' · '+draft.site.address:'');}
+}
+function initSiteMap(){
+ var el=$('site-map'); if(!el||siteMap)return;
+ if(typeof L==='undefined'){el.innerHTML='<p class="small">Map did not load — you can still type the address. / ম্যাপ লোড হয়নি — ঠিকানা লিখুন।</p>';return;}
+ siteMap=L.map(el).setView([23.8103,90.4125],12);
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(siteMap);
+ siteMap.on('click',function(e){setSite(e.latlng.lat,e.latlng.lng);});
+ if(draft.site)setSite(draft.site.lat,draft.site.lng,true);
+ setTimeout(function(){siteMap.invalidateSize();},100);
+}
+
+/* ---------- live location (hirer side) ---------- */
+var locTimer=null, locMap=null, locMarker=null, locSiteMarker=null, locTrailLine=null, locRouteLine=null, locLastPos=null, locAnim=null, locSimTimer=null, locSimStep=0, locWasSharing=false;
+var LOC_STATUS={'not-sharing':'loc.notSharing','stopped':'loc.stopped','en-route':'loc.enRoute','arriving':'loc.arriving','arrived':'loc.arrived','on-site':'loc.onSite','paused':'loc.paused'};
+function locStopAll(){if(locTimer){clearInterval(locTimer);locTimer=null;}locStopSim();if(locAnim){cancelAnimationFrame(locAnim);locAnim=null;}}
+function locWorkerToken(){var link=(currentJob&&(currentJob.workerLink||''))||'';try{return new URL(link,location.href).searchParams.get('token')||'';}catch(e){return '';}}
+function locInitMap(view){
+ var el=$('loc-map'); if(!el)return false;
+ if(typeof L==='undefined'){$('loc-nomap').hidden=false;return false;}
+ $('loc-nomap').hidden=true; el.hidden=false;
+ if(!locMap){
+  var c=view.site?[view.site.lat,view.site.lng]:[view.latest.lat,view.latest.lng];
+  locMap=L.map(el).setView(c,14);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(locMap);
+  locMarker=L.marker(c,{icon:L.divIcon({className:'loc-dot',html:'<span class="loc-dot-in"></span>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(locMap);
+  if(view.site)locSiteMarker=L.marker([view.site.lat,view.site.lng]).addTo(locMap).bindPopup(view.site.address||'Job site');
+  locTrailLine=L.polyline([],{color:'#FF5A1F',weight:3}).addTo(locMap);
+  locRouteLine=L.polyline([],{color:'#0E76FF',weight:2,dashArray:'6 6'}).addTo(locMap);
+  setTimeout(function(){locMap.invalidateSize();},100);
+ }
+ return true;
+}
+function locAnimateTo(lat,lng){
+ var from=locLastPos||{lat:lat,lng:lng};
+ var start=performance.now(), dur=8000;
+ if(locAnim)cancelAnimationFrame(locAnim);
+ var step=function(now){
+  var p=Math.min(1,(now-start)/dur);
+  var la=from.lat+(lat-from.lat)*p, lo=from.lng+(lng-from.lng)*p;
+  if(locMarker)locMarker.setLatLng([la,lo]);
+  if(p<1)locAnim=requestAnimationFrame(step); else locAnim=null;
+ };
+ locAnim=requestAnimationFrame(step);
+ locLastPos={lat:lat,lng:lng};
+}
+function locRender(view){
+ var box=$('loc-box'); if(!box)return; box.hidden=false;
+ var pill=$('loc-status-pill'); pill.textContent=t(LOC_STATUS[view.status]||'loc.notSharing');
+ var txt=[];
+ if(view.distanceKm!=null)txt.push(t('loc.away')+': '+view.distanceKm+' km');
+ if(view.etaMinutes!=null)txt.push(t('loc.eta')+': ~'+view.etaMinutes+' min');
+ if(view.latest&&view.latest.updated_at)txt.push(new Date(view.latest.updated_at).toLocaleTimeString(lang==='bn'?'bn-BD':'en-GB',{hour:'2-digit',minute:'2-digit'}));
+ $('loc-text').textContent=txt.join(' · ')||'—';
+ $('loc-sim').hidden=!view.latest.simulated;
+ if(locInitMap(view)){
+  locAnimateTo(view.latest.lat,view.latest.lng);
+  if(view.site&&locSiteMarker)locSiteMarker.setLatLng([view.site.lat,view.site.lng]);
+  if(locTrailLine)locTrailLine.setLatLngs((view.trail||[]).map(function(p){return [p.lat,p.lng];}));
+  if(locRouteLine&&view.site)locRouteLine.setLatLngs([[view.latest.lat,view.latest.lng],[view.site.lat,view.site.lng]]);
+ }
+}
+async function locPoll(){
+ if(!currentJobId)return;
+ try{var v=await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/location');
+  locWasSharing=true; locRender(v);
+ }catch(e){
+  var pill=$('loc-status-pill');
+  if(pill)pill.textContent=t(locWasSharing?'loc.stopped':'loc.notSharing');
+  var tx=$('loc-text'); if(tx)tx.textContent='—';
+ }
+}
+function locStartPolling(){
+ locStopAll(); locWasSharing=false; locLastPos=null;
+ if(!currentJob||currentJob.status!=='ACTIVE'){var b=$('loc-box');if(b)b.hidden=true;return;}
+ $('loc-box').hidden=false; locPoll(); locTimer=setInterval(locPoll,10000);
+}
+function locSimulate(){
+ var tok=locWorkerToken(); if(!tok){showErr('No worker link — cannot simulate.');return;}
+ var job=currentJob; var site=(job&&job.site_lat!=null)?{lat:job.site_lat,lng:job.site_lng}:null;
+ if(!site){showErr(lang==='bn'?'ডেমো কাজের জায়গা নেই — সিমুলেশন চলবে না।':'Demo job has no site — simulation needs a destination.');return;}
+ var start={lat:site.lat+0.02,lng:site.lng+0.02}; /* ~3 km away */
+ var steps=12; locSimStep=0;
+ $('btn-loc-sim').hidden=true; $('btn-loc-sim-stop').hidden=false;
+ api('/api/worker/'+encodeURIComponent(tok)+'/location/start',{method:'POST',body:'{}'}).catch(function(){});
+ locSimTimer=setInterval(async function(){
+  locSimStep++;
+  var f=Math.min(1,locSimStep/steps);
+  var lat=start.lat+(site.lat-start.lat)*f, lng=start.lng+(site.lng-start.lng)*f;
+  try{await fetch(API+'/api/worker/'+encodeURIComponent(tok)+'/location',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:+lat.toFixed(6),lng:+lng.toFixed(6),accuracy:12,simulated:true})});}catch(e){}
+  locPoll();
+  if(f>=1)locStopSim();
+ },2000);
+}
+function locStopSim(){
+ if(locSimTimer){clearInterval(locSimTimer);locSimTimer=null;}
+ var a=$('btn-loc-sim'),b=$('btn-loc-sim-stop'); if(a)a.hidden=false; if(b)b.hidden=true;
+ var tok=locWorkerToken();
+ if(tok&&locSimStep>0){fetch(API+'/api/worker/'+encodeURIComponent(tok)+'/location/stop',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(function(){});}
+ locSimStep=0;
+}
+
 /* ---------- auth ---------- */
 var loginPhone='';
 function initAuth(){
@@ -276,7 +427,7 @@ async function openJob(id){
  clearErr(); currentJobId=id;
  try{var r=await api('/api/jobs/'+encodeURIComponent(id));
   currentJob=r.job||r; currentJob._full=r;
-  renderDetail(currentJob); showView('view-detail');
+  renderDetail(currentJob); showView('view-detail'); locStartPolling();
   try{localStorage.setItem('dc_job_'+id,JSON.stringify(r));}catch(e){}
  }catch(e){showErr((lang==='bn'?'কাজটি খোলা যায়নি: ':'Could not open job: ')+e.message);
   try{var cached=JSON.parse(localStorage.getItem('dc_job_'+id)||'null');if(cached){currentJob=cached.job||cached;renderDetail(currentJob);showView('view-detail');}}catch(_e){}}
@@ -329,7 +480,23 @@ function renderDetail(job){
  $('bar-paid').style.width=agreed?Math.min(100,paid/agreed*100)+'%':'0%';
  $('bar-agreed').style.width='0%';
  var dw=$('detail-warn'); if(dw){dw.hidden=!miss.length;var ul=$('detail-missing');if(ul)ul.innerHTML=miss.map(function(m){return '<li>'+esc(typeof m==='string'?m:(m.question||m.name||JSON.stringify(m)))+'</li>';}).join('');}
- var dc=$('detail-confirm'); if(dc)dc.hidden=!(job.status==='WORKER_CONFIRMED'||job.status==='AWAITING_HIRER'||job.status==='PENDING'||job.awaitingHirerConfirm);
+ /* Hirer confirm box: show ONLY once the worker has actually confirmed
+    (a CONFIRMED_BY_WORKER event) and the hirer has not yet confirmed
+    (no CONFIRMED_BY_HIRER event). Never show it on PENDING alone, and
+    never check invented statuses. Before the worker confirms, show a
+    neutral waiting note instead. */
+ var evTypes=events.map(function(ev){return ev.type||ev.event||ev.label||'';});
+ var workerConfirmed=evTypes.indexOf('CONFIRMED_BY_WORKER')>=0;
+ var hirerConfirmed=evTypes.indexOf('CONFIRMED_BY_HIRER')>=0;
+ var dc=$('detail-confirm'); if(dc)dc.hidden=!(workerConfirmed&&!hirerConfirmed);
+ var dwait=$('detail-wait'); if(dwait)dwait.hidden=workerConfirmed||hirerConfirmed;
+ /* Worker link: shown in ALL modes whenever the job carries one (the
+    server returns workerLink on the job detail in sandbox and live alike). */
+ var wl=$('worker-link-box');
+ if(wl){var link=job.workerLink||job.worker_link||'';
+  wl.hidden=!link;
+  var wlu=$('worker-link-url'); if(wlu&&link){wlu.textContent=link;wlu.href=link;}
+ }
  /* timeline — events are {type, actor, payload_json, created_at} */
  var tl=$('timeline-list');
  tl.innerHTML=events.length?events.map(function(ev){
@@ -337,8 +504,19 @@ function renderDetail(job){
   var det=eventDetail(ev)||(ev.note||ev.detail||'');
   return '<li><div class="when">'+esc(when?fmtDate(when):'')+' · '+esc(ev.actor||'')+'</div><div><b>'+esc(String(label).replace(/_/g,' '))+'</b></div>'+(det?'<div class="small">'+esc(det)+'</div>':'')+'</li>';
  }).join(''):'<li><div class="small">'+(lang==='bn'?'এখনো কোনো ঘটনা নেই।':'No events yet.')+'</div></li>';
- /* photos — rows are {id, job_id, milestone, url, taken_at} */
- var ph=$('photo-list'); if(ph)ph.innerHTML=(full.photos||job.photos||[]).map(function(p){var u=typeof p==='string'?p:(p.url||p.path||'');return u?'<div><a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(u)+'</a></div>':'';}).join('')||'—';
+ /* photos — rows are {id, job_id, milestone, url, kind, taken_at}.
+    Rendered as thumbnails with a BEFORE/AFTER kind badge (no badge when
+    kind is null, e.g. old photos) and the timestamp. */
+ var ph=$('photo-list');
+ if(ph){var photos=full.photos||job.photos||[];
+  ph.innerHTML=photos.length?'<div class="photo-grid">'+photos.map(function(p){
+   var u=typeof p==='string'?p:(p.url||p.path||''); if(!u)return '';
+   var kind=(p&&p.kind)||null;
+   var when=(p&&(p.taken_at||p.takenAt||p.created_at||p.createdAt))||'';
+   return '<figure class="photo"><a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" alt="'+(lang==='bn'?'কাজের ছবি':'Job photo')+'" loading="lazy"></a>'+
+    (kind?'<span class="pill '+(kind==='BEFORE'?'pill-blue':'pill-orange')+'">'+esc(kind)+'</span>':'')+
+    (when?'<figcaption class="mono grey">'+esc(fmtDT(when))+'</figcaption>':'')+'</figure>';
+  }).join('')+'</div>':'—';}
  /* version history (ChangeLock) — one row per version */
  var cl=$('change-list');
  cl.innerHTML=versions.length?versions.map(function(v){
@@ -364,6 +542,29 @@ function renderDetail(job){
   var stmts=(d.statements||[]).map(function(s){return '<div class="small"><b>'+esc(s.side||'')+':</b> '+esc(s.text||'')+'</div>';}).join('');
   return '<div class="notice"><b>'+esc(d.category||'Dispute')+'</b><div class="mono grey">'+esc(d.status||'OPEN')+'</div>'+stmts+'</div>';
  }).join(''):'<p class="small">'+(lang==='bn'?'কোনো dispute নেই।':'No disputes.')+'</p>';
+ loadBillingStatus();
+}
+
+/* ---------- billing status ---------- */
+async function loadBillingStatus(){
+ var box=$('billing-status'); if(!box)return;
+ var fees='<p class="mono">৳10 / '+(lang==='bn'?'রেকর্ড':'record')+' · ৳70 / '+(lang==='bn'?'মাস':'month')+'</p>';
+ try{var d=await api('/api/billing/status');
+  /* Response shape is not fixed yet — read it tolerantly, never invent a status. */
+  var sub=d.subscription||d.sub||{};
+  var active=sub.active===true||sub.status==='ACTIVE'||d.subscribed===true||d.activeSubscription===true||d.subscriptionActive===true;
+  var paid=d.paidJobs!=null?d.paidJobs:(d.jobs&&d.jobs.paid!=null?d.jobs.paid:(d.paid!=null?d.paid:'—'));
+  var unpaid=d.unpaidJobs!=null?d.unpaidJobs:(d.jobs&&d.jobs.unpaid!=null?d.jobs.unpaid:(d.unpaid!=null?d.unpaid:'—'));
+  box.hidden=false;
+  box.innerHTML='<b>'+esc(t('bill.statusTitle'))+'</b>'+fees+
+   '<p>'+esc(active?t('bill.subActive'):t('bill.subInactive'))+'</p>'+
+   '<p class="mono">'+esc(t('bill.paidJobs'))+': '+esc(paid)+' · '+esc(t('bill.unpaidJobs'))+': '+esc(unpaid)+'</p>';
+ }catch(e){
+  /* Endpoint may not exist yet (404) — show the known fees and say the
+     live status is unavailable, instead of inventing subscription state. */
+  box.hidden=false;
+  box.innerHTML='<b>'+esc(t('bill.statusTitle'))+'</b>'+fees+'<p>'+esc(t('bill.statusUnknown'))+'</p>';
+ }
 }
 
 /* ---------- new job ---------- */
@@ -379,7 +580,12 @@ function initNewJob(){
  $('back-step-1').addEventListener('click',function(){newStep(1);});
  $('warn-resolve').addEventListener('click',function(){$('missing-warn').scrollIntoView({behavior:'smooth',block:'center'});});
  $('warn-skip').addEventListener('click',function(){$('missing-warn').hidden=true;});
- $('to-step-3').addEventListener('click',function(){newStep(3);});
+ $('to-step-3').addEventListener('click',function(){newStep(3);initSiteMap();});
+ $('btn-site-me').addEventListener('click',function(){
+  if(!('geolocation' in navigator)){showErr(lang==='bn'?'এই ডিভাইসে লোকেশন পাওয়া যাচ্ছে না।':'Location is not available on this device.');return;}
+  navigator.geolocation.getCurrentPosition(function(p){setSite(p.coords.latitude,p.coords.longitude);},
+   function(e){showErr(e.message);},{enableHighAccuracy:true,timeout:10000});});
+ $('btn-site-clear').addEventListener('click',function(){draft.site=null;if(siteMarker){siteMap.removeLayer(siteMarker);siteMarker=null;}var p=$('site-picked');if(p)p.hidden=true;$('site-address').value='';});
  $('back-step-2').addEventListener('click',function(){newStep(2);});
  $('add-milestone').addEventListener('click',function(){
   var d=document.createElement('div'); d.className='field-grid';
@@ -395,7 +601,8 @@ function initNewJob(){
   clearErr();
   draft.payload={trade:draft.trade,workerPhone:$('worker-phone').value.trim(),workerName:$('worker-name').value.trim(),
    scope:$('job-scope').value.trim(),price:Number($('job-price').value)||0,deadline:$('job-deadline').value,
-   milestones:miles,answers:answers,skippedTerms:missingTerms()};
+   milestones:miles,answers:answers,skippedTerms:missingTerms(),
+   site:draft.site?{lat:draft.site.lat,lng:draft.site.lng,address:$('site-address').value.trim()||draft.site.address||''}:undefined};
   var miss=missingTerms();
   $('review-record').innerHTML='<h3>'+esc(draft.trade)+' — '+(lang==='bn'?'এক পাতার কাজের রেকর্ড':'One-page work record')+'</h3><table>'+
    '<tr><th>'+(lang==='bn'?'Worker':'Worker')+'</th><td>'+esc(draft.payload.workerName||'')+' · '+esc(draft.payload.workerPhone)+'</td></tr>'+
@@ -413,24 +620,43 @@ function initNewJob(){
   clearErr();
   try{var r=await api('/api/jobs',{method:'POST',body:JSON.stringify(draft.payload)});
    var job=r.job||r; var id=job.id||job._id;
-   if(r.sandbox){$('sandbox-create').hidden=false;$('sandbox-create-text').textContent='Worker link: '+(r.workerLink||job.workerLink||'—');}
+   /* Worker link: ALWAYS shown after creation, in a neutral notice box —
+      not only inside the sandbox notice. The sandbox label stays separate. */
+   var link=r.workerLink||job.workerLink||job.worker_link||'';
+   if(link){var cb=$('create-link-box');if(cb){cb.hidden=false;var u=$('create-link-url');if(u){u.textContent=link;u.href=link;}}}
+   if(r.sandbox){$('sandbox-create').hidden=false;$('sandbox-create-text').textContent='Worker link: '+(link||'—');}
    if(r.missingTerms&&r.missingTerms.length){/* shown on detail */}
    if(id){openJob(id);}else{showView('view-jobs');loadJobs();}
   }catch(e){showErr((lang==='bn'?'কাজ তৈরি হয়নি: ':'Could not create job: ')+e.message);}
  });
  $('btn-new-job').addEventListener('click',function(){draft={trade:'ELECTRICIAN',answers:{},skipped:[]};renderFairScope();newStep(1);showView('view-new');});
  $('btn-refresh').addEventListener('click',loadJobs);
- $('btn-back-jobs').addEventListener('click',function(){showView('view-jobs');loadJobs();});
+ $('btn-back-jobs').addEventListener('click',function(){locStopAll();showView('view-jobs');loadJobs();});
 }
 
 /* ---------- detail actions ---------- */
 function initDetail(){
+ $('btn-loc-sim').addEventListener('click',locSimulate);
+ $('btn-loc-sim-stop').addEventListener('click',locStopSim);
  document.querySelectorAll('.tabs button').forEach(function(b){b.addEventListener('click',function(){
   document.querySelectorAll('.tabs button').forEach(function(x){x.setAttribute('aria-selected',x===b?'true':'false');});
-  document.querySelectorAll('.tabpanel').forEach(function(p){p.hidden=(p.id!=='tab-'+b.getAttribute('data-tab'));}); });});
+  document.querySelectorAll('.tabpanel').forEach(function(p){p.hidden=(p.id!=='tab-'+b.getAttribute('data-tab'));});
+  if(b.getAttribute('data-tab')==='billing')loadBillingStatus(); });});
  $('btn-hirer-confirm').addEventListener('click',async function(){clearErr();
   try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/hirer-confirm',{method:'POST',body:JSON.stringify({otpCode:$('confirm-otp').value.trim()})});openJob(currentJobId);}
   catch(e){showErr(e.message);}});
+ async function resendWorkerLink(){clearErr();clearNotice();
+  /* POST /api/jobs/:id/worker-link — server endpoint may not exist yet;
+     a 404 is reported, not hidden. */
+  try{var r=await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/worker-link',{method:'POST',body:'{}'});
+   var link=(r&&(r.workerLink||r.worker_link||(r.job&&(r.job.workerLink||r.job.worker_link))))||'';
+   if(link){if(currentJob)currentJob.workerLink=link;
+    var wlu=$('worker-link-url');if(wlu){wlu.textContent=link;wlu.href=link;}
+    var clu=$('create-link-url');if(clu){clu.textContent=link;clu.href=link;}}
+   showNotice(t('detail.resendOk'));}
+  catch(e){showErr((lang==='bn'?'লিংক আবার পাঠানো যায়নি: ':'Could not resend link: ')+e.message);}}
+ var rs=$('btn-resend-link'); if(rs)rs.addEventListener('click',resendWorkerLink);
+ var rsc=$('btn-resend-link-create'); if(rsc)rsc.addEventListener('click',resendWorkerLink);
  $('btn-confirm-send-otp').addEventListener('click',async function(){clearErr();
   /* hirer-confirm verifies purpose 'hirer-confirm' — request that OTP explicitly */
   try{var r=await api('/api/auth/request-otp',{method:'POST',body:JSON.stringify({phone:(user&&user.phone)||'',purpose:'hirer-confirm'})});
@@ -439,7 +665,7 @@ function initDetail(){
   }catch(e){showErr(e.message);}});
  $('form-change').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
   try{var r=await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/changes',{method:'POST',body:JSON.stringify({priceDelta:Number($('ch-delta').value)||0,deadline:$('ch-deadline').value||undefined,reason:$('ch-reason').value.trim(),details:$('ch-reason').value.trim()})});
-   if(r&&r.notifyLink){showErr('');var n=$('change-list');n.insertAdjacentHTML('afterbegin','<div class="notice blue"><b>Proposal sent.</b><p class="mono">WORKER LINK: '+esc(r.notifyLink)+'</p></div>');}
+   if(r&&r.notifyLink){clearErr();var n=$('change-list');n.insertAdjacentHTML('afterbegin','<div class="notice blue"><b>Proposal sent.</b><p class="mono">WORKER LINK: '+esc(r.notifyLink)+'</p></div>');}
    openJob(currentJobId);}
   catch(e){showErr(e.message);}});
  $('form-pay').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
@@ -448,6 +674,7 @@ function initDetail(){
  $('form-photo').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
   var f=$('photo-input').files[0]; if(!f){showErr(lang==='bn'?'একটি ছবি বেছে নিন।':'Choose a photo first.');return;}
   var fd=new FormData(); fd.append('photo',f);
+  var pk=$('photo-kind'); if(pk)fd.append('kind',pk.value);
   try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/photos',{method:'POST',body:fd});openJob(currentJobId);}
   catch(e){showErr(e.message);}});
  $('form-dispute').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
@@ -476,11 +703,11 @@ function initDetail(){
    var otp=r.sandboxOtp||(r.sandbox&&r.sandbox.otp)||null;
    box.innerHTML='<div class="sandbox"><b>SANDBOX — not a live AppLink call.</b><br>'+(otp?'OTP: '+esc(otp):'OTP sent by SMS.')+'</div>'+
     '<label>OTP</label><input id="caas-otp" type="text" inputmode="numeric" placeholder="OTP"><div class="btn-row"><button class="btn btn-dark btn-sm" type="button" id="caas-verify">Verify ৳10</button></div>';
-   $('caas-verify').addEventListener('click',async function(){try{var v=await api('/api/billing/caas/'+encodeURIComponent(id||currentJobId)+'/verify',{method:'POST',body:JSON.stringify({otpCode:$('caas-otp').value.trim()})});box.innerHTML='<p class="mono">'+(v.status==='VERIFIED'?'PAID — ৳10 · RECORD ACTIVE':'STATUS: '+esc(v.status||'PENDING'))+'</p>';}catch(e){showErr(e.message);}});
+   $('caas-verify').addEventListener('click',async function(){try{var v=await api('/api/billing/caas/'+encodeURIComponent(id||currentJobId)+'/verify',{method:'POST',body:JSON.stringify({otpCode:$('caas-otp').value.trim()})});box.innerHTML='<p class="mono">'+(v.status==='VERIFIED'?'PAID — ৳10 · RECORD ACTIVE':'STATUS: '+esc(v.status||'PENDING'))+'</p>';loadBillingStatus();}catch(e){showErr(e.message);}});
   }catch(e){showErr(e.message);}});
  $('btn-sub').addEventListener('click',async function(){clearErr();
   try{var r=await api('/api/billing/subscribe',{method:'POST',body:JSON.stringify({plan:'monthly'})});
-   $('billing-box').innerHTML='<p class="mono">SUBSCRIBED — ৳70 / MONTH · '+(r.status||r.state||'ACTIVE')+'</p>';
+   $('billing-box').innerHTML='<p class="mono">SUBSCRIBED — ৳70 / MONTH · '+(r.status||r.state||'ACTIVE')+'</p>';loadBillingStatus();
   }catch(e){showErr(e.message);}});
 }
 
@@ -494,7 +721,7 @@ async function loadDemo(){
   if(!token){ /* demo seed may return a token; otherwise show login with demo phone */
    $('login-phone').value='01700000001'; showView('view-login');
    var extra=r&&r.sandboxOtps?(' Demo confirm OTPs (sandbox): hirer '+(r.sandboxOtps.hirerConfirm||'—')+' / worker '+(r.sandboxOtps.workerConfirm||'—')+'.'):'';
-   showErr(lang==='bn'?'ডেমো তৈরি হয়েছে। হিরার নম্বর 01700000001 দিয়ে OTP লগইন করুন। লগইনের পর ডেমো কাজটি নিজে থেকেই খুলবে।'+extra:'Demo seeded. Log in with hirer number 01700000001 and OTP. The demo job opens automatically after login.'+extra);
+   showNotice(lang==='bn'?'ডেমো তৈরি হয়েছে। হিরার নম্বর 01700000001 দিয়ে OTP লগইন করুন। লগইনের পর ডেমো কাজটি নিজে থেকেই খুলবে।'+extra:'Demo seeded. Log in with hirer number 01700000001 and OTP. The demo job opens automatically after login.'+extra);
    document.getElementById('app').scrollIntoView({behavior:'smooth'}); return; }
   if(id)openJob(id); else loadJobs(),showView('view-jobs');
  }catch(e){showErr((lang==='bn'?'ডেমো লোড হয়নি: ':'Demo did not load: ')+e.message);}
@@ -514,6 +741,21 @@ function initNavSpy(){
 document.addEventListener('DOMContentLoaded',function(){
  initNavSpy();
  applyI18n();
+ /* Mobile hamburger menu */
+ var mb=$('menu-btn');
+ if(mb)mb.addEventListener('click',function(){
+  var nav=document.getElementById('main-nav'); if(!nav)return;
+  var open=nav.classList.toggle('open');
+  mb.setAttribute('aria-expanded',open?'true':'false');});
+ document.querySelectorAll('#main-nav a').forEach(function(a){a.addEventListener('click',function(){
+  var nav=document.getElementById('main-nav'); if(nav)nav.classList.remove('open');
+  if(mb)mb.setAttribute('aria-expanded','false');});});
+ /* Ask the server which AppLink mode it is really in; on any failure the
+    pill stays on the sandbox text — never claim live without proof. */
+ fetch('/api/applink/mode').then(function(r){return r.json();}).then(function(d){
+  if(d&&d.mode==='live'&&d.credentialsConfigured){applinkMode={mode:'live',live:true};}
+  updateModePill();
+ }).catch(function(){});
  $('lang-bn').addEventListener('click',function(){setLang('bn');});
  $('lang-en').addEventListener('click',function(){setLang('en');});
  renderDotMap($('map-hero'),{w:560,h:480});

@@ -1,6 +1,9 @@
 /* DealCraft — Direction 03: Dotted Bangladesh. Tokens locked. */
 :root{
-  --black:#000000; --ink:#0d0d0d; --paper:#ffffff; --grey:#8a8a8a; --grey-2:#bdbdbd;
+  --black:#000000; --ink:#0d0d0d; --paper:#ffffff; --grey:#b0b0b0; --grey-2:#bdbdbd;
+  /* --grey was #8a8a8a (~3.5:1 on black at 11px, fails WCAG AA). #b0b0b0 is
+     ~9.8:1 on black. It is too light for white backgrounds, so .app-card /
+     .section-white override .grey back to a dark grey below. */
   --line:#1f1f1f; --line-light:#e6e6e6;
   --orange:#ff5a1f; --blue:#1e4fff;
   --display:'Archivo Black','Oswald','Noto Sans Bengali',system-ui,sans-serif;
@@ -22,6 +25,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px soli
 label{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#555;display:block;margin:14px 0 6px}
 .mono{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
 .grey{color:var(--grey)}
+/* --grey is light for black backgrounds; on white cards it must be dark. */
+.app-card .grey,.section-white .grey{color:#666}
 .orange{color:var(--orange)}
 .blue{color:var(--blue)}
 .wrap{max-width:1280px;margin:0 auto;padding:0 20px}
@@ -38,6 +43,14 @@ label{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform
 .brand i{color:var(--orange);font-style:normal}
 .nav-links{display:none;gap:28px}
 @media(min-width:900px){.nav-links{display:flex}}
+/* Hamburger — mobile only. Opens the nav links as a dropdown panel. */
+.menu-btn{display:inline-flex;align-items:center;gap:8px;background:transparent;color:#fff;border:1px solid #333;padding:10px 14px;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;min-height:44px}
+.menu-btn[aria-expanded="true"]{background:#fff;color:#000}
+@media(min-width:900px){.menu-btn{display:none}}
+@media(max-width:899px){
+  .nav-links.open{display:flex;position:absolute;top:64px;left:0;right:0;background:#000;border-bottom:1px solid var(--line);flex-direction:column;gap:0;padding:8px 20px 16px}
+  .nav-links.open a{padding:12px 0;border-bottom:1px solid var(--line)}
+}
 .nav-links a{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;color:var(--grey-2)}
 .nav-links a:hover{color:#fff}
 .lang-toggle{display:flex}
@@ -88,6 +101,13 @@ h1.hero-title{font-family:var(--display);font-size:44px;line-height:.94;letter-s
 /* Sections — white / black alternating, square edges */
 .section{padding:64px 0;min-height:100svh}
 .journey{min-height:200svh}
+/* Mobile: stop forcing poster min-heights. On a 390px phone the journey
+   alone was ~3.36 screens of forced height; content still scrolls, but
+   nothing is padded out to a fixed number of screens. Desktop unchanged. */
+@media(max-width:899px){
+  .section{min-height:0}
+  .journey{min-height:0}
+}
 #why{padding:48px 0}
 #why .sec-head{margin-bottom:16px}
 .section-black{background:var(--black);color:#fff}
@@ -201,6 +221,12 @@ h2.sec-title{font-family:var(--display);font-size:40px;line-height:.95;text-tran
 .tabpanel[hidden]{display:none}
 .notice{border:1px solid var(--line-light);border-left:4px solid var(--orange);padding:14px 16px;background:#fff;margin:16px 0}
 .notice.blue{border-left-color:var(--blue)}
+/* Photo thumbnails in the job detail timeline tab */
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin:12px 0}
+.photo{margin:0;border:1px solid var(--line-light);padding:8px}
+.photo img{width:100%;height:120px;object-fit:cover}
+.photo .pill{margin-top:8px}
+.photo figcaption{margin-top:6px}
 .error{color:#b00020;font-family:var(--mono);font-size:12px;letter-spacing:.06em;margin:12px 0}
 .q-block{border:1px solid var(--line-light);padding:16px;margin:0 0 12px}
 .q-block .q{font-weight:700;margin-bottom:10px}
@@ -271,3 +297,10 @@ footer{border-top:1px solid var(--line);padding:56px 0 32px;min-height:100svh}
   .balance{grid-template-columns:1fr}
   .jstep{grid-template-columns:44px 1fr}
 }
+
+/* ---- live location ---- */
+#loc-map{height:260px;border:1px solid #222;background:#111;margin:12px 0;z-index:0}
+#site-map{height:220px;border:1px solid #ccc;background:#f4f4f4;margin:8px 0 12px;z-index:0}
+.loc-dot{background:transparent;border:0}
+.loc-dot-in{display:block;width:18px;height:18px;border-radius:50%;background:#FF5A1F;border:3px solid #fff;box-shadow:0 0 0 3px rgba(255,90,31,.4)}
+#loc-box .pill{background:#000;color:#fff}

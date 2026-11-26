@@ -20,4 +20,11 @@ function getSubscription(phone) {
   return sub;
 }
 
-module.exports = { subscribe, getSubscription };
+function unsubscribe(phone) {
+  const sub = subscriptions.get(phone);
+  if (sub) sub.status = 'CANCELLED';
+  appendLog({ api: 'subscription.unsubscribe', request: { phone }, response: sub ? { subscriptionId: sub.subscriptionId, status: 'CANCELLED' } : { status: 'NONE' }, mode: 'sandbox' });
+  return { subscriptionId: sub ? sub.subscriptionId : null, status: 'CANCELLED', sandbox: true };
+}
+
+module.exports = { subscribe, getSubscription, unsubscribe };
