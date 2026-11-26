@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,13 +14,12 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body class="light-page">
-<header class="topbar"><span style="font-family:'Oswald',sans-serif;font-size:20px">DEALCRAFT<span style="color:#FF5A1F">.</span></span><div class="lang-toggle" role="group" aria-label="Language / ভাষা"><button type="button" id="lang-bn" aria-pressed="true">বাংলা</button><button type="button" id="lang-en" aria-pressed="false">EN</button></div><span class="mono" style="color:#bbb">WORKPASSPORT</span></header>
+<header class="topbar"><span style="font-family:'Oswald',sans-serif;font-size:20px">DEALCRAFT<span style="color:#FF5A1F">.</span></span><div class="lang-toggle" role="group" aria-label="Language / ভাষা"><button type="button" id="lang-bn" aria-pressed="false">বাংলা</button><button type="button" id="lang-en" aria-pressed="true">EN</button></div><span class="mono" style="color:#bbb">WORKPASSPORT</span></header>
 <main>
   <p class="mono" data-i18n="p.kicker" style="color:#666">WORKPASSPORT · কাজের পরিচয়পত্র</p>
   <div id="p-err" class="error" hidden></div>
   <div class="pp-stage">
-  <div id="map-passport" style="background:#000;padding:8px 0"></div>
-  <!-- P3: premium ID card — dark gradient, holographic shine, slight 3D tilt.
+  <!-- P3: premium ID card — matte solid surface, solid-band shine, slight 3D tilt.
        Amounts / client names / photos stay hidden unless the worker enabled
        them (unchanged rule); the card shows only name, trades and counts. -->
   <div class="pp-id-card" id="pp-card">
@@ -28,27 +27,20 @@
       <div>
         <p class="pp-id-sub">WORKPASSPORT · MUTUALLY CONFIRMED WORK</p>
         <h1 id="p-name" class="pp-id-name">—</h1>
-        <p class="mono" style="color:#FF5A1F;margin:0">দুই পক্ষের সম্মতিতে করা কাজ</p>
       </div>
       <div class="pp-qr"><img id="p-qr" alt="WorkPassport QR code"></div>
     </div>
     <div class="pp-stats">
       <div class="pp-stat"><b id="p-count">0</b><span data-i18n="p.countLabel">CONFIRMED JOBS</span></div>
-      <div class="pp-stat"><b id="p-trades-count">0</b><span>TRADES · কাজের ধরন</span></div>
-      <div class="pp-stat"><b id="p-photos-count">0</b><span>PHOTOS SHARED · ছবি</span></div>
+      <div class="pp-stat"><b id="p-trades-count">0</b><span data-i18n="p.tradesLabel">TRADES</span></div>
+      <div class="pp-stat"><b id="p-photos-count">0</b><span data-i18n="p.photosLabel">PHOTOS SHARED</span></div>
     </div>
     <p class="pp-id-foot">DEALCRAFT · VERIFIED BY QR</p>
   </div>
   </div>
   <div id="p-body" hidden>
-    <h2 data-i18n="p.trades" style="font-family:'Oswald',sans-serif;text-transform:uppercase">Trades · কাজের ধরন</h2>
-    <div id="p-trades"></div>
-    <h2 data-i18n="p.types" style="font-family:'Oswald',sans-serif;text-transform:uppercase">Work types · কাজের ধরন (বিস্তারিত)</h2>
-    <div id="p-types"></div>
-    <h2 data-i18n="p.closures" style="font-family:'Oswald',sans-serif;text-transform:uppercase">Successful closures · সফল সমাপ্তি</h2>
-    <p id="p-closures"></p>
-    <div id="p-amounts" hidden><h2 data-i18n="p.amounts" style="font-family:'Oswald',sans-serif;text-transform:uppercase">Amounts · টাকার অঙ্ক</h2><p id="p-amounts-text"></p></div>
-    <div id="p-clients" hidden><h2 data-i18n="p.clients" style="font-family:'Oswald',sans-serif;text-transform:uppercase">Clients · ক্লায়েন্ট</h2><p id="p-clients-text"></p></div>
+    <h2 data-i18n="p.jobs" style="font-family:'Oswald',sans-serif;text-transform:uppercase">Completed jobs</h2>
+    <div id="p-jobs" class="pp-jobs"></div>
     <div id="p-photos" hidden><h2 data-i18n="p.photos" style="font-family:'Oswald',sans-serif;text-transform:uppercase">Photos · ছবি</h2><div id="p-photos-list"></div></div>
     <p class="small" data-i18n="p.note" style="color:#666">Amounts, client names and photos are shown only if the worker enabled them. / টাকার অঙ্ক, ক্লায়েন্টের নাম আর ছবি worker না চাইলে দেখানো হয় না।</p>
   </div>
@@ -57,18 +49,17 @@
 <script>
 (function(){'use strict';
 var q=new URLSearchParams(location.search), profileId=q.get('id')||q.get('profileId')||'';
-/* Language toggle — same pattern as index.html (dc_lang, default bn). */
-var pLang=localStorage.getItem('dc_lang')||'bn';
+/* Language toggle — same pattern as index.html (dc_lang, default en). */
+var pLang=localStorage.getItem('dc_lang')||'en';
 var PI18N={
  'p.kicker':{bn:'WORKPASSPORT · কাজের পরিচয়পত্র',en:'WORKPASSPORT · Work identity'},
- 'p.countLabel':{bn:'সম্পন্ন কাজ · CONFIRMED JOBS',en:'Confirmed jobs'},
- 'p.trades':{bn:'Trades · কাজের ধরন',en:'Trades'},
- 'p.types':{bn:'Work types · কাজের ধরন (বিস্তারিত)',en:'Work types (detail)'},
- 'p.closures':{bn:'Successful closures · সফল সমাপ্তি',en:'Successful closures'},
- 'p.amounts':{bn:'Amounts · টাকার অঙ্ক',en:'Amounts'},
- 'p.clients':{bn:'Clients · ক্লায়েন্ট',en:'Clients'},
+ 'p.countLabel':{bn:'সম্পন্ন কাজ',en:'Confirmed jobs'},
+ 'p.tradesLabel':{bn:'কাজের ধরন',en:'Trades'},
+ 'p.photosLabel':{bn:'শেয়ার করা ছবি',en:'Photos shared'},
+ 'p.jobs':{bn:'সম্পন্ন কাজ',en:'Completed jobs'},
  'p.photos':{bn:'Photos · ছবি',en:'Photos'},
- 'p.qr':{bn:'SCAN TO VERIFY · যাচাই করতে স্ক্যান করুন',en:'Scan to verify'},
+ 'p.amountLabel':{bn:'টাকার অঙ্ক',en:'Amount'},
+ 'p.jobNo':{bn:'কাজ নং',en:'Job no.'},
  'p.note':{bn:'Amounts, client names and photos are shown only if the worker enabled them. / টাকার অঙ্ক, ক্লায়েন্টের নাম আর ছবি worker না চাইলে দেখানো হয় না।',en:'Amounts, client names and photos are shown only if the worker enabled them.'}
 };
 function pApplyLang(){document.documentElement.lang=pLang;
@@ -79,15 +70,19 @@ function pApplyLang(){document.documentElement.lang=pLang;
  localStorage.setItem('dc_lang',pLang);}
 function $(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-function list(arr){return (arr||[]).map(function(x){return '<span class="pill" style="margin:0 6px 6px 0">'+esc(typeof x==='string'?x:(x.name||x.trade||x.title||JSON.stringify(x)))+'</span>';}).join('')||'<span class="small">—</span>';}
-/* tiny dotted map, same motif, no external JS */
-var BD=[[88.05,26.55],[88.35,26.15],[88.15,25.6],[88.55,25.15],[88.9,24.55],[89.05,24],[89.25,23.4],[89.05,22.75],[89.35,22.25],[89.85,21.85],[90.35,22.15],[90.9,22.45],[91.45,22.75],[91.95,22.85],[92.35,22.4],[92.55,21.75],[92.65,21.15],[92.35,20.95],[92.55,21.6],[92.4,22.25],[92.25,22.85],[92.45,23.35],[92.2,23.9],[92.05,24.5],[91.75,24.95],[91.95,25.25],[91.4,25.15],[90.85,25.25],[90.35,25.45],[89.85,25.85],[89.35,26.05],[88.65,26.35]];
-function inPoly(x,y){var ins=false;for(var i=0,j=BD.length-1;i<BD.length;j=i++){var xi=BD[i][0],yi=BD[i][1],xj=BD[j][0],yj=BD[j][1];if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))ins=!ins;}return ins;}
-(function(){var W=560,H=240,s='',step=16;
- for(var y=8;y<H;y+=step)for(var x=8;x<W;x+=step){var lon=88+(x/W)*4.8,lat=20.9+((H-y)/H)*5.8;if(inPoly(lon,lat))s+='<circle cx="'+x+'" cy="'+y+'" r="2.4" fill="#fff" opacity="0.8"/>';}
- var dx=((90.41-88)/4.8)*W,dy=H-((23.81-20.9)/5.8)*H,cx=((91.83-88)/4.8)*W,cy=H-((22.36-20.9)/5.8)*H;
- s+='<circle cx="'+dx+'" cy="'+dy+'" r="4" fill="#FF5A1F"/><circle cx="'+cx+'" cy="'+cy+'" r="4" fill="#FF5A1F"/>';
- $('map-passport').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Dotted map of Bangladesh">'+s+'</svg>';})();
+function jobNum(n){return (n<10?'0':'')+n;}
+/* Completed jobs as objects on a shelf: one card per job, big numeral first
+   (the amount when the worker enabled it, else the job number), then trade,
+   date, and the client name only when enabled. No invented figures. */
+function shelf(entries){
+ return entries.map(function(e,i){
+  var hasAmt=e.showAmounts&&e.amount!=null;
+  var num=hasAmt?'৳'+Number(e.amount).toLocaleString('en-IN'):jobNum(i+1);
+  var lab=hasAmt?(PI18N['p.amountLabel'][pLang]||'Amount'):(PI18N['p.jobNo'][pLang]||'Job no.')+' '+jobNum(i+1);
+  var client=(e.showClient&&e.clientName)?'<span class="pp-job-meta">'+esc(e.clientName)+'</span>':'';
+  return '<article class="pp-job" style="--i:'+i+'"><b class="pp-job-num">'+esc(num)+'</b><span class="pp-job-lab">'+esc(lab)+'</span><span class="pp-job-trade">'+esc(e.trade||'')+'</span><span class="pp-job-meta">'+esc(String(e.completedAt||'').slice(0,10))+'</span>'+client+'</article>';
+ }).join('')||'<span class="small">—</span>';
+}
 async function load(){
  if(!profileId){var e=$('p-err');e.hidden=false;e.textContent='No WorkPassport link. / লিংকে কোনো WorkPassport নেই।';return;}
  try{var r=await fetch('/api/passport/'+encodeURIComponent(profileId));var d=await r.json();
@@ -95,20 +90,12 @@ async function load(){
   var p=d.passport||d;
   $('p-name').textContent=p.workerName||p.name||'DealCraft worker';
   $('p-count').textContent=p.completedJobs!=null?p.completedJobs:(p.count!=null?p.count:0);
-  $('p-trades').innerHTML=list(p.trades);
-  /* P3 stats: only numbers the API actually returns — confirmed jobs,
-     trades, and photos the worker chose to share. No invented rates. */
-  var tc=$('p-trades-count'); if(tc)tc.textContent=(p.trades||[]).length;
   /* entries: [{jobId, trade, completedAt, showAmounts, showClient, showPhotos, amount?}] */
   var entries=p.entries||[];
-  $('p-types').innerHTML=entries.length?entries.map(function(e){return '<span class="pill" style="margin:0 6px 6px 0">'+esc(e.trade||'')+' · '+esc(String(e.completedAt||'').slice(0,10))+'</span>';}).join(''):'<span class="small">—</span>';
-  $('p-closures').textContent=(p.completedJobs!=null?p.completedJobs:entries.length)+' successful closures';
-  var shownAmounts=entries.filter(function(e){return e.showAmounts&&e.amount!=null;}).map(function(e){return '৳'+Number(e.amount).toLocaleString('en-IN');});
-  if(shownAmounts.length){$('p-amounts').hidden=false;$('p-amounts-text').textContent=shownAmounts.join(' · ');}
+  var tc=$('p-trades-count'); if(tc)tc.textContent=(p.trades||[]).length;
+  $('p-jobs').innerHTML=shelf(entries);
   /* Client names and photos come back per entry (clientName / photoUrls),
      only when the worker enabled them for that job — never from the top level. */
-  var shownClients=entries.filter(function(e){return e.showClient&&e.clientName;}).map(function(e){return e.clientName;});
-  if(shownClients.length){$('p-clients').hidden=false;$('p-clients-text').textContent=shownClients.join(', ');}
   var shownPhotos=[];entries.forEach(function(e){if(e.showPhotos&&e.photoUrls)e.photoUrls.forEach(function(u){shownPhotos.push(u);});});
   var pc=$('p-photos-count'); if(pc)pc.textContent=shownPhotos.length;
   if(shownPhotos.length){$('p-photos').hidden=false;$('p-photos-list').innerHTML=shownPhotos.map(function(u){return '<img src="'+esc(typeof u==='string'?u:u.url)+'" alt="" style="max-width:160px;display:inline-block;margin:0 8px 8px 0">';}).join('');}
@@ -118,7 +105,7 @@ async function load(){
  }catch(e){var er=$('p-err');er.hidden=false;er.textContent='WorkPassport খোলা যায়নি: '+e.message;}}
 $('lang-bn').addEventListener('click',function(){pLang='bn';pApplyLang();});
 $('lang-en').addEventListener('click',function(){pLang='en';pApplyLang();});
-/* P3: ID-card tilt + holographic shine — pointer on fine pointers, scroll
+/* P3: ID-card tilt + solid-band shine — pointer on fine pointers, scroll
    otherwise; transform only; static under prefers-reduced-motion. */
 (function(){
  var card=$('pp-card'); if(!card)return;
@@ -130,16 +117,17 @@ $('lang-en').addEventListener('click',function(){pLang='en';pApplyLang();});
    var px=(ev.clientX-r.left)/r.width, py=(ev.clientY-r.top)/r.height;
    card.style.setProperty('--ry',((px-0.5)*8).toFixed(2)+'deg');
    card.style.setProperty('--rx',((0.5-py)*6).toFixed(2)+'deg');
-   card.style.setProperty('--shine',((px*130)-30).toFixed(1)+'%');
+   card.style.setProperty('--shine',((px*1.3-0.3)*r.width).toFixed(1)+'px');
   });
   card.addEventListener('pointerleave',function(){
    card.style.setProperty('--ry','0deg');card.style.setProperty('--rx','0deg');
+   card.style.setProperty('--shine','-90px');
   });
  }else{
   window.addEventListener('scroll',function(){
    var r=card.getBoundingClientRect();
    var p=Math.max(0,Math.min(1,1-r.top/window.innerHeight));
-   card.style.setProperty('--shine',((p*130)-30).toFixed(1)+'%');
+   card.style.setProperty('--shine',((p*1.3-0.3)*r.width).toFixed(1)+'px');
   },{passive:true});
  }
 })();

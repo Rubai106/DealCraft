@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>DealCraft — মুখের কথা নয়। লিখিত রেকর্ড।</title>
+<title>DealCraft — Not words. A written record.</title>
 <meta name="description" content="DealCraft — Electrician, painter, plumber: scope, price and payments, written down and confirmed by both sides.">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.json">
@@ -28,36 +28,34 @@
 <body>
 <header class="nav"><a class="skip-link" href="#top">Skip to content</a><div class="wrap nav-in">
   <a class="brand" href="#top">DEALCRAFT<i>.</i></a>
-  <button class="menu-btn" type="button" id="menu-btn" aria-expanded="false" aria-controls="main-nav"><span aria-hidden="true">☰</span> <span data-i18n="nav.menu">মেনু</span></button>
+  <button class="menu-btn" type="button" id="menu-btn" aria-expanded="false" aria-controls="main-nav"><span aria-hidden="true">☰</span> <span data-i18n="nav.menu">Menu</span></button>
   <nav class="nav-links" id="main-nav" aria-label="Main">
-    <a href="#journey" data-i18n="nav.how">কীভাবে কাজ করে</a>
-    <a href="#price" data-i18n="nav.price">খরচ</a>
-    <a href="#why" data-i18n="nav.why">কেন</a>
-    <a href="#live" data-i18n="nav.live">লাইভ লোকেশন</a>
-    <a href="#faq" data-i18n="nav.faq">প্রশ্ন</a>
-    <a href="#app" data-i18n="nav.app">অ্যাপ</a>
-    <a href="#find" data-i18n="nav.bid">মিস্ত্রি খুঁজুন</a>
+    <a href="#journey" data-i18n="nav.how">How it works</a>
+    <a href="#price" data-i18n="nav.price">Price</a>
+    <a href="#why" data-i18n="nav.why">Why</a>
+    <a href="#live" data-i18n="nav.live">Live</a>
+    <a href="#faq" data-i18n="nav.faq">FAQ</a>
+    <a href="#app" data-i18n="nav.app">App</a>
+    <a href="#find" data-i18n="nav.bid">Find a repairer</a>
   </nav>
   <div class="lang-toggle" role="group" aria-label="Language / ভাষা">
-    <button type="button" id="lang-bn" aria-pressed="true">বাংলা</button>
-    <button type="button" id="lang-en" aria-pressed="false">EN</button>
+    <button type="button" id="lang-bn" aria-pressed="false">বাংলা</button>
+    <button type="button" id="lang-en" aria-pressed="true">EN</button>
   </div>
 </div></header>
 
 <main id="top">
 <!-- HERO -->
 <section class="hero"><div class="wrap hero-grid">
-  <div class="hero-text">
-    <h1 class="hero-title"><span class="hl-line hl-1" data-i18n="hero.title1">মুখের কথা নয়।</span><span class="hl-line hl-2" data-i18n="hero.title2">লিখিত রেকর্ড।</span></h1>
-    <p class="hero-sub" data-henter data-i18n="hero.sub">ইলেকট্রিশিয়ান, পেইন্টার, প্লাম্বার — কাজের শর্ত, দাম আর পেমেন্ট, দুই পক্ষের সম্মতিতে লেখা থাকে।</p>
+  <div class="hero-panel">
+    <p class="hero-sub" data-henter data-i18n="hero.sub">Electrician, painter, plumber — scope, price, payments. Agreed by both sides.</p>
+    <h1 class="hero-title"><span class="hl-line hl-1" data-i18n="hero.title1">Not words.</span><span class="hl-line hl-2" data-i18n="hero.title2">A written record.</span></h1>
     <div class="btn-row" data-henter>
       <a class="btn btn-hero" href="#app" id="cta-start" data-i18n="hero.cta1">Start a record</a>
-      <button class="hero-demo-link" type="button" id="cta-demo" data-i18n="hero.cta2">ডেমো দেখুন →</button>
+      <button class="hero-demo-link" type="button" id="cta-demo" data-i18n="hero.cta2">See the demo →</button>
     </div>
   </div>
   <div class="hero-visual">
-    <div class="hero-dots" aria-hidden="true"><span class="pulse-dot"></span></div>
-    <div class="map-box hero-map-small" aria-label="Dotted map of Bangladesh"><div id="map-hero"></div></div>
     <div class="rcard-scene" id="hero-scene">
       <div class="rcard-tilt" id="hero-tilt">
         <div class="rcard rcard-ghost" aria-hidden="true">
@@ -89,18 +87,18 @@
 
 <!-- JOURNEY V1 -> V2 -->
 <section class="section section-black journey" id="journey" data-scroll-moment><div class="wrap">
-  <div class="sec-head"><h2 class="sec-title" data-i18n="journey.title">ফোন থেকে লিখিত রেকর্ড</h2></div>
+  <div class="sec-head"><h2 class="sec-title" data-i18n="journey.title">Every step of the record.</h2></div>
   <div class="journey-grid">
     <div class="journey-steps-col">
   <div class="journey-steps" id="journey-steps" data-stagger>
-    <article class="jstep" data-step="0"><div class="jstep-num">01</div><div><h3 data-i18n="j1t">FairScope — আগে প্রশ্ন, পরে কাজ</h3><p data-i18n="j1p">মাল, কোট, পয়েন্ট — সব প্রশ্নের উত্তর কাজের আগেই ঠিক করুন।</p></div></article>
-    <article class="jstep" data-step="1"><div class="jstep-num">02</div><div><h3 data-i18n="j2t">দুজনেই নিশ্চিত করুন — OTP</h3><p data-i18n="j2p">দুজনেই OTP দিয়ে রেকর্ড নিশ্চিত করেন — একজনের কথায় হয় না।</p></div></article>
-    <article class="jstep" data-step="2"><div class="jstep-num">03</div><div><h3 data-i18n="j3t">কাজ চলাকালীন — মাইলস্টোন আর ছবি</h3><p data-i18n="j3p">ধাপ শেষ হলে ছবি দিয়ে জানান, hirer অনুমোদন দেন।</p></div></article>
-    <article class="jstep" data-step="3"><div class="jstep-num">04</div><div><h3 data-i18n="j4t">টাকা দিলে — PayProof</h3><p data-i18n="j4p">টাকা দিলে লিখুন — worker “পেয়েছি” বললে তবেই স্বীকৃত।</p></div></article>
-    <article class="jstep" data-step="4"><div class="jstep-num">05</div><div><h3 data-i18n="j5t">দাম বা সময় বদলাতে হলে — ChangeLock</h3><p data-i18n="j5p">কাজ বাড়লে লিখিত প্রস্তাব — <span class="price-old">৳18,000</span> → <span class="price-new">৳20,000</span>।</p></div></article>
-    <article class="jstep" data-step="5"><div class="jstep-num">06</div><div><h3 data-i18n="j6t">মত না মিললে — Dispute + ResolvePack</h3><p data-i18n="j6p">দুই পক্ষের বক্তব্য এক জায়গায় — সবকিছু এক PDF-এ।</p></div></article>
+    <article class="jstep" data-step="0"><div><h3 data-i18n="j1t">FairScope — questions first, work after</h3><p data-i18n="j1p">Materials, coats, points — settle every question before work starts.</p></div></article>
+    <article class="jstep" data-step="1"><div><h3 data-i18n="j2t">Both sides confirm — OTP</h3><p data-i18n="j2p">Both sides confirm the record by OTP — one side alone cannot.</p></div></article>
+    <article class="jstep" data-step="2"><div><h3 data-i18n="j3t">During work — milestones and photos</h3><p data-i18n="j3p">When a step finishes, a photo reports it; the hirer approves.</p></div></article>
+    <article class="jstep" data-step="3"><div><h3 data-i18n="j4t">When you pay — PayProof</h3><p data-i18n="j4p">Record a payment — it counts only when the worker says “Received”.</p></div></article>
+    <article class="jstep" data-step="4"><div><h3 data-i18n="j5t">To change price or time — ChangeLock</h3><p data-i18n="j5p">If work grows, propose it in writing — <span class="price-old">৳18,000</span> → <span class="price-new">৳20,000</span>.</p></div></article>
+    <article class="jstep" data-step="5"><div><h3 data-i18n="j6t">If you disagree — Dispute + ResolvePack</h3><p data-i18n="j6p">Both sides’ statements in one place — everything in one PDF.</p></div></article>
   </div>
-      <div class="btn-row"><a class="btn" href="#app">Start a record</a></div>
+      <div class="btn-row"><a class="btn" href="#app" data-i18n="hero.cta1">Start a record</a></div>
     </div>
     <div class="journey-visual">
   <div class="jcard" id="journey-card" data-state="0" aria-label="Work record, version 1 to version 2">
@@ -116,19 +114,17 @@
     <div class="jcard-chip jc-otp" id="jc-otp" hidden>✓ OTP — দুজনেই নিশ্চিত করেছেন</div>
     <div class="jcard-photo" id="jc-photo" hidden><span class="thumb" aria-hidden="true"></span><span><span class="pill pill-orange">AFTER</span> <span class="mono grey">PHOTO · MILESTONE COMPLETE</span></span></div>
     <div class="jcard-change" id="jc-change" hidden>⇄ +৳2,000 · ChangeLock — TWO EXTRA POINTS · PROPOSED, NOT FORCED</div>
-    <div class="jcard-pack" id="jc-pack" hidden><span class="pill pill-blue">RESOLVEPACK PDF</span> <span class="mono grey">FULL RECORD · TIMELINE + PHOTOS</span></div>
+    <div class="jcard-pack" id="jc-pack" hidden><span class="pill pill-orange">RESOLVEPACK PDF</span> <span class="mono grey">FULL RECORD · TIMELINE + PHOTOS</span></div>
     <div class="jcard-ghost" id="jc-ghost" hidden>V1 · ৳18,000 · KEPT INTACT</div>
   </div>
-  <svg class="dotstrip" viewBox="0 0 240 24" aria-hidden="true"><defs><pattern id="dots1" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="2" fill="currentColor"/></pattern></defs><rect width="240" height="24" fill="url(#dots1)"/></svg>
-    </div>
+      </div>
   </div>
 </div></section>
 
 <!-- PRICE -->
 <section class="section section-white" id="price"><div class="wrap">
-  <div class="sec-head"><h2 class="sec-title" data-i18n="price.title">সহজ খরচ। লুকানো কিছু নেই।</h2></div>
-  <svg class="dotstrip" viewBox="0 0 240 24" aria-hidden="true"><defs><pattern id="dots2" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="2" fill="currentColor"/></pattern></defs><rect width="240" height="24" fill="url(#dots2)"/></svg>
-  <div class="stats" data-stagger>
+  <div class="sec-head"><h2 class="sec-title" data-i18n="price.title">Simple pricing. Nothing hidden.</h2></div>
+    <div class="stats" data-stagger>
     <div class="stat"><div class="stat-num" data-count="10"><small>৳</small>10</div><p class="mono" data-i18n="price.p1">Per record — pay as you go</p></div>
     <div class="stat"><div class="stat-num" data-count="70"><small>৳</small>70</div><p class="mono" data-i18n="price.p2">Per month — unlimited records</p></div>
     <div class="stat"><div class="stat-num" data-count="0"><small>৳</small>0</div><p class="mono" data-i18n="price.p3">Workers — free, always</p></div>
@@ -144,21 +140,20 @@
 
 <!-- WHY -->
 <section class="section section-white" id="why" data-statement><div class="wrap">
-  <div class="sec-head"><h2 class="sec-title" data-i18n="why.title">কেন লিখিত রেকর্ড?</h2></div>
-  <svg class="dotstrip" viewBox="0 0 240 24" aria-hidden="true"><defs><pattern id="dots3" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="2" fill="currentColor"/></pattern></defs><rect width="240" height="24" fill="url(#dots3)"/></svg>
-  <div data-stagger>
-    <div class="why-row"><div class="n">01</div><div><h3 data-i18n="w1t">মুখের কথা ভুলে যায়, লেখা থাকে</h3><p data-i18n="w1p">“বলেছিলাম” আর “বলিনি” — এই তর্কে কাজ আটকে যায়।</p></div></div>
-    <div class="why-row"><div class="n">02</div><div><h3 data-i18n="w2t">ঠিক না হওয়া কথা আগেই চোখে পড়ে</h3><p data-i18n="w2p">FairScope যা ঠিক হয়নি, তা বড় করে দেখায়।</p></div></div>
-    <div class="why-row"><div class="n">03</div><div><h3 data-i18n="w3t">টাকার হিসাব সবসময় পরিষ্কার</h3><p data-i18n="w3p">মোট কত, কত দেওয়া হয়েছে, কত বাকি — তিনটি সংখ্যা সবসময় একসাথে।</p></div></div>
-    <div class="why-row"><div class="n">04</div><div><h3 data-i18n="w4t">বদল হলে লিখিত প্রস্তাব</h3><p data-i18n="w4p">দাম বা সময় বদলাতে হলে ChangeLock প্রস্তাব লাগে।</p></div></div>
-    <div class="btn-row"><a class="btn btn-dark" href="#app">Start a record</a></div>
+  <div class="sec-head"><h2 class="sec-title" data-i18n="why.title">Why a written record?</h2></div>
+    <div data-stagger>
+    <div class="why-row"><div><h3 data-i18n="w1t">Spoken words are forgotten; writing stays</h3><p data-i18n="w1p">“I said it” versus “you didn’t” stalls work.</p></div></div>
+    <div class="why-row"><div><h3 data-i18n="w2t">Undecided terms show up early</h3><p data-i18n="w2p">FairScope shows what is undecided, up front.</p></div></div>
+    <div class="why-row"><div><h3 data-i18n="w3t">The money is always clear</h3><p data-i18n="w3p">Total, paid, remaining — three numbers, always together.</p></div></div>
+    <div class="why-row"><div><h3 data-i18n="w4t">Changes need a written proposal</h3><p data-i18n="w4p">Changing price or time needs a ChangeLock proposal.</p></div></div>
+    <div class="btn-row"><a class="btn btn-dark" href="#app" data-i18n="hero.cta1">Start a record</a></div>
   </div>
 </div></section>
 
 <!-- LIVE LOCATION -->
 <section class="section section-black" id="live"><div class="wrap">
-  <div class="sec-head"><h2 class="sec-title" data-i18n="live.title">মিস্ত্রি কোথায়, চোখের সামনে।</h2></div>
-  <p class="lede" data-i18n="live.sub">কাজ শুরু হলে মিস্ত্রি লাইভ লোকেশন শেয়ার করেন — আপনি ম্যাপে দেখেন।</p>
+  <div class="sec-head"><h2 class="sec-title" data-i18n="live.title">See your repairer on the way.</h2></div>
+  <p class="lede" data-i18n="live.sub">Once work starts, your repairer shares live location — you watch it on the map.</p>
   <div data-stagger>
     <div class="live-map-wrap">
       <div id="live-map" role="img" aria-label="Live map — repairer travelling to the demo job site in Dhaka"></div>
@@ -168,56 +163,56 @@
         <span class="pill" id="live-dist">—</span>
       </div>
     </div>
-    <p class="small" data-i18n="live.privacy">শুধু শেয়ার চলাকালীন, শুধু এই কাজের Hirer দেখেন।</p>
-    <div class="btn-row"><a class="hero-demo-link" href="#app" data-i18n="live.cta">অ্যাপে লাইভ লোকেশন দেখুন →</a></div>
+    <p class="small" data-i18n="live.privacy">Only while sharing, and only for that job’s hirer.</p>
+    <div class="btn-row"><a class="hero-demo-link" href="#app" data-i18n="live.cta">See live location in the app →</a></div>
   </div>
 </div></section>
 
 <!-- FIND A REPAIRER -->
 <section class="section section-white" id="find"><div class="wrap">
-  <div class="sec-head"><h2 class="sec-title" data-i18n="find.title">ছবি দিন। দাম আসবে।</h2></div>
-  <p class="lede" data-i18n="find.sub">সমস্যার ছবি তুলুন — কাছের মিস্ত্রিরা দাম দেবেন, আপনি বেছে নিন।</p>
+  <div class="sec-head"><h2 class="sec-title" data-i18n="find.title">Send a photo. Prices come back.</h2></div>
+  <p class="lede" data-i18n="find.sub">Photograph the problem — nearby repairers bid a price, you choose.</p>
   <div data-stagger>
     <div class="bid-demo">
       <div class="bid-job">
-        <div class="bid-photo" aria-hidden="true"><span data-i18n="find.jobPhoto">ছবি</span></div>
+        <div class="bid-photo" aria-hidden="true"><span data-i18n="find.jobPhoto">Photo</span></div>
         <div>
-          <div class="bid-job-trade" data-i18n="find.jobTrade">ইলেকট্রিশিয়ান</div>
-          <p class="bid-job-desc" data-i18n="find.jobDesc">বাথরুমের পাইপ ফেটে পানি পড়ছে</p>
-          <p class="mono grey" data-i18n="find.jobSite">ধানমন্ডি, ঢাকা</p>
+          <div class="bid-job-trade" data-i18n="find.jobTrade">Electrician</div>
+          <p class="bid-job-desc" data-i18n="find.jobDesc">Bathroom pipe burst — water leaking</p>
+          <p class="mono grey" data-i18n="find.jobSite">Dhanmondi, Dhaka</p>
         </div>
       </div>
       <div class="bid-row best">
-        <div><div class="bid-who" data-i18n="find.b1">ইলেকট্রিশিয়ান · ২.১ কিমি</div><div class="mono grey" data-i18n="find.b1f">১২টি কাজ শেষ · ইলেকট্রিশিয়ান</div></div>
-        <b class="bid-price">৳1,800 <span class="pill pill-orange bid-lowest" data-i18n="find.lowest">সবচেয়ে কম</span></b>
+        <div><div class="bid-who" data-i18n="find.b1">Electrician · 2.1 km</div><div class="mono grey" data-i18n="find.b1f">12 jobs done · Electrician</div></div>
+        <b class="bid-price">৳1,800 <span class="pill pill-orange bid-lowest" data-i18n="find.lowest">Lowest</span></b>
       </div>
       <div class="bid-row">
-        <div><div class="bid-who" data-i18n="find.b2">ইলেকট্রিশিয়ান · ৩.৪ কিমি</div><div class="mono grey" data-i18n="find.b2f">৮টি কাজ শেষ · ইলেকট্রিশিয়ান</div></div>
+        <div><div class="bid-who" data-i18n="find.b2">Electrician · 3.4 km</div><div class="mono grey" data-i18n="find.b2f">8 jobs done · Electrician</div></div>
         <b class="bid-price">৳2,200</b>
       </div>
       <div class="bid-row">
-        <div><div class="bid-who" data-i18n="find.b3">ইলেকট্রিশিয়ান · ৫.০ কিমি</div><div class="mono grey" data-i18n="find.b3f">২৩টি কাজ শেষ · ইলেকট্রিশিয়ান</div></div>
+        <div><div class="bid-who" data-i18n="find.b3">Electrician · 5.0 km</div><div class="mono grey" data-i18n="find.b3f">23 jobs done · Electrician</div></div>
         <b class="bid-price">৳2,500</b>
       </div>
-      <p class="mono grey bid-example" data-i18n="find.example">উদাহরণ / Example</p>
+      <p class="mono grey bid-example" data-i18n="find.example">Example</p>
     </div>
-    <p class="small" data-i18n="find.honest">দর দিলেই চুক্তি হয় না — রেকর্ড হয় দুই পক্ষের OTP-তে।</p>
-    <div class="btn-row"><a class="hero-demo-link" href="#app" data-i18n="find.cta">ছবি দিয়ে কাজ দিন →</a></div>
+    <p class="small" data-i18n="find.honest">A bid is not an agreement — the record is made by both sides’ OTP.</p>
+    <div class="btn-row"><a class="hero-demo-link" href="#app" data-i18n="find.cta">Post a job with a photo →</a></div>
   </div>
 </div></section>
 
 <!-- FAQ -->
 <section class="section section-black" id="faq"><div class="wrap">
-  <div class="sec-head"><h2 class="sec-title" data-i18n="faq.title">প্রশ্ন ও উত্তর</h2></div>
+  <div class="sec-head"><h2 class="sec-title" data-i18n="faq.title">Questions &amp; answers</h2></div>
   <div id="faq-list" class="faq-grid" data-stagger>
-    <div class="faq-row open"><button type="button" class="faq-q" id="faq-q1" aria-expanded="true" aria-controls="faq-a1"><span class="n">01</span><span class="faq-q-text" data-i18n="f1q">DealCraft কি টাকা রাখে?</span><span class="faq-q-chev" aria-hidden="true">+</span></button><div class="faq-a" id="faq-a1" role="region" aria-labelledby="faq-q1"><p data-i18n="f1a">না। DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।</p></div></div>
-    <div class="faq-row"><button type="button" class="faq-q" id="faq-q2" aria-expanded="false" aria-controls="faq-a2"><span class="n">02</span><span class="faq-q-text" data-i18n="f2q">Worker-এর কি টাকা দিতে হয়?</span><span class="faq-q-chev" aria-hidden="true">+</span></button><div class="faq-a" id="faq-a2" role="region" aria-labelledby="faq-q2"><p data-i18n="f2a">না। Worker-এর জন্য DealCraft সবসময় ফ্রি।</p></div></div>
-    <div class="faq-row"><button type="button" class="faq-q" id="faq-q3" aria-expanded="false" aria-controls="faq-a3"><span class="n">03</span><span class="faq-q-text" data-i18n="f3q">OTP না দিলে কী হবে?</span><span class="faq-q-chev" aria-hidden="true">+</span></button><div class="faq-a" id="faq-a3" role="region" aria-labelledby="faq-q3"><p data-i18n="f3a">রেকর্ড তৈরি হবে না। দুই পক্ষের OTP নিশ্চিতকরণ ছাড়া কোনো রেকর্ড কার্যকর হয় না।</p></div></div>
-    <div class="faq-row"><button type="button" class="faq-q" id="faq-q4" aria-expanded="false" aria-controls="faq-a4"><span class="n">04</span><span class="faq-q-text" data-i18n="f4q">দাম বদলাতে চাইলে?</span><span class="faq-q-chev" aria-hidden="true">+</span></button><div class="faq-a" id="faq-a4" role="region" aria-labelledby="faq-q4"><p data-i18n="f4a">ChangeLock-এ লিখিত প্রস্তাব দিন। অপর পক্ষ মানলে নতুন দাম কার্যকর হয়, না মানলে পুরনো দামই থাকে।</p></div></div>
-    <div class="faq-row"><button type="button" class="faq-q" id="faq-q5" aria-expanded="false" aria-controls="faq-a5"><span class="n">05</span><span class="faq-q-text" data-i18n="f5q">টাকা দিয়েছি — প্রমাণ কী?</span><span class="faq-q-chev" aria-hidden="true">+</span></button><div class="faq-a" id="faq-a5" role="region" aria-labelledby="faq-q5"><p data-i18n="f5a">PayProof-এ টাকার রেকর্ড করুন। Worker “পেয়েছি” বললে তবেই সেটি স্বীকৃত হয়।</p></div></div>
-    <div class="faq-row"><button type="button" class="faq-q" id="faq-q6" aria-expanded="false" aria-controls="faq-a6"><span class="n">06</span><span class="faq-q-text" data-i18n="f6q">মত না মিললে কী করব?</span><span class="faq-q-chev" aria-hidden="true">+</span></button><div class="faq-a" id="faq-a6" role="region" aria-labelledby="faq-q6"><p data-i18n="f6a">Dispute খুলুন — দুই পক্ষের বক্তব্য এক জায়গায় থাকবে। ResolvePack PDF ডাউনলোড করে রাখতে পারবেন।</p></div></div>
-    <div class="faq-row"><button type="button" class="faq-q" id="faq-q7" aria-expanded="false" aria-controls="faq-a7"><span class="n">07</span><span class="faq-q-text" data-i18n="f7q">WorkPassport কী?</span><span class="faq-q-chev" aria-hidden="true">+</span></button><div class="faq-a" id="faq-a7" role="region" aria-labelledby="faq-q7"><p data-i18n="f7a">Worker-এর কাজের পরিচয়পত্র — কতটি কাজ শেষ হয়েছে, কোন ধরনের কাজ। টাকার অঙ্ক, ক্লায়েন্টের নাম আর ছবি worker না চাইলে দেখানো হয় না।</p></div></div>
-    <div class="faq-row"><button type="button" class="faq-q" id="faq-q8" aria-expanded="false" aria-controls="faq-a8"><span class="n">08</span><span class="faq-q-text" data-i18n="f8q">AppLink কি সবার ফোনে কাজ করে?</span><span class="faq-q-chev" aria-hidden="true">+</span></button><div class="faq-a" id="faq-a8" role="region" aria-labelledby="faq-q8"><p data-i18n="f8a">না। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়। অন্য অপারেটরের ক্ষেত্রে SMS/OTP পৌঁছাবে না।</p></div></div>
+    <div class="faq-row open"><button type="button" class="faq-q" id="faq-q1" aria-expanded="true" aria-controls="faq-a1"><span class="faq-q-text" data-i18n="f1q">Does DealCraft hold money?</span><span class="faq-q-chev" aria-hidden="true">+</span></button><div class="faq-a" id="faq-a1" role="region" aria-labelledby="faq-q1"><p data-i18n="f1a">No. DealCraft holds no money — it records payment acknowledgements only.</p></div></div>
+    <div class="faq-row"><button type="button" class="faq-q" id="faq-q2" aria-expanded="false" aria-controls="faq-a2"><span class="faq-q-text" data-i18n="f2q">Does a worker have to pay?</span><span class="faq-q-chev" aria-hidden="true">+</span></button><div class="faq-a" id="faq-a2" role="region" aria-labelledby="faq-q2"><p data-i18n="f2a">No. DealCraft is always free for workers.</p></div></div>
+    <div class="faq-row"><button type="button" class="faq-q" id="faq-q3" aria-expanded="false" aria-controls="faq-a3"><span class="faq-q-text" data-i18n="f3q">What if the OTP is not given?</span><span class="faq-q-chev" aria-hidden="true">+</span></button><div class="faq-a" id="faq-a3" role="region" aria-labelledby="faq-q3"><p data-i18n="f3a">No record is made. Without OTP confirmation from both sides, no record takes effect.</p></div></div>
+    <div class="faq-row"><button type="button" class="faq-q" id="faq-q4" aria-expanded="false" aria-controls="faq-a4"><span class="faq-q-text" data-i18n="f4q">What if I want to change the price?</span><span class="faq-q-chev" aria-hidden="true">+</span></button><div class="faq-a" id="faq-a4" role="region" aria-labelledby="faq-q4"><p data-i18n="f4a">Send a written proposal in ChangeLock. The new price applies only if the other side accepts; otherwise the old price stands.</p></div></div>
+    <div class="faq-row"><button type="button" class="faq-q" id="faq-q5" aria-expanded="false" aria-controls="faq-a5"><span class="faq-q-text" data-i18n="f5q">I paid — what is the proof?</span><span class="faq-q-chev" aria-hidden="true">+</span></button><div class="faq-a" id="faq-a5" role="region" aria-labelledby="faq-q5"><p data-i18n="f5a">Record it in PayProof. It counts as acknowledged only when the worker says “Received”.</p></div></div>
+    <div class="faq-row"><button type="button" class="faq-q" id="faq-q6" aria-expanded="false" aria-controls="faq-a6"><span class="faq-q-text" data-i18n="f6q">What if we disagree?</span><span class="faq-q-chev" aria-hidden="true">+</span></button><div class="faq-a" id="faq-a6" role="region" aria-labelledby="faq-q6"><p data-i18n="f6a">Open a dispute — both sides’ statements stay in one place. You can download the ResolvePack PDF.</p></div></div>
+    <div class="faq-row"><button type="button" class="faq-q" id="faq-q7" aria-expanded="false" aria-controls="faq-a7"><span class="faq-q-text" data-i18n="f7q">What is WorkPassport?</span><span class="faq-q-chev" aria-hidden="true">+</span></button><div class="faq-a" id="faq-a7" role="region" aria-labelledby="faq-q7"><p data-i18n="f7a">A worker’s work identity — how many jobs were completed, and what kind. Amounts, client names and photos stay hidden unless the worker enables them.</p></div></div>
+    <div class="faq-row"><button type="button" class="faq-q" id="faq-q8" aria-expanded="false" aria-controls="faq-a8"><span class="faq-q-text" data-i18n="f8q">Does AppLink work on every phone?</span><span class="faq-q-chev" aria-hidden="true">+</span></button><div class="faq-a" id="faq-a8" role="region" aria-labelledby="faq-q8"><p data-i18n="f8a">No. AppLink reaches Banglalink subscribers only. SMS/OTP will not reach other operators.</p></div></div>
   </div>
 </div></section>
 
@@ -226,12 +221,12 @@
   <div class="sec-head"><h2 class="sec-title" data-i18n="app.title">অ্যাপ — রেকর্ড শুরু করুন</h2><span class="demo-badge"><i aria-hidden="true"></i>Demo mode</span></div>
   <p class="lede" data-i18n="app.lede">ফোন নম্বর দিয়ে লগইন করুন। OTP আসবে SMS-এ।</p>
   <div id="app-error" class="error" role="alert" hidden></div>
-  <div id="app-notice" class="notice blue" role="status" hidden></div>
+  <div id="app-notice" class="notice" role="status" hidden></div>
 
   <!-- LOGIN -->
   <div class="app-card view" id="view-login" data-ui="dealcraft-app">
     <h3 class="app-title" data-i18n="login.title">লগইন — ফোন + OTP</h3>
-    <p data-i18n="login.sub">Hirer হিসেবে লগইন করুন। Worker-দের জন্য আলাদা সহজ পাতা আছে — worker লিংক দিয়ে।</p>
+    <p data-i18n="login.sub">Hirer হিসেবে লগইন করুন।</p>
     <form id="form-login">
       <label for="login-phone" data-i18n="login.phone">Phone number</label>
       <input id="login-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="01XXXXXXXXX" required>
@@ -241,7 +236,7 @@
       <div class="btn-row"><button class="btn btn-dark" type="submit" data-i18n="login.send">Send OTP</button></div>
     </form>
     <form id="form-otp" hidden>
-      <div class="notice blue" id="otp-note" hidden><b>Your code</b><br><span id="otp-note-text"></span></div>
+      <div class="notice" id="otp-note" hidden><b>Your code</b><br><span id="otp-note-text"></span></div>
       <label for="otp-code" data-i18n="login.otp">OTP code</label>
       <input id="otp-code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code" required>
       <div class="btn-row"><button class="btn btn-dark" type="submit" data-i18n="login.verify">Verify &amp; log in</button>
@@ -268,7 +263,7 @@
   <div class="app-card view" id="view-bid-post" hidden>
     <button class="btn btn-dark-ghost btn-sm" type="button" id="btn-bid-back" data-i18n="bid.back">← All jobs</button>
     <h2 style="margin-top:16px" data-i18n="bid.postTitle">মিস্ত্রি খুঁজুন — ছবি দিয়ে কাজ দিন</h2>
-    <p data-i18n="bid.postText">সমস্যার ছবি তুলুন, কাজের ধরন আর বিবরণ লিখুন। কাছের মিস্ত্রিরা দাম দেবেন — আপনি একজনকে বেছে নিলে তবেই রেকর্ড তৈরি হয়, দুই পক্ষের OTP দিয়ে। দর দিলেই চুক্তি হয় না।</p>
+    <p data-i18n="bid.postText">সমস্যার ছবি তুলুন, কাজের ধরন বেছে নিন, সংক্ষেপে লিখুন। কাছের মিস্ত্রিরা দাম দেবেন — একজনকে বেছে নিলে দুই পক্ষ OTP দিয়ে নিশ্চিত করবেন।</p>
     <form id="form-bid-post">
       <label data-i18n="bid.trade">Trade — কাজের ধরন</label>
       <div class="opt-row" id="bid-trade-picker">
@@ -295,7 +290,7 @@
   <div class="app-card view" id="view-find-work" hidden>
     <button class="btn btn-dark-ghost btn-sm" type="button" id="btn-find-back" data-i18n="bid.back">← All jobs</button>
     <h2 style="margin-top:16px" data-i18n="bid.findTitle">কাজ খুঁজুন — দর দিন</h2>
-    <p data-i18n="bid.findText">খোলা কাজগুলো দেখুন — কাছের কাজ আগে। দর দিলেই কাজ পাওয়া যায় না — Hirer বেছে নিলে রেকর্ড তৈরি হয়, দুই পক্ষের OTP দিয়ে।</p>
+    <p data-i18n="bid.findText">খোলা কাজ — কাছের কাজ আগে। দর দিলেই কাজ পাওয়া যায় না। Hirer বেছে নিলে দুই পক্ষ OTP দিয়ে নিশ্চিত করেন।</p>
     <div class="btn-row"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-find-loc" data-i18n="bid.useLoc">Use my location — nearest first</button>
     <button class="btn btn-dark-ghost btn-sm" type="button" id="btn-find-refresh" data-i18n="bid.refresh">Refresh</button></div>
     <p class="small mono" id="find-loc-note"></p>
@@ -331,14 +326,13 @@
       <div class="btn-row"><button class="btn btn-dark" type="button" id="to-step-2" data-i18n="new.next">Next — FairScope questions</button></div>
     </div>
     <div id="new-step-2" hidden>
-      <p data-i18n="new.fsHint">প্রতিটি প্রশ্নের উত্তর দিন। “ঠিক হয়নি” বেছে নিলে সেটি Missing-Term সতর্কতায় দেখাবে — লুকানো যাবে না।</p>
+      <p data-i18n="new.fsHint">প্রতিটি প্রশ্নের উত্তর দিন। “ঠিক হয়নি” Missing-Term হিসেবে দেখাবে।</p>
       <div id="fs-questions"></div>
       <div class="warn" id="missing-warn" hidden>
         <h4 data-i18n="warn.title">Missing terms — ঠিক হয়নি</h4>
-        <p data-i18n="warn.text">নিচের বিষয়গুলো এখনো ঠিক হয়নি। কাজ শুরুর আগে ঠিক করে নেওয়া ভালো।</p>
+        <p data-i18n="warn.text">এখনো ঠিক হয়নি। প্রতিটি শর্তের উত্তর দিন, অথবা সেই শর্তটি আলাদাভাবে বাদ দিন — সব একসাথে নয়।</p>
         <ul id="missing-list"></ul>
         <div class="btn-row"><button class="btn btn-orange btn-sm" type="button" id="warn-resolve" data-i18n="warn.resolve">Resolve now</button></div>
-        <p class="small">প্রতিটি শর্ত আলাদাভাবে বাদ দিতে হয় — সব একসাথে বাদ দেওয়া যায় না। / Each term is skipped one by one — never in bulk.</p>
       </div>
       <div class="btn-row"><button class="btn btn-dark-ghost" type="button" id="back-step-1" data-i18n="new.back">Back</button>
       <button class="btn btn-dark" type="button" id="to-step-3" data-i18n="new.next2">Next — price &amp; dates</button></div>
@@ -351,7 +345,7 @@
       <label for="job-scope" data-i18n="new.scope">Scope — কাজের বিবরণ</label>
       <textarea id="job-scope" rows="3" placeholder="যেমন: পুরো ফ্ল্যাটের রিওয়্যারিং, ১২ পয়েন্ট"></textarea>
       <h3 data-i18n="site.title">Job site — কাজের জায়গা (optional)</h3>
-      <p class="small" data-i18n="site.hint">Tap the map to drop a pin, or use your current location. No site = no distance or ETA — location sharing still works.</p>
+      <p class="small" data-i18n="site.hint">ম্যাপে ট্যাপ করে পিন বসান, অথবা আপনার বর্তমান লোকেশন ব্যবহার করুন।</p>
       <div id="site-map"></div>
       <label for="site-address" data-i18n="site.address">Address — ঠিকানা</label>
       <input id="site-address" type="text" placeholder="e.g. House 12, Road 5, Dhanmondi, Dhaka">
@@ -367,7 +361,7 @@
     </div>
     <div id="new-step-4" hidden>
       <div class="record" id="review-record"></div>
-      <div class="notice blue" hidden id="create-link-box"><b data-i18n="detail.workerLinkTitle">Worker link</b><p><a id="create-link-url" href="#" target="_blank" rel="noopener">—</a></p><div class="btn-row"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-resend-link-create" data-i18n="detail.resendLink">Resend worker link</button></div></div>
+      <div class="notice" hidden id="create-link-box"><b data-i18n="detail.workerLinkTitle">Worker link</b><p><a id="create-link-url" href="#" target="_blank" rel="noopener">—</a></p><div class="btn-row"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-resend-link-create" data-i18n="detail.resendLink">Resend worker link</button></div></div>
       <div class="btn-row"><button class="btn btn-dark-ghost" type="button" id="back-step-3" data-i18n="new.back">Back</button>
       <button class="btn btn-dark" type="button" id="btn-create-job" data-i18n="new.create">Create job &amp; send to worker</button></div>
     </div>
@@ -397,14 +391,14 @@
     <div id="detail-confirm" class="notice" hidden>
       <b data-i18n="detail.confirmTitle">Hirer confirmation needed</b>
       <p data-i18n="detail.confirmText">Worker নিশ্চিত করেছেন। আপনার OTP দিয়ে রেকর্ডটি চূড়ান্ত করুন।</p>
-      <div class="notice blue" id="confirm-note" hidden><b>Your code</b><br><span id="confirm-note-text"></span></div>
+      <div class="notice" id="confirm-note" hidden><b>Your code</b><br><span id="confirm-note-text"></span></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="confirm-otp" type="text" inputmode="numeric" placeholder="OTP" style="max-width:180px"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-confirm-send-otp" data-i18n="detail.sendOtp">Send confirm OTP</button><button class="btn btn-dark btn-sm" type="button" id="btn-hirer-confirm" data-i18n="detail.confirmBtn">Confirm with OTP</button></div>
     </div>
-    <div id="detail-wait" class="notice blue" hidden>
+    <div id="detail-wait" class="notice" hidden>
       <b data-i18n="detail.waitTitle">Waiting for worker confirmation</b>
       <p data-i18n="detail.waitText">The worker has not confirmed yet. Once the worker confirms by OTP from their link, you can confirm here.</p>
     </div>
-    <div id="worker-link-box" class="notice blue" hidden>
+    <div id="worker-link-box" class="notice" hidden>
       <b data-i18n="detail.workerLinkTitle">Worker link</b>
       <p><a id="worker-link-url" href="#" target="_blank" rel="noopener">—</a></p>
       <div class="btn-row"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-resend-link" data-i18n="detail.resendLink">Resend worker link</button></div>
@@ -466,7 +460,7 @@
       <hr class="hr">
       <h3 data-i18n="detail.close">Close job</h3>
       <p data-i18n="detail.closeText">কাজ শেষ হলে দুই পক্ষের সম্মতিতে বন্ধ করুন।</p>
-      <p class="small" data-i18n="detail.closeHow">Worker তার পাতায় "কাজ শেষ" চাপলে একটি OTP কোড পান — সেই কোড এখানে লিখুন। কোড না থাকলে "একা বন্ধ করুন" বেছে নিন (রেকর্ডে Hirer-only লেখা থাকবে)। / The worker taps "Confirm close" on their page and gets a code — enter it here. Without the code, choose "Close alone" (recorded as hirer-only).</p>
+      <p class="small" data-i18n="detail.closeHow">Worker তার পাতায় “কাজ শেষ” চাপলে একটি কোড পান — সেই কোড এখানে লিখুন। কোড না থাকলে “একা বন্ধ করুন” বেছে নিন (Hirer-only)।</p>
       <label for="close-otp" data-i18n="detail.closeOtp">Worker-এর OTP কোড — Worker close code</label>
       <input id="close-otp" type="text" inputmode="numeric" placeholder="6-digit code" autocomplete="one-time-code">
       <p><label style="display:flex;gap:10px;align-items:center;font-family:var(--sans);font-size:15px;text-transform:none;letter-spacing:0;color:#111"><input type="checkbox" id="close-force" style="width:auto"> <span data-i18n="detail.force">Close anyway — not all milestones are approved yet</span></label></p>
@@ -485,7 +479,7 @@
     <div class="tabpanel" id="tab-billing" hidden>
       <h3 data-i18n="bill.title">Billing</h3>
       <p data-i18n="bill.text">একটি রেকর্ড ৳10, অথবা মাসে ৳70-তে সীমাহীন। Worker-এর জন্য DealCraft ফি নেই।</p>
-      <div id="billing-status" class="notice blue" hidden></div>
+      <div id="billing-status" class="notice" hidden></div>
       <div class="btn-row"><button class="btn btn-dark" type="button" id="btn-caas" data-i18n="bill.caas">Pay ৳10 for this record</button>
       <button class="btn btn-dark-ghost" type="button" id="btn-sub" data-i18n="bill.sub">Subscribe ৳70 / month</button></div>
       <div id="billing-box"></div>
@@ -497,13 +491,13 @@
 <footer class="closing">
 <div class="wrap">
 <div class="foot-close">
-  <h2 class="foot-title">ফোনে কাজ শুরু হয়।</h2>
-  <div class="btn-row"><a class="btn" href="#app">Start a record</a></div>
+  <h2 class="foot-title" data-i18n="foot.title">Work starts on the phone.</h2>
+  <div class="btn-row"><a class="btn" href="#app" data-i18n="hero.cta1">Start a record</a></div>
 </div>
 <div class="foot-grid">
   <div>
     <p class="brand">DEALCRAFT</p>
-    <p class="small" data-i18n="foot.text">DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।</p>
+    <p class="small" data-i18n="foot.text">DealCraft holds no money — payment acknowledgements only.</p>
   </div>
   <div class="foot-map"><div id="map-footer"></div></div>
 </div>

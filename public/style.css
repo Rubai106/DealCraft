@@ -5,7 +5,7 @@
      ~9.8:1 on black. It is too light for white backgrounds, so .app-card /
      .section-white override .grey back to a dark grey below. */
   --line:#1f1f1f; --line-light:#e6e6e6;
-  --orange:#ff5a1f; --blue:#1e4fff;
+  --orange:#ff5a1f;
   /* Motion system — three shared curves, three durations. Entrances use
      --ease-out, stamps/chips/success --ease-spring, state changes
      --ease-inout. Durations: micro 160ms, standard 260ms, emphasis
@@ -20,6 +20,11 @@
   --mono:ui-monospace,'SF Mono','Roboto Mono',Menlo,Consolas,monospace;
 }
 *{box-sizing:border-box}
+/* Premium verify: author display rules (.success-check:flex, #lightbox:flex,
+   .big-btn:block) beat the UA [hidden] rule, so a hidden element could still
+   take space — #success-check did (16px of empty padding in the detail
+   view). One global rule ends that class of bug everywhere. */
+[hidden]{display:none!important}
 html{scroll-behavior:auto}
 body{margin:0;background:var(--black);color:#fff;font-family:var(--sans);font-size:17px;line-height:1.6;-webkit-text-size-adjust:100%}
 img,svg,canvas{max-width:100%;display:block}
@@ -42,7 +47,6 @@ label{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform
 /* --grey is light for black backgrounds; on white cards it must be dark. */
 .app-card .grey,.section-white .grey{color:#666}
 .orange{color:var(--orange)}
-.blue{color:var(--blue)}
 .wrap{max-width:1280px;margin:0 auto;padding:0 20px}
 @media(min-width:900px){.wrap{padding:0}}
 
@@ -97,7 +101,6 @@ label{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform
 .btn-dark{background:#000;color:#fff;border-color:#000}
 .btn-dark-ghost{background:transparent;color:#000;border-color:#000}
 .btn-orange{background:var(--orange);color:#000;border-color:var(--orange)}
-.btn-blue{background:var(--blue);color:#fff;border-color:var(--blue)}
 .btn-block{width:100%}
 .btn-sm{min-height:48px;padding:0 20px}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
@@ -111,23 +114,26 @@ label{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform
 @media (prefers-reduced-motion:reduce){[data-enter]{animation:none}}
 .hero-grid{display:flex;flex-direction:column;align-items:center;padding:96px 20px 72px}
 @media(min-width:900px){.hero-grid{padding:104px 0 72px}}
-.hero-text{max-width:900px;margin:0 auto;text-align:center}
-h1.hero-title{font-family:var(--display);font-size:44px;line-height:.94;letter-spacing:-.01em;text-transform:uppercase;margin:0 0 18px}
+/* Jeton hero — flat orange panel, text top-left; the record card
+   overlaps the panel's bottom edge (hero-visual pulls up over it).
+   Headline is near-black on orange; the second line keeps its flat
+   orange type on a solid black bar so the colour stays readable. */
+.hero-panel{width:100%;max-width:900px;margin:0 auto;text-align:left;background:var(--orange);padding:40px 28px 120px}
+@media(min-width:900px){.hero-panel{padding:48px 40px 128px}}
+h1.hero-title{font-family:var(--display);font-size:44px;line-height:.94;letter-spacing:-.01em;text-transform:uppercase;margin:0 0 18px;color:#111}
 .hero-title .hl-line{display:block;font-family:'Noto Sans Bengali',var(--display)}
-.hero-title .hl-2{color:var(--orange)}
+.hero-title .hl-2{color:var(--orange);background:#000;padding:0 14px;display:inline-block}
 @media(min-width:700px){h1.hero-title{font-size:64px}}
 @media(min-width:1100px){h1.hero-title{font-size:72px}}
-.hero-sub{color:#bdbdbd;font-size:18px;max-width:52ch;margin:0 auto}
-.hero .btn-row{justify-content:center}
+.hero-sub{color:#1a1a1a;font-size:15px;max-width:52ch;margin:0 0 20px}
+.hero-panel .btn-row{justify-content:flex-start}
 /* Secondary CTA — a quiet text link with an arrow, not a second button.
    One dominant action per premium pattern. */
 .hero-demo-link{background:none;border:0;padding:0 4px;min-height:52px;display:inline-flex;align-items:center;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#fff;text-decoration:none;transition:color 220ms var(--ease-out)}
 .hero-demo-link:hover{color:var(--orange)}
+.hero-panel .hero-demo-link{color:#111}
+.hero-panel .hero-demo-link:hover{color:#000;text-decoration:underline}
 .hero-demo-link:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
-.map-box{position:relative;min-height:200px;overflow:hidden}
-.map-box svg{width:100%;height:auto;max-height:360px;display:block}
-#map-hero{overflow:hidden}
-@media(min-width:980px){.map-box{min-height:340px}}
 
 /* Sections — white / black alternating, square edges */
 .section{padding:64px 0;min-height:100svh}
@@ -164,9 +170,8 @@ h2.sec-title{font-family:var(--display);font-size:40px;line-height:.95;text-tran
 .section-white .frag b{color:#c23c00}
 .journey-steps{display:grid;gap:0}
 .jstep{display:block;padding:22px 0;border-bottom:1px solid var(--line)}
-.jstep-num{font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:var(--orange);margin-bottom:12px}
-.jstep.active .jstep-num{color:var(--orange)}
-.jstep h3{font-family:var(--condensed);font-size:24px;line-height:1.05;text-transform:uppercase;margin:0 0 10px;letter-spacing:.01em}
+.jstep.active h3{color:var(--orange)}
+.jstep h3{font-family:var(--condensed);font-size:24px;line-height:1.05;text-transform:uppercase;margin:0 0 10px;letter-spacing:.01em;transition:color var(--dur-std) var(--ease-out)}
 .jstep p{color:#bdbdbd;margin:0;max-width:58ch}
 .price-old{text-decoration:line-through;color:var(--grey)}
 .price-new{color:var(--orange);font-family:var(--display);font-size:32px}
@@ -185,7 +190,6 @@ h2.sec-title{font-family:var(--display);font-size:40px;line-height:.95;text-tran
 /* Why rows */
 .why-row{display:block;padding:12px 0;border-bottom:1px solid var(--line-light)}
 .why-row:first-of-type{border-top:1px solid var(--line-light)}
-.why-row .n{font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:#c23c00;margin-bottom:10px}
 .why-row h3{font-family:var(--condensed);font-size:24px;text-transform:uppercase;margin:0 0 6px}
 .why-row p{margin:0;color:#555;max-width:64ch}
 
@@ -200,8 +204,6 @@ h2.sec-title{font-family:var(--display);font-size:40px;line-height:.95;text-tran
    the row number is grey closed, orange open. Button semantics +
    aria-expanded, so it stays keyboard-accessible. Collapsed state only
    applies once JS has run (html.js), so no-JS readers still see answers. */
-.faq-row .n{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:#777;margin-bottom:0;flex:none}
-.faq-row.open .n{color:var(--orange)}
 .faq-q{display:flex;align-items:baseline;gap:12px;width:100%;min-height:48px;padding:0;background:none;border:0;color:#fff;text-align:left}
 .faq-q-text{font-family:var(--condensed);font-size:24px;line-height:1.1;text-transform:uppercase;flex:1}
 .faq-q-chev{font-family:var(--mono);font-size:20px;line-height:1;color:var(--orange);flex:none;transition:transform var(--dur-std) var(--ease-inout)}
@@ -234,7 +236,6 @@ html.js .faq-row.open .faq-a{grid-template-rows:1fr;opacity:1}
 .pill{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;border:1px solid #111;padding:5px 10px;border-radius:999px}
 .pill{overflow-wrap:anywhere;max-width:100%}
 .pill-orange{border-color:var(--orange);color:var(--orange)}
-.pill-blue{border-color:var(--blue);color:var(--blue)}
 .pill-grey{border-color:#999;color:#666}
 .warn{background:#fff3ee;border:1px solid var(--orange);padding:18px;margin:20px 0}
 .warn h4{margin:0 0 8px;font-family:var(--condensed);font-size:20px;text-transform:uppercase;color:#c23c00}
@@ -248,7 +249,7 @@ html.js .faq-row.open .faq-a{grid-template-rows:1fr;opacity:1}
 .balance .amt{font-family:var(--display);font-size:28px;line-height:1}
 .balance .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#666;margin-top:6px}
 .bar{height:12px;background:#eee;position:relative;margin:6px 0 20px}
-.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--blue)}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--orange)}
 .bar em{position:absolute;left:0;top:0;bottom:0;background:var(--orange);font-style:normal}
 .timeline{list-style:none;margin:0;padding:0}
 .timeline li{padding:14px 0 14px 22px;border-left:2px solid #111;position:relative}
@@ -263,7 +264,6 @@ html.js .faq-row.open .faq-a{grid-template-rows:1fr;opacity:1}
 .tab-ind{position:absolute;left:0;top:0;background:#000;z-index:0;pointer-events:none;transition:transform var(--dur-std) var(--ease-inout),width var(--dur-std) var(--ease-inout),height var(--dur-std) var(--ease-inout)}
 .tabpanel[hidden]{display:none}
 .notice{border:1px solid var(--line-light);border-left:4px solid var(--orange);padding:14px 16px;background:#fff;margin:16px 0}
-.notice.blue{border-left-color:var(--blue)}
 /* Photo thumbnails in the job detail timeline tab */
 .photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin:12px 0}
 .photo{margin:0;border:1px solid var(--line-light);padding:8px}
@@ -297,11 +297,9 @@ footer{border-top:1px solid var(--line);padding:56px 0 32px;min-height:100svh}
 .foot-map{min-height:260px;overflow:hidden;position:relative}
 .foot-map svg{width:100%;height:auto;max-height:300px;display:block}
 /* Section rhythm — landing sections read as one composed document:
-   title centred, dot-strip divider centred. The app section
-   keeps its left-aligned header (it is a working shell, not a poster). */
+   title centred. The app section keeps its left-aligned header
+   (it is a working shell, not a poster). */
 .section:not(.app) .sec-head{text-align:center}
-.dotstrip{display:block;width:240px;height:24px;margin:0 auto 24px;color:var(--orange)}
-.section-white .dotstrip{color:#c23c00}
 .small{font-size:14px;color:#bdbdbd}
 .hr{border:0;border-top:1px solid var(--line);margin:32px 0}
 .section-white .hr{border-color:var(--line-light)}
@@ -337,7 +335,6 @@ footer{border-top:1px solid var(--line);padding:56px 0 32px;min-height:100svh}
   .visual-card .vnum{font-size:34px}
   .hero-grid{padding:76px 20px 32px}
   .hero-sub{font-size:16px}
-  .map-box svg{max-height:200px}
   .balance{grid-template-columns:1fr}
   .jstep{grid-template-columns:44px 1fr}
 }
@@ -376,10 +373,10 @@ html.js [data-stagger].in>*{opacity:1;transform:none}
 /* ---- P4: buttons — lift + shadow. Premium hover is heavy, not snappy:
    220ms. ---- */
 .btn{transition:transform 220ms var(--ease-out),box-shadow 220ms var(--ease-out),background-color 220ms var(--ease-out),color 220ms var(--ease-out)}
-.btn:hover{opacity:1;transform:translateY(-1px);box-shadow:0 8px 22px rgba(0,0,0,.35)}
-.btn:active{transform:translateY(0);box-shadow:0 2px 8px rgba(0,0,0,.3)}
-.btn-dark:hover,.btn-dark-ghost:hover{box-shadow:0 8px 22px rgba(0,0,0,.28)}
-.btn-orange:hover{box-shadow:0 10px 26px rgba(255,90,31,.45)}
+.btn:hover{opacity:1;transform:translateY(-1px);box-shadow:4px 4px 0 rgba(0,0,0,.55)}
+.btn:active{transform:translateY(0);box-shadow:2px 2px 0 rgba(0,0,0,.3)}
+.btn-dark:hover,.btn-dark-ghost:hover{transform:translateY(-1px);box-shadow:4px 4px 0 rgba(0,0,0,.4)}
+.btn-orange:hover{transform:translateY(-2px);box-shadow:4px 4px 0 #c23c00}
 .btn-ghost{position:relative;overflow:hidden;isolation:isolate}
 .btn-ghost::before{content:"";position:absolute;inset:0;background:#fff;transform:scaleX(0);transform-origin:left;transition:transform var(--dur-std) var(--ease-inout);z-index:-1}
 .btn-ghost:hover::before{transform:scaleX(1)}
@@ -389,7 +386,7 @@ html.js [data-stagger].in>*{opacity:1;transform:none}
 .btn-dark-ghost:hover::before{transform:scaleX(1)}
 .btn-dark-ghost:hover{color:#fff}
 .big-btn{transition:transform var(--dur-micro) var(--ease-out),box-shadow var(--dur-micro) var(--ease-out)}
-.big-btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(0,0,0,.25)}
+.big-btn:hover{transform:translateY(-1px);box-shadow:4px 4px 0 #000}
 .big-btn:active{transform:translateY(0)}
 
 /* ---- P4: view switching — fade + 8px slide (JS adds .view-enter) ---- */
@@ -399,13 +396,30 @@ html.js [data-stagger].in>*{opacity:1;transform:none}
 .new-step-back{animation:stepBack var(--dur-std) var(--ease-out) both}
 @keyframes stepFwd{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
 @keyframes stepBack{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+/* Premium: DIRECTIONAL view transitions (Linear discipline) — forward
+   slides in from the right, back slides in from the left. 260ms ease-out,
+   transform+opacity only. showView(id, dir) picks the class. */
+.view-enter-fwd{animation:viewInFwd var(--dur-std) var(--ease-out) both}
+.view-enter-back{animation:viewInBack var(--dur-std) var(--ease-out) both}
+@keyframes viewInFwd{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@keyframes viewInBack{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:none}}
+/* FairScope tick-off — an answered question gets a hard border and a
+   spring-pop checkmark; the tick is the whole confirmation, no extra copy. */
+.q-block{transition:border-color var(--dur-std) var(--ease-out)}
+.q-block.answered{border-color:#111}
+.q-block .q{display:flex;gap:8px;align-items:baseline}
+.q-tick{flex:none;color:#0a7d3b;font-weight:700;animation:tickPop .34s var(--ease-spring) both}
+@keyframes tickPop{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+/* Newest timeline card enters highlighted — orange edge, one short slide. */
+.timeline li.tl-new{border-color:var(--orange);animation:tlNewIn var(--dur-std) var(--ease-out) both}
+@keyframes tlNewIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 /* FairScope step indicator fills progressively (JS sets --step 1..4) */
 #new-steps{position:relative;padding-bottom:10px}
 #new-steps::after{content:"";position:absolute;left:0;bottom:0;height:3px;background:var(--orange);width:calc(var(--step,1)*25%);transition:width var(--dur-std) var(--ease-inout)}
 
 /* ---- P0: hero — flat solid orange CTA, no gradient, no glow halo.
    Hover is a 2px lift + hard offset shadow. ---- */
-.btn-hero{background:var(--orange);color:#fff;border-color:var(--orange);box-shadow:none}
+.btn-hero{background:#000;color:#fff;border-color:#000;box-shadow:none}
 .btn-hero:hover{transform:translateY(-2px);box-shadow:4px 4px 0 #c23c00}
 
 /* ---- Motion gaps 1+5: hero entrance choreography — staggered, ≤1.2s.
@@ -413,7 +427,7 @@ html.js [data-stagger].in>*{opacity:1;transform:none}
    rises and settles → chips pop in 90ms apart on the spring curve.
    Cancelled by first scroll / pointer interaction (JS adds .hero-done). ---- */
 .hero [data-henter]{opacity:0;animation:heroIn var(--dur-em) var(--ease-out) both;animation-delay:var(--hd,0s)}
-.hero .hero-sub{--hd:.22s}
+.hero .hero-sub{--hd:.08s}
 .hero .btn-row{--hd:.34s}
 h1.hero-title{overflow:hidden}
 h1.hero-title .hl-line{display:block;animation:heroLineIn .6s var(--ease-out) both;animation-delay:var(--ld,.1s)}
@@ -429,14 +443,7 @@ h1.hero-title .hl-2{--ld:.22s}
 .hero-done [data-henter],.hero-done .hero-visual,.hero-done .rchip,.hero-done h1.hero-title .hl-line{animation:none!important;opacity:1!important;transform:none!important}
 
 /* ---- P0: hero 3D record card stack — centred centrepiece ---- */
-.hero-visual{position:relative;width:100%;max-width:640px;margin:40px auto 0;min-height:0}
-/* De-glass: the dot field is ONLY a faint radial texture directly behind
-   the card (8% opacity) — no orange glow, no full-section background. */
-.hero-dots{position:absolute;inset:-30px 0 0 0;background-image:radial-gradient(circle,rgba(255,255,255,.08) 1.2px,transparent 1.4px);background-size:18px 18px;-webkit-mask-image:radial-gradient(ellipse 90% 85% at 50% 40%,#000 30%,transparent 78%);mask-image:radial-gradient(ellipse 90% 85% at 50% 40%,#000 30%,transparent 78%);pointer-events:none}
-.pulse-dot{position:absolute;left:56%;top:32%;width:12px;height:12px;border-radius:50%;background:#FF5A1F;box-shadow:0 0 0 0 rgba(255,90,31,.5);animation:pulseDot 2.4s var(--ease-out) infinite}
-@keyframes pulseDot{0%{box-shadow:0 0 0 0 rgba(255,90,31,.55)}70%{box-shadow:0 0 0 16px rgba(255,90,31,0)}100%{box-shadow:0 0 0 0 rgba(255,90,31,0)}}
-.hero-map-small{position:absolute;left:50%;transform:translateX(-50%);bottom:-8px;width:84%;opacity:.35;pointer-events:none}
-.hero-map-small svg{max-height:300px}
+.hero-visual{position:relative;width:100%;max-width:640px;margin:-72px auto 0;min-height:0}
 .rcard-scene{position:relative;perspective:1200px;padding:64px 0 170px;z-index:2}
 .rcard-tilt{position:relative;z-index:1;transform-style:preserve-3d;transform:rotateY(-8deg) rotateX(4deg);transition:transform var(--dur-micro) var(--ease-out);will-change:transform}
 /* Premium restraint: the idle float is half as fast and half as deep. */
@@ -479,7 +486,7 @@ h1.hero-title .hl-2{--ld:.22s}
 .rchip-pay{bottom:-112px;left:0;--tz:50px}
 .rchip-change{bottom:-112px;right:0;--tz:90px}
 @media(max-width:979px){
-  .hero-visual{margin-top:28px}
+  .hero-visual{margin-top:-56px}
   .rcard-scene{padding:40px 4px 210px}
   /* On narrow screens the three bottom chips stack, left-aligned. */
   .rchip-pay{left:0;bottom:-58px}
@@ -511,7 +518,7 @@ h1.hero-title .hl-2{--ld:.22s}
 .jcard-rows div:last-child b{color:#FF5A1F}
 .jcard-bar{height:10px;border-radius:999px;background:rgba(255,255,255,.14);overflow:hidden;margin:12px 0 8px}
 .jcard-bar i{display:block;height:100%;width:0;border-radius:999px;background:var(--orange);transition:width 650ms var(--ease-inout)}
-.jcard-chip,.jcard-photo,.jcard-pack,.jcard-change{margin-top:10px;border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:10px 12px;font-size:13px;background:rgba(255,255,255,.06);transition:opacity var(--dur-em) var(--ease-inout),transform var(--dur-em) var(--ease-inout)}
+.jcard-chip,.jcard-photo,.jcard-pack,.jcard-change{margin-top:10px;border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:10px 12px;font-size:13px;background:#1c1c1c;transition:opacity var(--dur-em) var(--ease-inout),transform var(--dur-em) var(--ease-inout)}
 .jcard-chip[hidden],.jcard-photo[hidden],.jcard-pack[hidden],.jcard-change[hidden],.jcard-ghost[hidden]{display:none}
 .jcard-photo{display:flex;gap:10px;align-items:center}
 .jcard-photo .thumb{flex:none;width:52px;height:40px;border-radius:8px;background:var(--orange);box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
@@ -533,22 +540,22 @@ h1.hero-title .hl-2{--ld:.22s}
 /* The base rule `.balance div` also matches .amt/.lbl descendants — on the
    dark tile that painted white boxes around invisible white text. */
 .balance .amt,.balance .lbl{background:transparent;padding:0}
-.balance .tile-dark{background:linear-gradient(135deg,#1d1d1d,#000);border-color:#000;color:#fff}
+.balance .tile-dark{background:#000;border-color:#000;color:#fff}
 .balance .tile-dark .amt{color:#fff}
 .balance .tile-dark .lbl{color:#bbb}
 .balance .tile-paid .amt{color:#0a7d3b}
 .balance .tile-paid .lbl::before{content:"✓ ";color:#0a7d3b;font-weight:700}
 .balance .tile-rem .amt{color:#FF5A1F}
 .bar{height:12px;border-radius:999px;overflow:hidden}
-.bar i{background:linear-gradient(90deg,#1e4fff,#FF5A1F);border-radius:999px;transition:width .6s var(--ease-inout)}
-/* Timeline as individual cards on a gradient spine */
+.bar i{background:var(--orange);border-radius:999px;transition:width .6s var(--ease-inout)}
+/* Timeline as individual cards on a solid neutral spine */
 .timeline{position:relative;padding-left:22px}
-.timeline::before{content:"";position:absolute;left:7px;top:10px;bottom:10px;width:2px;background:linear-gradient(#FF5A1F,#1e4fff,#e6e6e6)}
+.timeline::before{content:"";position:absolute;left:7px;top:10px;bottom:10px;width:2px;background:#e6e6e6}
 .timeline li{background:#fff;border:1px solid #e6e6e6;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.05);padding:14px 16px;margin:0 0 10px;border-left:0;opacity:0;transform:translateY(12px);transition:opacity 700ms var(--ease-out),transform 700ms var(--ease-out)}
 .timeline li.in{opacity:1;transform:none}
 .timeline li::before{left:auto;right:calc(100% + 8px);top:20px;background:#111}
 .timeline li.tl-pay::before{background:#FF5A1F}
-.timeline li.tl-change::before{background:#1e4fff}
+.timeline li.tl-change::before{background:#111}
 .timeline li.tl-confirm::before{background:#1da35a}
 /* Photos: lightbox + BEFORE/AFTER compare slider */
 .photo img{cursor:zoom-in}
@@ -572,25 +579,38 @@ h1.hero-title .hl-2{--ld:.22s}
 .cmp-expand{position:absolute;right:8px;bottom:8px;z-index:3;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.6);background:rgba(0,0,0,.65);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 
 /* ---- P3: WorkPassport premium ID card — centred on its page ---- */
-.pp-id-card{position:relative;max-width:520px;margin:8px auto 28px;border-radius:26px;padding:28px;color:#fff;background:linear-gradient(140deg,#1c1c1c,#000 58%,#220e04);border:1px solid rgba(255,255,255,.14);box-shadow:0 24px 60px rgba(0,0,0,.35),0 4px 16px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.18);overflow:hidden;transform:perspective(900px) rotateY(var(--ry,0deg)) rotateX(var(--rx,0deg));transition:transform var(--dur-std) var(--ease-out)}
-/* Passport stage — the same centred treatment as the hero: dotted field
-   and orange glow radiating behind the card, on a black panel. */
-.pp-stage{position:relative;background:#000;border-radius:28px;padding:20px 20px 28px;margin:0 0 28px;overflow:hidden}
-.pp-stage::before{content:"";position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.22) 1.1px,transparent 1.3px);background-size:18px 18px;-webkit-mask-image:radial-gradient(ellipse 85% 80% at 50% 35%,#000 25%,transparent 75%);mask-image:radial-gradient(ellipse 85% 80% at 50% 35%,#000 25%,transparent 75%);pointer-events:none}
-.pp-stage::after{content:"";position:absolute;left:50%;bottom:-40px;transform:translateX(-50%);width:420px;height:160px;background:radial-gradient(ellipse at center,rgba(255,90,31,.35),transparent 65%);filter:blur(8px);pointer-events:none}
+.pp-id-card{position:relative;max-width:520px;margin:8px auto 28px;border-radius:26px;padding:28px;color:#fff;background:#111;border:1px solid #2A2A2A;box-shadow:12px 12px 0 #000;overflow:hidden;transform:perspective(900px) rotateY(var(--ry,0deg)) rotateX(var(--rx,0deg));transition:transform var(--dur-std) var(--ease-out),box-shadow var(--dur-std) var(--ease-out)}
+.pp-id-card:hover{box-shadow:16px 16px 0 #000}
+/* Passport stage — flat dark panel behind the card; no dot field, no glow. */
+.pp-stage{position:relative;background:#111;border-radius:28px;padding:20px 20px 28px;margin:0 0 28px;overflow:hidden}
 .pp-stage>*{position:relative;z-index:1}
 .pp-stage .pp-id-card{margin:8px auto 0}
-.pp-id-card::after{content:"";position:absolute;inset:-40%;background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.13) 50%,transparent 58%);transform:translateX(var(--shine,-30%));transition:transform var(--dur-std) var(--ease-inout);pointer-events:none}
+/* Solid-band shine: one translucent-white skewed band, opacity only — the
+   only shine allowed anywhere. --shine is a pixel offset set by the tilt
+   script (pointer position, or scroll position on coarse pointers). */
+.pp-id-card::after{content:"";position:absolute;top:0;bottom:0;left:0;width:72px;background:rgba(255,255,255,.13);transform:translateX(var(--shine,-90px)) skewX(-18deg);transition:transform var(--dur-std) var(--ease-inout);pointer-events:none}
 .pp-id-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
 .pp-id-name{font-family:'Oswald','Noto Sans Bengali',sans-serif;font-size:38px;line-height:1;text-transform:uppercase;margin:6px 0 4px}
 .pp-id-sub{color:#FF5A1F;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin:0}
-.pp-qr{background:#fff;border-radius:16px;padding:10px;width:112px;flex:none;box-shadow:0 8px 20px rgba(0,0,0,.35)}
+.pp-qr{background:#fff;border-radius:16px;padding:10px;width:112px;flex:none;box-shadow:4px 4px 0 #000}
 .pp-qr img{width:100%;display:block}
 .pp-stats{display:flex;gap:12px;margin-top:22px}
 .pp-stat{flex:1;border-top:1px solid rgba(255,255,255,.2);padding-top:12px}
 .pp-stat b{display:block;font-family:var(--display);font-size:30px;line-height:1}
 .pp-stat span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#bbb}
 .pp-id-foot{margin-top:18px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#999}
+
+/* ---- Premium: completed jobs as objects on a shelf (Shopify Editions) ----
+   One matte card per job, hard offset shadow, hover depth; the numeral
+   (amount, or job number when amounts are hidden) is the visual. */
+.pp-jobs{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin:0 0 28px}
+.pp-job{background:#fff;color:#111;border:1px solid #e6e6e6;border-radius:16px;padding:20px 18px 16px;box-shadow:6px 6px 0 #111;transition:transform var(--dur-std) var(--ease-out),box-shadow var(--dur-std) var(--ease-out);animation:ppJobIn var(--dur-em) var(--ease-out) both;animation-delay:calc(var(--i,0)*70ms)}
+.pp-job:hover{transform:translateY(-4px);box-shadow:8px 10px 0 #111}
+.pp-job-num{display:block;font-family:var(--display);font-size:34px;line-height:1}
+.pp-job-lab{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#FF5A1F;margin:6px 0 12px}
+.pp-job-trade{display:block;font-family:var(--condensed);font-size:20px;line-height:1.1;text-transform:uppercase}
+.pp-job-meta{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:#666;margin-top:6px}
+@keyframes ppJobIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 
 /* ---- P4: FairScope warning pulse + resolved-term tick ---- */
 .warn.pulse-once{animation:warnPulse var(--dur-em) var(--ease-out) 1}
@@ -618,10 +638,10 @@ h1.hero-title .hl-2{--ld:.22s}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
   .rcard-tilt,.rcard-tilt.idle-float{animation:none;transform:none}
-  .pulse-dot{animation:none}
   .timeline li{opacity:1;transform:none}
   .pp-id-card{transform:none}
   .pp-id-card::after{display:none}
+  .pp-job{animation:none;transform:none}
   [data-enter]{animation:none}
   /* Motion-gaps additions: staged hero, chips and stagger groups all
      resolve to their final state immediately. */

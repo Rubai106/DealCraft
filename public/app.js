@@ -1,19 +1,19 @@
-/* DealCraft — hirer app. Bangla default. Defensive fetch against the API contract. */
+/* DealCraft — hirer app. English default. Defensive fetch against the API contract. */
 (function(){
 'use strict';
 var API=''; // same origin; backend serves public/ statically
 var token=localStorage.getItem('dc_token')||'';
 var user=null; try{user=JSON.parse(localStorage.getItem('dc_user')||'null');}catch(e){}
-var lang=localStorage.getItem('dc_lang')||'bn';
+var lang=localStorage.getItem('dc_lang')||'en';
 var currentJob=null, currentJobId=null, draft={trade:'ELECTRICIAN',answers:{},skipped:[]};
 
 /* ---------- i18n ---------- */
 var I18N={
 'nav.how':{bn:'কীভাবে কাজ করে',en:'How it works'},'nav.price':{bn:'খরচ',en:'Price'},'nav.why':{bn:'কেন',en:'Why'},'nav.faq':{bn:'প্রশ্ন',en:'FAQ'},'nav.app':{bn:'অ্যাপ',en:'App'},
 'hero.title1':{bn:'মুখের কথা নয়।',en:'Not words.'},'hero.title2':{bn:'লিখিত রেকর্ড।',en:'A written record.'},
-'hero.sub':{bn:'ইলেকট্রিশিয়ান, পেইন্টার, প্লাম্বার — কাজের শর্ত, দাম আর পেমেন্ট, দুই পক্ষের সম্মতিতে লেখা থাকে।',en:'Electrician, painter, plumber — scope, price and payments, written down and confirmed by both sides.'},
+'hero.sub':{bn:'ইলেকট্রিশিয়ান, পেইন্টার, প্লাম্বার — শর্ত, দাম, পেমেন্ট। দুই পক্ষের সম্মতিতে লেখা।',en:'Electrician, painter, plumber — scope, price, payments. Agreed by both sides.'},
 'hero.cta1':{bn:'রেকর্ড শুরু করুন',en:'Start a record'},'hero.cta2':{bn:'ডেমো দেখুন →',en:'See the demo →'},
-'journey.title':{bn:'ফোন থেকে লিখিত রেকর্ড',en:'From a phone call to a written record'},
+'journey.title':{bn:'রেকর্ডের প্রতিটি ধাপ।',en:'Every step of the record.'},
 'j1t':{bn:'FairScope — আগে প্রশ্ন, পরে কাজ',en:'FairScope — questions first, work after'},'j1p':{bn:'মাল, কোট, পয়েন্ট — সব প্রশ্নের উত্তর কাজের আগেই ঠিক করুন।',en:'Materials, coats, points — settle every question before work starts.'},
 'j2t':{bn:'দুজনেই নিশ্চিত করুন — OTP',en:'Both sides confirm — OTP'},'j2p':{bn:'দুজনেই OTP দিয়ে রেকর্ড নিশ্চিত করেন — একজনের কথায় হয় না।',en:'Both sides confirm the record by OTP — one side alone cannot.'},
 'j3t':{bn:'কাজ চলাকালীন — মাইলস্টোন আর ছবি',en:'During work — milestones and photos'},'j3p':{bn:'ধাপ শেষ হলে ছবি দিয়ে জানান, hirer অনুমোদন দেন।',en:'When a step finishes, a photo reports it; the hirer approves.'},
@@ -40,18 +40,18 @@ var I18N={
 'f8q':{bn:'AppLink কি সবার ফোনে কাজ করে?',en:'Does AppLink work on every phone?'},'f8a':{bn:'না। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়। অন্য অপারেটরের ক্ষেত্রে SMS/OTP পৌঁছাবে না।',en:'No. AppLink reaches Banglalink subscribers only. SMS/OTP will not reach other operators.'},
 'app.title':{bn:'অ্যাপ — রেকর্ড শুরু করুন',en:'App — start a record'},
 'app.lede':{bn:'ফোন নম্বর দিয়ে লগইন করুন। OTP আসবে SMS-এ।',en:'Log in with your phone number. The OTP arrives by SMS.'},
-'login.title':{bn:'লগইন — ফোন + OTP',en:'Log in — phone + OTP'},'login.sub':{bn:'Hirer হিসেবে লগইন করুন। Worker-দের জন্য আলাদা সহজ পাতা আছে — worker লিংক দিয়ে।',en:'Log in as a hirer. Workers have a separate simple page — through the worker link.'},
+'login.title':{bn:'লগইন — ফোন + OTP',en:'Log in — phone + OTP'},'login.sub':{bn:'Hirer হিসেবে লগইন করুন।',en:'Log in as a hirer.'},
 'login.phone':{bn:'ফোন নম্বর',en:'Phone number'},'login.name':{bn:'আপনার নাম (ঐচ্ছিক)',en:'Your name (optional)'},
 'login.send':{bn:'OTP পাঠান',en:'Send OTP'},'login.otp':{bn:'OTP কোড',en:'OTP code'},'login.verify':{bn:'যাচাই করুন ও লগইন করুন',en:'Verify & log in'},'login.back':{bn:'ফিরে যান',en:'Back'},
 'jobs.title':{bn:'আমার কাজ',en:'My jobs'},'jobs.logout':{bn:'লগ আউট',en:'Log out'},'jobs.new':{bn:'+ নতুন কাজ — FairScope',en:'+ New job — FairScope'},'jobs.refresh':{bn:'তালিকা আপডেট করুন',en:'Refresh list'},'jobs.empty':{bn:'এখনো কোনো কাজ নেই। উপরে নতুন রেকর্ড শুরু করুন।',en:'No jobs yet. Start a record above.'},
 'new.title':{bn:'নতুন কাজ — FairScope',en:'New job — FairScope'},'new.trade':{bn:'কাজের ধরন — Trade',en:'Trade — type of work'},
 'new.workerPhone':{bn:'Worker-এর ফোন',en:'Worker phone'},'new.workerName':{bn:'Worker-এর নাম',en:'Worker name'},
 'new.next':{bn:'পরের ধাপ — FairScope প্রশ্ন',en:'Next — FairScope questions'},'new.next2':{bn:'পরের ধাপ — দাম ও তারিখ',en:'Next — price & dates'},'new.back':{bn:'ফিরে যান',en:'Back'},
-'new.fsHint':{bn:'প্রতিটি প্রশ্নের উত্তর দিন। “ঠিক হয়নি” বেছে নিলে সেটি Missing-Term সতর্কতায় দেখাবে — লুকানো যাবে না।',en:'Answer every question. Choosing “Not decided” shows it in the Missing-Term warning — it cannot be hidden.'},
+'new.fsHint':{bn:'প্রতিটি প্রশ্নের উত্তর দিন। “ঠিক হয়নি” Missing-Term হিসেবে দেখাবে।',en:'Answer every question. “Not decided” stays visible as a missing term.'},
 'new.price':{bn:'সম্মত দাম (৳)',en:'Agreed price (৳)'},'new.deadline':{bn:'শেষ তারিখ',en:'Deadline'},'new.scope':{bn:'কাজের বিবরণ — Scope',en:'Scope — work description'},
 'new.milestones':{bn:'মাইলস্টোন — ধাপ (ঐচ্ছিক)',en:'Milestones — steps (optional)'},'new.addMs':{bn:'+ মাইলস্টোন যোগ করুন',en:'+ Add milestone'},'new.review':{bn:'রেকর্ড দেখুন',en:'Review record'},
 'new.create':{bn:'কাজ তৈরি করুন ও worker-কে পাঠান',en:'Create job & send to worker'},
-'warn.title':{bn:'Missing terms — ঠিক হয়নি',en:'Missing terms — not decided'},'warn.text':{bn:'নিচের বিষয়গুলো এখনো ঠিক হয়নি। প্রতিটি শর্তের উত্তর দিন, অথবা সেই শর্তটি আলাদাভাবে বাদ দিন — সব একসাথে বাদ দেওয়া যায় না।',en:'The items below are still undecided. Answer each one, or skip that one term explicitly — they are never skipped in bulk.'},
+'warn.title':{bn:'Missing terms — ঠিক হয়নি',en:'Missing terms — not decided'},'warn.text':{bn:'এখনো ঠিক হয়নি। প্রতিটি শর্তের উত্তর দিন, অথবা সেই শর্তটি আলাদাভাবে বাদ দিন — সব একসাথে নয়।',en:'Still undecided. Answer each one, or skip that one term explicitly — never in bulk.'},
 'warn.resolve':{bn:'এখনই ঠিক করুন',en:'Resolve now'},
 'bal.agreed':{bn:'সম্মত দাম',en:'Agreed'},'bal.paid':{bn:'স্বীকৃত পেমেন্ট',en:'Acknowledged paid'},'bal.rem':{bn:'বাকি',en:'Remaining'},
 'detail.back':{bn:'← সব কাজ',en:'← All jobs'},'detail.confirmTitle':{bn:'Hirer-এর নিশ্চিতকরণ দরকার',en:'Hirer confirmation needed'},
@@ -79,7 +79,7 @@ var I18N={
 'detail.passportBtn':{bn:'WorkPassport-এ যোগ করুন',en:'Add to WorkPassport'},
 'detail.photos':{bn:'ছবি',en:'Photos'},'detail.addPhoto':{bn:'ছবি যোগ করুন',en:'Add a photo'},'detail.upload':{bn:'ছবি আপলোড করুন',en:'Upload photo'},
 'detail.close':{bn:'কাজ বন্ধ করুন',en:'Close job'},'detail.closeText':{bn:'কাজ শেষ হলে দুই পক্ষের সম্মতিতে বন্ধ করুন।',en:'When work is done, close it with both sides\u2019 agreement.'},
-'detail.closeHow':{bn:'Worker তার পাতায় "কাজ শেষ" চাপলে একটি OTP কোড পান — সেই কোড এখানে লিখুন। কোড না থাকলে "একা বন্ধ করুন" বেছে নিন (রেকর্ডে Hirer-only লেখা থাকবে)।',en:'The worker taps "Confirm close" on their page and gets a code — enter it here. Without the code, choose "Close alone" (recorded as hirer-only).'},
+'detail.closeHow':{bn:'Worker তার পাতায় “কাজ শেষ” চাপলে একটি কোড পান — সেই কোড এখানে লিখুন। কোড না থাকলে “একা বন্ধ করুন” বেছে নিন (Hirer-only)।',en:'The worker taps “Confirm close” on their page and gets a code — enter it here. Without the code, choose “Close alone” (hirer-only).'},
 'detail.closeOtp':{bn:'Worker-এর OTP কোড — Worker close code',en:'Worker close code'},
 'detail.closeAnyway':{bn:'একা বন্ধ করুন — Worker-এর কোড ছাড়া (Hirer-only)',en:'Close alone — without the worker\u2019s code (hirer-only)'},
 'detail.closeBtn':{bn:'কাজ বন্ধ করুন — সম্পূর্ণ হয়েছে নিশ্চিত করুন',en:'Close job — confirm completion'},'detail.pack':{bn:'ResolvePack ডাউনলোড (PDF)',en:'Download ResolvePack (PDF)'},
@@ -94,6 +94,7 @@ var I18N={
 'bill.title':{bn:'বিলিং',en:'Billing'},'bill.text':{bn:'একটি রেকর্ড ৳১০, অথবা মাসে ৳৭০-তে সীমাহীন। Worker-এর জন্য DealCraft ফি নেই।',en:'One record is ৳10, or ৳70/month for unlimited records. No DealCraft fee for workers.'},
 'bill.caas':{bn:'এই রেকর্ডের জন্য ৳১০ দিন',en:'Pay ৳10 for this record'},'bill.sub':{bn:'সাবস্ক্রাইব করুন ৳৭০ / মাস',en:'Subscribe ৳70 / month'},
 'foot.text':{bn:'DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।',en:'DealCraft holds no money — payment acknowledgements only.'},
+'foot.title':{bn:'ফোনে কাজ শুরু হয়।',en:'Work starts on the phone.'},
 'loc.title':{bn:'লাইভ লোকেশন',en:'Live location'},
 'loc.privacy':{bn:'Worker নিজে Share চাপলেই কেবল আপনি দেখতে পাবেন — শুধু কাজ চলাকালীন। কাজ বন্ধ হলে লোকেশন মুছে যায়।',en:'You can see it only if the worker taps Share — only while the job is active. Location is deleted when the job closes.'},
 'loc.notSharing':{bn:'শেয়ার করছে না — Not sharing',en:'Not sharing'},
@@ -105,7 +106,7 @@ var I18N={
 'loc.paused':{bn:'বিরতি — Paused',en:'Paused'},
 'loc.away':{bn:'সরলরেখা দূরত্ব',en:'straight-line distance'},'loc.eta':{bn:'পৌঁছাতে',en:'ETA'},
 'site.title':{bn:'কাজের জায়গা (ঐচ্ছিক)',en:'Job site (optional)'},
-'site.hint':{bn:'ম্যাপে ট্যাপ করে পিন বসান, অথবা আপনার বর্তমান লোকেশন ব্যবহার করুন। জায়গা না দিলে দূরত্ব/ETA দেখাবে না — শেয়ারিং তবুও চলবে।',en:'Tap the map to drop a pin, or use your current location. Without a site there is no distance or ETA — sharing still works.'},
+'site.hint':{bn:'ম্যাপে ট্যাপ করে পিন বসান, অথবা আপনার বর্তমান লোকেশন ব্যবহার করুন।',en:'Tap the map to drop a pin, or use your current location.'},
 'site.address':{bn:'ঠিকানা',en:'Address'},
 'site.me':{bn:'আমার বর্তমান লোকেশন ব্যবহার করুন',en:'Use my current location'},
 'site.clear':{bn:'জায়গা মুছুন',en:'Clear site'},
@@ -135,7 +136,7 @@ var I18N={
 'bid.findBtn':{bn:'কাজ খুঁজুন — দর দিন',en:'Find work — bid on jobs'},
 'bid.back':{bn:'← সব কাজ',en:'← All jobs'},
 'bid.postTitle':{bn:'মিস্ত্রি খুঁজুন — ছবি দিয়ে কাজ দিন',en:'Find a repairer — post a job with a photo'},
-'bid.postText':{bn:'সমস্যার ছবি তুলুন, কাজের ধরন আর বিবরণ লিখুন। কাছের মিস্ত্রিরা দাম দেবেন — আপনি একজনকে বেছে নিলে তবেই রেকর্ড তৈরি হয়, দুই পক্ষের OTP দিয়ে। দর দিলেই চুক্তি হয় না।',en:'Take a photo of the problem, pick the trade, write a short description. Nearby repairers bid a price — a record is made only when you pick one and both sides confirm by OTP. A bid alone is not an agreement.'},
+'bid.postText':{bn:'সমস্যার ছবি তুলুন, কাজের ধরন বেছে নিন, সংক্ষেপে লিখুন। কাছের মিস্ত্রিরা দাম দেবেন — একজনকে বেছে নিলে দুই পক্ষ OTP দিয়ে নিশ্চিত করবেন।',en:'Take a photo of the problem, pick the trade, write a short description. Nearby repairers bid a price — pick one, then both sides confirm by OTP.'},
 'bid.trade':{bn:'কাজের ধরন — Trade',en:'Trade — type of work'},
 'bid.desc':{bn:'সমস্যাটা কী (সর্বোচ্চ ৫০০ অক্ষর)',en:'What is wrong? (max 500 characters)'},
 'bid.photos':{bn:'সমস্যার ছবি (সর্বোচ্চ ৩টি)',en:'Photos of the problem (max 3)'},
@@ -145,7 +146,7 @@ var I18N={
 'bid.post':{bn:'দরের জন্য কাজ দিন',en:'Post job for bids'},
 'bid.mine':{bn:'আমার দর-খোলা কাজ',en:'My open bid jobs'},
 'bid.findTitle':{bn:'কাজ খুঁজুন — দর দিন',en:'Find work — bid on jobs'},
-'bid.findText':{bn:'খোলা কাজগুলো দেখুন — কাছের কাজ আগে। দর দিলেই কাজ পাওয়া যায় না — Hirer বেছে নিলে রেকর্ড তৈরি হয়, দুই পক্ষের OTP দিয়ে।',en:'Browse open jobs — nearest first. A bid alone does not win the job — the hirer picks one, then a record is made and both sides confirm by OTP.'},
+'bid.findText':{bn:'খোলা কাজ — কাছের কাজ আগে। দর দিলেই কাজ পাওয়া যায় না। Hirer বেছে নিলে দুই পক্ষ OTP দিয়ে নিশ্চিত করেন।',en:'Open jobs — nearest first. A bid alone does not win the job. The hirer picks one, then both sides confirm by OTP.'},
 'bid.useLoc':{bn:'আমার লোকেশন ব্যবহার করুন — কাছের কাজ আগে',en:'Use my location — nearest first'},
 'bid.refresh':{bn:'আপডেট করুন',en:'Refresh'},
 'bid.acceptNote':{bn:'দর দিলেই চুক্তি হয় না — বেছে নিলে রেকর্ড তৈরি হয়, তারপর দুই পক্ষের OTP দিয়ে নিশ্চিত করতে হয়।',en:'A bid alone is not an agreement — picking one creates a record, which both sides must then confirm by OTP.'},
@@ -211,7 +212,7 @@ function initJourney(){
 function $(id){return document.getElementById(id);}
 function showErr(msg){var e=$('app-error');if(!e)return;e.hidden=false;e.textContent=msg;clearNotice();}
 function clearErr(){var e=$('app-error');if(e){e.hidden=true;e.textContent='';}}
-/* Neutral info/success notice (blue) — info must never use the red error box. */
+/* Neutral info/success notice (orange left edge) — info must never use the red error box. */
 function showNotice(msg){var e=$('app-notice');if(!e)return;e.hidden=false;e.textContent=msg;clearErr();}
 function clearNotice(){var e=$('app-notice');if(e){e.hidden=true;e.textContent='';}}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -228,9 +229,10 @@ async function api(path,opts){
  if(!res.ok){var m=(data&&(data.error||data.message))||('HTTP '+res.status);throw new Error(m);}
  return data;
 }
-function showView(id){['view-login','view-jobs','view-new','view-detail','view-bid-post','view-find-work','view-bid-detail'].forEach(function(v){var el=$(v);if(el)el.hidden=(v!==id);});
- /* P4: 200ms fade + 8px slide on view switch (CSS .view-enter). */
- var show=$(id); if(show){show.classList.remove('view-enter');void show.offsetWidth;show.classList.add('view-enter');}
+function showView(id,dir){['view-login','view-jobs','view-new','view-detail','view-bid-post','view-find-work','view-bid-detail'].forEach(function(v){var el=$(v);if(el)el.hidden=(v!==id);});
+ /* Premium: DIRECTIONAL view transitions — forward slides in from the
+    right, back from the left (260ms ease-out, transform+opacity only). */
+ var show=$(id); if(show){var cls=(dir==='back')?'view-enter-back':'view-enter-fwd';show.classList.remove('view-enter','view-enter-fwd','view-enter-back');void show.offsetWidth;show.classList.add(cls);}
  /* P2: detail sheet sits on a very light grey section background. */
  var appSec=$('app'); if(appSec)appSec.classList.toggle('app-grey',id==='view-detail');
  /* Motion gaps 4: the tab indicator can only be measured once the detail
@@ -459,7 +461,9 @@ function renderFairScope(){
   var btns=optsEn.map(function(o,oi){var sel=draft.answers[i]===o;return '<button type="button" data-q="'+i+'" data-v="'+esc(o)+'" aria-pressed="'+sel+'">'+esc(optsLoc[oi])+'</button>';}).join('');
   var nd=draft.answers[i]==='Not decided';
   btns+='<button type="button" data-q="'+i+'" data-v="Not decided" aria-pressed="'+nd+'">'+esc(NOT_DECIDED[lang])+'</button>';
-  return '<div class="q-block"><div class="q">'+esc(q.q[lang]||q.q.en)+'</div><div class="opt-row">'+btns+'</div></div>';
+  /* Premium: an answered question ticks off — hard border + spring-pop ✓. */
+  var answered=draft.answers[i]!=null;
+  return '<div class="q-block'+(answered?' answered':'')+'"><div class="q">'+(answered?'<span class="q-tick" aria-hidden="true">✓</span>':'')+esc(q.q[lang]||q.q.en)+'</div><div class="opt-row">'+btns+'</div></div>';
  }).join('');
  box.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){
   var qi=+b.getAttribute('data-q');
@@ -542,7 +546,7 @@ function locInitMap(view){
   locMarker=L.marker(c,{icon:L.divIcon({className:'loc-dot',html:'<span class="loc-dot-in"></span>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(locMap);
   if(view.site)locSiteMarker=L.marker([view.site.lat,view.site.lng]).addTo(locMap).bindPopup(view.site.address||'Job site');
   locTrailLine=L.polyline([],{color:'#FF5A1F',weight:3}).addTo(locMap);
-  locRouteLine=L.polyline([],{color:'#0E76FF',weight:2,dashArray:'6 6'}).addTo(locMap);
+  locRouteLine=L.polyline([],{color:'#666666',weight:2,dashArray:'6 6'}).addTo(locMap);
   setTimeout(function(){locMap.invalidateSize();},100);
  }
  return true;
@@ -682,7 +686,7 @@ function initAuth(){
   }catch(e){showErr((lang==='bn'?'যাচাই হয়নি: ':'Verification failed: ')+e.message);}
  });
  var back=$('otp-back'); if(back)back.addEventListener('click',function(){$('form-otp').hidden=true;$('form-login').hidden=false;});
- var lo=$('btn-logout'); if(lo)lo.addEventListener('click',function(){token='';user=null;localStorage.removeItem('dc_token');localStorage.removeItem('dc_user');showView('view-login');$('form-login').hidden=false;$('form-otp').hidden=true;});
+ var lo=$('btn-logout'); if(lo)lo.addEventListener('click',function(){token='';user=null;localStorage.removeItem('dc_token');localStorage.removeItem('dc_user');showView('view-login','back');$('form-login').hidden=false;$('form-otp').hidden=true;});
 }
 
 /* ---------- jobs ---------- */
@@ -701,7 +705,7 @@ async function loadJobs(){
    var status=j.status||j.state||'DRAFT';
    /* List rows carry no price/deadline from the API — show only what exists. */
    var meta=[ver,esc(status),esc(jobPhone(j))].filter(Boolean).join(' · ');
-   return '<div class="job-row"><div><div class="t">'+esc(jobTitle(j))+'</div><div class="m">'+meta+'</div></div><div style="display:flex;gap:8px;align-items:center"><span class="pill '+(status==='CONFIRMED'||status==='ACTIVE'?'pill-blue':status==='COMPLETED'||status==='CLOSED'?'pill-orange':'pill-grey')+'">'+esc(status)+'</span><button class="btn btn-dark btn-sm" type="button" data-open="'+esc(id)+'">'+(lang==='bn'?'খুলুন':'Open')+'</button></div></div>';
+   return '<div class="job-row"><div><div class="t">'+esc(jobTitle(j))+'</div><div class="m">'+meta+'</div></div><div style="display:flex;gap:8px;align-items:center"><span class="pill '+((status==='CONFIRMED'||status==='ACTIVE')?'pill-orange':'pill-grey')+'">'+esc(status)+'</span><button class="btn btn-dark btn-sm" type="button" data-open="'+esc(id)+'">'+(lang==='bn'?'খুলুন':'Open')+'</button></div></div>';
   }).join('')||'';
   list.querySelectorAll('[data-open]').forEach(function(b){b.addEventListener('click',function(){openJob(b.getAttribute('data-open'));});});
  }catch(e){list.innerHTML='';showErr((lang==='bn'?'কাজের তালিকা আনা যায়নি: ':'Could not load jobs: ')+e.message);}
@@ -754,7 +758,7 @@ function renderDetail(job){
  var ver='V'+(job.current_version||job.version||job.currentVersion||(versions.length||1));
  $('detail-title').textContent=jobTitle(job);
  $('detail-meta').textContent=ver+' · '+taka(price)+' · '+(deadline?fmtDate(deadline):'—')+' · '+jobPhone(job);
- var pills=''; if(job.status)pills+='<span class="pill pill-blue">'+esc(job.status)+'</span>';
+ var pills=''; if(job.status)pills+='<span class="pill pill-orange">'+esc(job.status)+'</span>';
  if(job.workerLink)pills+='<span class="pill">WORKER LINK: '+esc(job.workerLink)+'</span>';
  var miss=job.missingTerms||(lv&&lv.scope?lv.scope.skippedTerms:[])||[];
  if(miss.length)pills+='<span class="pill pill-orange">MISSING: '+miss.length+'</span>';
@@ -797,14 +801,14 @@ function renderDetail(job){
  }
  /* timeline — events are {type, actor, payload_json, created_at} */
  var tl=$('timeline-list');
- tl.innerHTML=events.length?events.map(function(ev){
+ tl.innerHTML=events.length?events.map(function(ev,ei){
   var label=ev.label||ev.type||ev.title||ev.event||''; var when=ev.createdAt||ev.created_at||ev.at||ev.date||'';
   var det=eventDetail(ev)||(ev.note||ev.detail||'');
-  /* P2: coloured node dots per event type (payment=orange, change=blue,
-     confirmation=green). */
+  /* P2: coloured node dots per event type (payment=orange, change=dark,
+     confirmation=green). The newest card also enters highlighted. */
   var t=(ev.type||ev.event||'');
   var cls=/PAYMENT/.test(t)?'tl-pay':/CHANGE/.test(t)?'tl-change':/CONFIRM/.test(t)?'tl-confirm':'';
-  return '<li class="'+cls+'"><div class="when">'+esc(when?fmtDate(when):'')+' · '+esc(ev.actor||'')+'</div><div><b>'+esc(String(label).replace(/_/g,' '))+'</b></div>'+(det?'<div class="small">'+esc(det)+'</div>':'')+'</li>';
+  return '<li class="'+cls+(ei===events.length-1?' tl-new':'')+'"><div class="when">'+esc(when?fmtDate(when):'')+' · '+esc(ev.actor||'')+'</div><div><b>'+esc(String(label).replace(/_/g,' '))+'</b></div>'+(det?'<div class="small">'+esc(det)+'</div>':'')+'</li>';
  }).join(''):'<li><div class="small">'+(lang==='bn'?'এখনো কোনো ঘটনা নেই।':'No events yet.')+'</div></li>';
  /* P2: staggered fade-up on first view (transform/opacity only). */
  tl.querySelectorAll('li').forEach(function(li,i){
@@ -839,7 +843,7 @@ function renderDetail(job){
      var kind=(p&&p.kind)||null;
      var when=(p&&(p.taken_at||p.takenAt||p.created_at||p.createdAt))||'';
      return '<figure class="photo"><img src="'+esc(u)+'" data-lightbox="'+esc(u)+'" data-alt="'+(lang==='bn'?'কাজের ছবি':'Job photo')+'" alt="'+(lang==='bn'?'কাজের ছবি':'Job photo')+'" loading="lazy">'+
-      (kind?'<span class="pill '+(kind==='BEFORE'?'pill-blue':'pill-orange')+'">'+esc(kind)+'</span>':'')+
+      (kind?'<span class="pill '+(kind==='BEFORE'?'pill-grey':'pill-orange')+'">'+esc(kind)+'</span>':'')+
       (when?'<figcaption class="mono grey">'+esc(fmtDT(when))+'</figcaption>':'')+'</figure>';
     }).join('');
    }).join('')+'</div>';
@@ -866,7 +870,7 @@ function renderDetail(job){
  var pl=$('pay-list');
  pl.innerHTML=pays.length?pays.map(function(p){
   var ack=p.ack_status==='ACKNOWLEDGED';
-  return '<div class="job-row"><div><div class="t">'+taka(p.amount)+'</div><div class="m">'+esc(p.method||'')+' · '+fmtDate(p.date||p.createdAt||p.created_at)+' · '+esc(p.ack_status||'AWAITING')+'</div></div><span class="pill '+(ack?'pill-blue':'pill-orange')+'">'+(ack?'ACK':'PENDING')+'</span></div>';
+  return '<div class="job-row"><div><div class="t">'+taka(p.amount)+'</div><div class="m">'+esc(p.method||'')+' · '+fmtDate(p.date||p.createdAt||p.created_at)+' · '+esc(p.ack_status||'AWAITING')+'</div></div><span class="pill '+(ack?'pill-orange':'pill-grey')+'">'+(ack?'ACK':'PENDING')+'</span></div>';
  }).join(''):'<p class="small">'+(lang==='bn'?'কোনো পেমেন্ট রেকর্ড নেই।':'No payments recorded yet.')+'</p>';
  /* milestones — Complete is a worker action (worker page); hirer only approves */
  var ml=$('miles-list');
@@ -991,7 +995,7 @@ function initNewJob(){
  });
  $('btn-new-job').addEventListener('click',function(){draft={trade:'ELECTRICIAN',answers:{},skipped:[]};renderFairScope();newStep(1);showView('view-new');});
  $('btn-refresh').addEventListener('click',loadJobs);
- $('btn-back-jobs').addEventListener('click',function(){locStopAll();showView('view-jobs');loadJobs();});
+ $('btn-back-jobs').addEventListener('click',function(){locStopAll();showView('view-jobs','back');loadJobs();});
 }
 
 /* ---------- detail actions ---------- */
@@ -1028,8 +1032,8 @@ function initDetail(){
    /* Insert the notice AFTER the re-render: openJob rebuilds #change-list,
       so inserting before it wipes the notice instantly and the hirer never
       sees that the proposal was sent. */
-   await openJob(currentJobId);
-   if(r&&r.notifyLink){clearErr();var n=$('change-list');if(n)n.insertAdjacentHTML('afterbegin','<div class="notice blue"><b>Proposal sent.</b><p class="mono">WORKER LINK: '+esc(r.notifyLink)+'</p></div>');}}
+   await openJob(currentJobId); showSuccessCheck();
+   if(r&&r.notifyLink){clearErr();var n=$('change-list');if(n)n.insertAdjacentHTML('afterbegin','<div class="notice"><b>Proposal sent.</b><p class="mono">WORKER LINK: '+esc(r.notifyLink)+'</p></div>');}}
   catch(e){showErr(e.message);}});
  $('form-pay').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
   try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/payments',{method:'POST',body:JSON.stringify({amount:Number($('pay-amount').value),method:$('pay-method').value,date:$('pay-date').value||undefined})});showSuccessCheck();openJob(currentJobId);}
@@ -1038,10 +1042,10 @@ function initDetail(){
   var f=$('photo-input').files[0]; if(!f){showErr(lang==='bn'?'একটি ছবি বেছে নিন।':'Choose a photo first.');return;}
   var fd=new FormData(); fd.append('photo',f);
   var pk=$('photo-kind'); if(pk)fd.append('kind',pk.value);
-  try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/photos',{method:'POST',body:fd});openJob(currentJobId);}
+  try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/photos',{method:'POST',body:fd});showSuccessCheck();openJob(currentJobId);}
   catch(e){showErr(e.message);}});
  $('form-dispute').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
-  try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/disputes',{method:'POST',body:JSON.stringify({category:$('dis-category').value,statement:$('dis-text').value.trim()})});openJob(currentJobId);}
+  try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/disputes',{method:'POST',body:JSON.stringify({category:$('dis-category').value,statement:$('dis-text').value.trim()})});showSuccessCheck();openJob(currentJobId);}
   catch(e){showErr(e.message);}});
  $('btn-close-job').addEventListener('click',async function(){clearErr();
   /* The server requires either the worker's close-confirm OTP or an
@@ -1052,7 +1056,7 @@ function initDetail(){
    var cotp=$('close-otp')?$('close-otp').value.trim():'';
    if(cotp)body.workerOtpCode=cotp;
    if($('close-anyway')&&$('close-anyway').checked)body.closeAnyway=true;
-   await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/close',{method:'POST',body:JSON.stringify(body)});openJob(currentJobId);}
+   await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/close',{method:'POST',body:JSON.stringify(body)});showSuccessCheck();openJob(currentJobId);}
   catch(e){showErr(e.message);}});
  $('btn-passport-add').addEventListener('click',function(){
   /* Worker-owned: only the worker (from their link) can add a job to
@@ -1072,7 +1076,7 @@ function initDetail(){
   try{var r=await api('/api/billing/caas',{method:'POST',body:JSON.stringify({jobId:currentJobId})});
    var box=$('billing-box'); var id=r.chargeId||r.id||(r.caas&&r.caas.id);
    var otp=r.sandboxOtp||(r.sandbox&&r.sandbox.otp)||null;
-   box.innerHTML='<div class="notice blue">'+(otp?(lang==='bn'?'আপনার কোড: ':'Your code: ')+esc(otp):(lang==='bn'?'OTP SMS-এ পাঠানো হয়েছে।':'OTP sent by SMS.'))+'</div>'+
+   box.innerHTML='<div class="notice">'+(otp?(lang==='bn'?'আপনার কোড: ':'Your code: ')+esc(otp):(lang==='bn'?'OTP SMS-এ পাঠানো হয়েছে।':'OTP sent by SMS.'))+'</div>'+
     '<label>OTP</label><input id="caas-otp" type="text" inputmode="numeric" placeholder="OTP"><div class="btn-row"><button class="btn btn-dark btn-sm" type="button" id="caas-verify">Verify ৳10</button></div>';
    $('caas-verify').addEventListener('click',async function(){try{var v=await api('/api/billing/caas/'+encodeURIComponent(id||currentJobId)+'/verify',{method:'POST',body:JSON.stringify({otpCode:$('caas-otp').value.trim()})});box.innerHTML='<p class="mono">'+(v.status==='VERIFIED'?'PAID — ৳10 · RECORD ACTIVE':'STATUS: '+esc(v.status||'PENDING'))+'</p>';loadBillingStatus();}catch(e){showErr(e.message);}});
   }catch(e){showErr(e.message);}});
@@ -1125,7 +1129,7 @@ async function openBidDetail(id){
    clearErr();
    try{var acc=await api('/api/bid-jobs/'+encodeURIComponent(currentBidJobId)+'/bids/'+encodeURIComponent(btn.getAttribute('data-accept'))+'/accept',{method:'POST',body:'{}'});
     showNotice(lang==='bn'?'দর বেছে নেওয়া হয়েছে — এখন রেকর্ড তৈরি হয়েছে। দুই পক্ষের OTP দিয়ে নিশ্চিত করুন।':'Bid picked — the record is created. Both sides must now confirm by OTP.');
-    if(acc&&acc.job&&acc.job.id)openJob(acc.job.id);
+    if(acc&&acc.job&&acc.job.id){openJob(acc.job.id);showSuccessCheck();}
    }catch(e){showErr(e.message);}
   });});
   showView('view-bid-detail');
@@ -1166,9 +1170,9 @@ function initBidding(){
   picker.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false');});});});
  $('btn-bid-post').addEventListener('click',function(){showView('view-bid-post');loadMyBidJobs();});
  $('btn-find-work').addEventListener('click',function(){showView('view-find-work');loadOpenBidJobs();});
- $('btn-bid-back').addEventListener('click',function(){showView('view-jobs');loadJobs();});
- $('btn-find-back').addEventListener('click',function(){showView('view-jobs');loadJobs();});
- $('btn-bid-detail-back').addEventListener('click',function(){showView('view-bid-post');loadMyBidJobs();});
+ $('btn-bid-back').addEventListener('click',function(){showView('view-jobs','back');loadJobs();});
+ $('btn-find-back').addEventListener('click',function(){showView('view-jobs','back');loadJobs();});
+ $('btn-bid-detail-back').addEventListener('click',function(){showView('view-bid-post','back');loadMyBidJobs();});
  $('btn-bid-me').addEventListener('click',function(){
   if(!('geolocation' in navigator)){showErr(lang==='bn'?'এই ডিভাইসে লোকেশন পাওয়া যাচ্ছে না।':'Location is not available on this device.');return;}
   navigator.geolocation.getCurrentPosition(function(p){bidSite={lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6)};
@@ -1183,7 +1187,7 @@ function initBidding(){
  $('btn-bid-close').addEventListener('click',async function(){clearErr();
   try{await api('/api/bid-jobs/'+encodeURIComponent(currentBidJobId)+'/close',{method:'POST',body:'{}'});
    showNotice(lang==='bn'?'দর বন্ধ করা হয়েছে — কাউকে বাছা হয়নি।':'Bidding closed — nobody was picked.');
-   showView('view-bid-post');loadMyBidJobs();
+   showView('view-bid-post','back');loadMyBidJobs();
   }catch(e){showErr(e.message);}});
  $('form-bid-post').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
   var desc=$('bid-desc').value.trim();
@@ -1243,7 +1247,6 @@ document.addEventListener('DOMContentLoaded',function(){
   if(mb)mb.setAttribute('aria-expanded','false');});});
  $('lang-bn').addEventListener('click',function(){setLang('bn');});
  $('lang-en').addEventListener('click',function(){setLang('en');});
- renderDotMap($('map-hero'),{w:560,h:480});
  renderDotMap($('map-footer'),{w:560,h:300,step:15});
  /* No journey map: the dotted map lives only in the footer now. */
  initJourney(); initAuth(); initNewJob(); initDetail(); initBidding(); renderFairScope();
