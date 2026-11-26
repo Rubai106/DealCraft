@@ -88,31 +88,28 @@ label{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform
 .btn[disabled]{opacity:.45;cursor:not-allowed}
 .btn-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
 
-/* Hero */
+/* Hero — centred stage: copy centred (max 900px), 3D record stack below
+   as the centrepiece. No two-column grid, no dead half-screen. */
 .hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line);min-height:100svh}
 [data-enter]{animation:heroIn .7s ease both}
 @keyframes heroIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){[data-enter]{animation:none}}
-.hero-grid{display:grid;gap:8px;padding:88px 20px 40px}
-@media(min-width:900px){.hero-grid{padding:88px 0 40px}}
-@media(min-width:980px){.hero-grid{grid-template-columns:repeat(12,1fr);gap:24px;padding:96px 0 40px;align-items:start}}
-@media(min-width:980px){.hero-grid>div:first-child{grid-column:1/span 5}.hero-grid>.map-box{grid-column:6/span 7}}
+.hero-grid{display:flex;flex-direction:column;align-items:center;padding:96px 20px 72px}
+@media(min-width:900px){.hero-grid{padding:104px 0 72px}}
+.hero-text{max-width:900px;margin:0 auto;text-align:center}
 .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--orange);margin:0 0 20px}
 h1.hero-title{font-family:var(--display);font-size:44px;line-height:.94;letter-spacing:-.01em;text-transform:uppercase;margin:0 0 18px}
 @media(min-width:700px){h1.hero-title{font-size:64px}}
 @media(min-width:1100px){h1.hero-title{font-size:72px}}
 .hero-title .bn{font-family:'Noto Sans Bengali',var(--display)}
-.hero-sub{color:#bdbdbd;font-size:18px;max-width:52ch;margin:0}
-.hero-meta{margin-top:28px;border-top:1px solid var(--line);padding-top:18px;display:flex;flex-wrap:wrap;gap:8px 32px}
+.hero-sub{color:#bdbdbd;font-size:18px;max-width:52ch;margin:0 auto}
+.hero .btn-row{justify-content:center}
+.hero-meta{margin:28px auto 0;padding-top:0;display:flex;flex-wrap:wrap;justify-content:center;gap:8px 32px}
+.hero-life-note{margin:22px 0 0;color:#999;text-align:center}
 .map-box{position:relative;min-height:200px;overflow:hidden}
-.hero-map-bg{position:absolute;top:96px;right:max(80px,calc((100vw - 1280px)/2));width:calc(50% - 40px);height:calc(100% - 136px);display:flex;align-items:center;justify-content:center}
-@media(max-width:979px){.hero-map-bg{position:relative;top:auto;right:auto;width:100%;height:220px;margin-top:8px}}
 .map-box svg{width:100%;height:auto;max-height:360px;display:block}
 #map-hero{overflow:hidden}
 @media(min-width:980px){.map-box{min-height:340px}}
-.map-box svg{width:100%;height:auto}
-.live-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--blue);color:#fff;border-radius:999px;padding:6px 12px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
-.live-pill::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--blue)}
 
 /* Sections — white / black alternating, square edges */
 .section{padding:64px 0;min-height:100svh}
@@ -168,7 +165,9 @@ h2.sec-title{font-family:var(--display);font-size:40px;line-height:.95;text-tran
 /* Stats — giant numerals */
 .stats{display:grid;gap:24px;background:transparent;border:0}
 @media(min-width:800px){.stats{grid-template-columns:1fr 1fr 1fr}}
-.stat{background:#fff;padding:32px 28px;border:1px solid var(--line-light)}
+/* Depth — one soft shadow system on the landing page: stat tiles and the
+   white comparison card lift; everything else is a hairline divider. */
+.stat{background:#fff;padding:32px 28px;border:1px solid var(--line-light);box-shadow:0 10px 28px rgba(0,0,0,.07)}
 .stat-num{font-family:var(--display);font-size:64px;line-height:.9;letter-spacing:-.02em}
 .stat-num small{font-size:28px}
 .stat p{margin:12px 0 0;color:#555}
@@ -218,8 +217,9 @@ h2.sec-title{font-family:var(--display);font-size:40px;line-height:.95;text-tran
 .warn h4{margin:0 0 8px;font-family:var(--condensed);font-size:20px;text-transform:uppercase;color:#c23c00}
 .warn ul{margin:8px 0 14px;padding-left:20px}
 .warn li{margin:4px 0}
-.sandbox{border:1px dashed var(--orange);background:#fff8f4;padding:14px 16px;margin:16px 0;font-family:var(--mono);font-size:12px;letter-spacing:.06em;line-height:1.7}
-.sandbox b{color:#c23c00}
+/* The single honesty marker — "Demo mode" dot-badge, app header only. */
+.demo-badge{display:inline-flex;align-items:center;gap:7px;margin-top:14px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#999;border:1px solid #ddd;border-radius:999px;padding:5px 11px}
+.demo-badge i{width:7px;height:7px;border-radius:50%;background:var(--orange)}
 .balance{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--line-light);border:1px solid var(--line-light);margin:20px 0}
 .balance div{background:#fff;padding:18px 14px}
 .balance .amt{font-family:var(--display);font-size:28px;line-height:1}
@@ -257,9 +257,6 @@ h2.sec-title{font-family:var(--display);font-size:40px;line-height:.95;text-tran
 .record table{width:100%;border-collapse:collapse;font-size:15px}
 .record td,.record th{border-bottom:1px solid #eee;padding:10px 4px;text-align:left;vertical-align:top}
 .record th{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#666}
-.demo-card{border:0;border-top:1px solid var(--line);background:#111;color:#fff;padding:24px 0;margin-top:12px}
-.demo-card p{color:#bdbdbd}
-.demo-card .mono{color:#fff}
 footer{border-top:1px solid var(--line);padding:56px 0 32px;min-height:100svh}
 .foot-close{margin-bottom:56px}
 .foot-title{font-family:"Archivo Black",sans-serif;font-size:40px;line-height:1.05;letter-spacing:-.01em;margin:12px 0 16px}
@@ -272,7 +269,12 @@ footer{border-top:1px solid var(--line);padding:56px 0 32px;min-height:100svh}
 .foot-grid .brand{margin:0;min-height:0;line-height:1.1}
 .foot-map{min-height:260px;overflow:hidden}
 .foot-map svg{width:100%;height:auto;max-height:300px;display:block}
-.dotstrip{display:block;width:100%;height:24px;margin:0 0 24px;color:var(--orange)}
+/* Section rhythm — landing sections read as one composed document:
+   sec-num + title centred, dot-strip divider centred. The app section
+   keeps its left-aligned header (it is a working shell, not a poster). */
+.section:not(.app) .sec-head{text-align:center}
+.section:not(.app) .sec-head .sec-num{display:block}
+.dotstrip{display:block;width:240px;height:24px;margin:0 auto 24px;color:var(--orange)}
 .section-white .dotstrip{color:#c23c00}
 .small{font-size:14px;color:#bdbdbd}
 .hr{border:0;border-top:1px solid var(--line);margin:32px 0}
@@ -284,7 +286,7 @@ footer{border-top:1px solid var(--line);padding:56px 0 32px;min-height:100svh}
 .visual-card .vrows div{display:flex;justify-content:space-between;gap:16px;border-top:1px solid var(--line);padding:10px 0;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
 .visual-card .vrows span{color:#bdbdbd}
 .visual-card .vrows b{color:#fff;font-weight:400}
-.section-white .visual-card{border-color:var(--line-light);background:#fff;color:#111}
+.section-white .visual-card{border-color:var(--line-light);background:#fff;color:#111;box-shadow:0 12px 32px rgba(0,0,0,.08)}
 .section-white .visual-card .vrows div{border-top-color:var(--line-light)}
 .section-white .visual-card .vrows span{color:#555}
 .section-white .visual-card .vrows b{color:#111}
@@ -321,13 +323,6 @@ footer{border-top:1px solid var(--line);padding:56px 0 32px;min-height:100svh}
 .loc-dot-in{display:block;width:18px;height:18px;border-radius:50%;background:#FF5A1F;border:3px solid #fff;box-shadow:0 0 0 3px rgba(255,90,31,.4)}
 #loc-box .pill{background:#000;color:#fff}
 
-/* ---- hero lifecycle strip (V1 -> change -> V2, visible on the hero) ---- */
-.hero-life{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin-top:24px}
-.hero-life-step{flex:1 1 140px;border:1px solid var(--line);padding:12px 14px;background:#0b0b0b}
-.hero-life-step b{display:block;font-family:var(--display);font-size:26px;color:#FF5A1F;line-height:1}
-.hero-life-step span{display:block;margin-top:6px;font-family:monospace;font-size:11px;letter-spacing:.04em;color:#bbb;line-height:1.5}
-.hero-life-arrow{align-self:center;font-size:22px;color:#FF5A1F}
-.hero-life-note{margin-top:12px;color:#999}
 /* ---- ChangeLock journey strip (detail tab) ---- */
 .cl-journey{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin:12px 0 16px}
 .cl-step{flex:1 1 120px;border:1px solid #ddd;padding:12px;background:#fff}
@@ -379,22 +374,25 @@ footer{border-top:1px solid var(--line);padding:56px 0 32px;min-height:100svh}
 .btn-hero{background:linear-gradient(135deg,#ff7a3d,#FF5A1F 55%,#e64a00);color:#fff;border-color:transparent;box-shadow:0 10px 30px rgba(255,90,31,.45)}
 .btn-hero:hover{box-shadow:0 14px 38px rgba(255,90,31,.6)}
 
-/* ---- P0: hero 3D record card stack ---- */
-.hero-visual{position:relative;min-height:420px}
-@media(min-width:980px){.hero-grid>.hero-visual{grid-column:6/span 7}}
-.hero-dots{position:absolute;inset:-40px -20px 0 0;background-image:radial-gradient(circle,rgba(255,255,255,.30) 1.2px,transparent 1.4px);background-size:18px 18px;-webkit-mask-image:radial-gradient(ellipse 90% 85% at 60% 40%,#000 30%,transparent 78%);mask-image:radial-gradient(ellipse 90% 85% at 60% 40%,#000 30%,transparent 78%);pointer-events:none}
-.hero-dots::before{content:"";position:absolute;right:8%;top:18%;width:280px;height:280px;background:radial-gradient(circle,rgba(255,90,31,.35),transparent 65%);filter:blur(10px)}
-.pulse-dot{position:absolute;right:26%;top:34%;width:12px;height:12px;border-radius:50%;background:#FF5A1F;box-shadow:0 0 0 0 rgba(255,90,31,.5);animation:pulseDot 2.4s ease-out infinite}
+/* ---- P0: hero 3D record card stack — centred centrepiece ---- */
+.hero-visual{position:relative;width:100%;max-width:640px;margin:40px auto 0;min-height:0}
+.hero-dots{position:absolute;inset:-30px 0 0 0;background-image:radial-gradient(circle,rgba(255,255,255,.30) 1.2px,transparent 1.4px);background-size:18px 18px;-webkit-mask-image:radial-gradient(ellipse 90% 85% at 50% 40%,#000 30%,transparent 78%);mask-image:radial-gradient(ellipse 90% 85% at 50% 40%,#000 30%,transparent 78%);pointer-events:none}
+.hero-dots::before{content:"";position:absolute;left:50%;top:12%;transform:translateX(-50%);width:280px;height:280px;background:radial-gradient(circle,rgba(255,90,31,.35),transparent 65%);filter:blur(10px)}
+.pulse-dot{position:absolute;left:56%;top:32%;width:12px;height:12px;border-radius:50%;background:#FF5A1F;box-shadow:0 0 0 0 rgba(255,90,31,.5);animation:pulseDot 2.4s ease-out infinite}
 @keyframes pulseDot{0%{box-shadow:0 0 0 0 rgba(255,90,31,.55)}70%{box-shadow:0 0 0 16px rgba(255,90,31,0)}100%{box-shadow:0 0 0 0 rgba(255,90,31,0)}}
-.hero-map-small{position:absolute;right:0;bottom:0;width:72%;opacity:.45;pointer-events:none}
+.hero-map-small{position:absolute;left:50%;transform:translateX(-50%);bottom:-8px;width:84%;opacity:.35;pointer-events:none}
 .hero-map-small svg{max-height:300px}
-.rcard-scene{position:relative;perspective:1200px;padding:56px 8px 90px;z-index:2}
-.rcard-tilt{position:relative;transform-style:preserve-3d;transform:rotateY(-14deg) rotateX(6deg);transition:transform .18s ease-out;will-change:transform}
+.rcard-scene{position:relative;perspective:1200px;padding:64px 0 120px;z-index:2}
+/* Soft light pool under the card stack — the stage it sits on. */
+.rcard-scene::after{content:"";position:absolute;left:50%;bottom:88px;transform:translateX(-50%);width:min(480px,86%);height:56px;background:radial-gradient(ellipse at center,rgba(255,90,31,.32),rgba(255,90,31,.07) 55%,transparent 75%);filter:blur(6px);pointer-events:none;z-index:0}
+.rcard-tilt{position:relative;z-index:1;transform-style:preserve-3d;transform:rotateY(-8deg) rotateX(4deg);transition:transform .18s ease-out;will-change:transform}
 .rcard-tilt.idle-float{animation:idleFloat 7s ease-in-out infinite}
-@keyframes idleFloat{0%,100%{transform:rotateY(-14deg) rotateX(6deg) translateY(0)}50%{transform:rotateY(-14deg) rotateX(6deg) translateY(-8px)}}
+@keyframes idleFloat{0%,100%{transform:rotateY(-8deg) rotateX(4deg) translateY(0)}50%{transform:rotateY(-8deg) rotateX(4deg) translateY(-8px)}}
 .rcard{position:relative;width:min(400px,92%);margin:0 auto;border-radius:22px;padding:24px 22px;color:#fff;background:linear-gradient(150deg,rgba(38,38,38,.92),rgba(12,12,12,.96) 55%,rgba(20,10,6,.97));border:1px solid rgba(255,255,255,.14);box-shadow:0 30px 60px rgba(0,0,0,.55),0 8px 20px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.22)}
 .rcard::after{content:"";position:absolute;inset:0;border-radius:22px;background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.09) 50%,transparent 58%);pointer-events:none}
-.rcard-ghost{position:absolute;left:50%;top:-40px;transform:translateX(calc(-50% - 90px)) translateZ(-90px) rotate(-6deg);opacity:.8;filter:saturate(.35);background:linear-gradient(160deg,#3d3d44,#1b1b1e);border-color:rgba(255,255,255,.32);box-shadow:0 18px 40px rgba(0,0,0,.45)}
+/* Ghost V1 peeks out top-left — shifted only 48px, so its trade line and
+   scope read in full; never half-cut words behind the main card. */
+.rcard-ghost{position:absolute;left:50%;top:-34px;transform:translateX(calc(-50% - 48px)) translateZ(-90px) rotate(-4deg);opacity:.8;filter:saturate(.35);background:linear-gradient(160deg,#3d3d44,#1b1b1e);border-color:rgba(255,255,255,.32);box-shadow:0 18px 40px rgba(0,0,0,.45)}
 .rcard-main{transform:translateZ(0)}
 .rcard-top{display:flex;justify-content:space-between;gap:10px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#bbb}
 .rcard-ver{color:#FF5A1F}
@@ -407,14 +405,14 @@ footer{border-top:1px solid var(--line);padding:56px 0 32px;min-height:100svh}
 .rcard-bar i{display:block;height:100%;width:25%;border-radius:999px;background:linear-gradient(90deg,#1e4fff,#FF5A1F)}
 .rcard-foot{color:#999;margin:0}
 .rchip{position:absolute;z-index:3;max-width:250px;background:rgba(20,20,20,.72);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:10px 14px;font-size:13px;color:#fff;box-shadow:0 12px 28px rgba(0,0,0,.45)}
-.rchip-otp{top:-2px;right:0;transform:translateZ(70px)}
+.rchip-otp{top:-6px;right:8px;transform:translateZ(70px)}
 /* Pay/Change chips sit BELOW the card, in the scene's bottom padding —
    never over the card's rows, bar or foot line. */
 .rchip-pay{bottom:-64px;left:0;transform:translateZ(50px)}
 .rchip-change{bottom:-64px;right:0;transform:translateZ(90px)}
 @media(max-width:979px){
-  .hero-visual{min-height:0}
-  .rcard-scene{padding:32px 4px 150px}
+  .hero-visual{margin-top:28px}
+  .rcard-scene{padding:40px 4px 150px}
   /* On narrow screens the two bottom chips stack, left-aligned. */
   .rchip-pay{left:0;bottom:-58px}
   .rchip-change{left:0;right:auto;bottom:-112px}
@@ -423,6 +421,8 @@ footer{border-top:1px solid var(--line);padding:56px 0 32px;min-height:100svh}
   .rcard{padding:20px 16px}
   .rcard-trade{font-size:25px}
   .rchip{font-size:12px;padding:8px 11px;max-width:210px}
+  /* Narrower ghost offset on phones so the ghost never clips the viewport. */
+  .rcard-ghost{top:-30px;transform:translateX(calc(-50% - 28px)) translateZ(-90px) rotate(-3deg)}
 }
 
 /* ---- P1: journey persistent record card ---- */
@@ -447,9 +447,8 @@ footer{border-top:1px solid var(--line);padding:56px 0 32px;min-height:100svh}
 .jcard-chip.stamp{animation:stampIn .45s cubic-bezier(.2,1.6,.4,1) both}
 @keyframes stampIn{0%{opacity:0;transform:scale(1.6)}100%{opacity:1;transform:scale(1)}}
 
-/* Journey column must fit the viewport or the sticky card scrolls away:
-   the PAYPROOF visual-card duplicated the journey card's numbers, so it
-   is gone; the decorative map is capped at 220px. */
+/* Journey — the sticky visual is the record card; centred in its column. */
+.journey-visual .jcard{max-width:480px;margin:0 auto 28px}
 #map-journey svg{max-height:160px}
 #app.app-grey{background:#f4f4f4}
 #view-detail.detail-sheet{background:#fff;border-radius:24px;border:1px solid #e6e6e6;box-shadow:0 24px 60px rgba(0,0,0,.12),0 4px 14px rgba(0,0,0,.06);padding:28px}
@@ -497,8 +496,15 @@ footer{border-top:1px solid var(--line);padding:56px 0 32px;min-height:100svh}
    not swallow clicks — otherwise the expand button below is unreachable. */
 .cmp-expand{position:absolute;right:8px;bottom:8px;z-index:3;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.6);background:rgba(0,0,0,.65);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 
-/* ---- P3: WorkPassport premium ID card ---- */
-.pp-id-card{position:relative;max-width:520px;margin:8px 0 28px;border-radius:26px;padding:28px;color:#fff;background:linear-gradient(140deg,#1c1c1c,#000 58%,#220e04);border:1px solid rgba(255,255,255,.14);box-shadow:0 24px 60px rgba(0,0,0,.35),0 4px 16px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.18);overflow:hidden;transform:perspective(900px) rotateY(var(--ry,0deg)) rotateX(var(--rx,0deg));transition:transform .2s ease-out}
+/* ---- P3: WorkPassport premium ID card — centred on its page ---- */
+.pp-id-card{position:relative;max-width:520px;margin:8px auto 28px;border-radius:26px;padding:28px;color:#fff;background:linear-gradient(140deg,#1c1c1c,#000 58%,#220e04);border:1px solid rgba(255,255,255,.14);box-shadow:0 24px 60px rgba(0,0,0,.35),0 4px 16px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.18);overflow:hidden;transform:perspective(900px) rotateY(var(--ry,0deg)) rotateX(var(--rx,0deg));transition:transform .2s ease-out}
+/* Passport stage — the same centred treatment as the hero: dotted field
+   and orange glow radiating behind the card, on a black panel. */
+.pp-stage{position:relative;background:#000;border-radius:28px;padding:20px 20px 28px;margin:0 0 28px;overflow:hidden}
+.pp-stage::before{content:"";position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.22) 1.1px,transparent 1.3px);background-size:18px 18px;-webkit-mask-image:radial-gradient(ellipse 85% 80% at 50% 35%,#000 25%,transparent 75%);mask-image:radial-gradient(ellipse 85% 80% at 50% 35%,#000 25%,transparent 75%);pointer-events:none}
+.pp-stage::after{content:"";position:absolute;left:50%;bottom:-40px;transform:translateX(-50%);width:420px;height:160px;background:radial-gradient(ellipse at center,rgba(255,90,31,.35),transparent 65%);filter:blur(8px);pointer-events:none}
+.pp-stage>*{position:relative;z-index:1}
+.pp-stage .pp-id-card{margin:8px auto 0}
 .pp-id-card::after{content:"";position:absolute;inset:-40%;background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.13) 50%,transparent 58%);transform:translateX(var(--shine,-30%));transition:transform .3s ease;pointer-events:none}
 .pp-id-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
 .pp-id-name{font-family:'Oswald','Noto Sans Bengali',sans-serif;font-size:38px;line-height:1;text-transform:uppercase;margin:6px 0 4px}

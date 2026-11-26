@@ -663,8 +663,11 @@ try {
   const workerPage = await req('/worker.html');
   check(workerPage.status === 200, 'worker link page serves');
   const appJs = await req('/app.js');
-  const simStop = appJs.text.match(/function locStopSim\(\)\{[\s\S]*?\n\}/);
-  check(simStop && !simStop[0].includes('fetch('), 'locStopSim stops only the timer — it never POSTs /location/stop (a real share survives the demo sim)');
+  /* The location demo simulation was removed from the UI entirely (no
+     simulate buttons, no locSimulate/locStopSim in the hirer JS), so
+     nothing on the hirer side can ever POST /location/stop and kill a
+     worker's real share. */
+  check(!appJs.text.includes('locSimulate') && !appJs.text.includes('locStopSim') && !appJs.text.includes('/location/stop') && !landing.text.includes('btn-loc-sim'), 'no location simulation in the UI — nothing hirer-side can stop a real share');
   check(appJs.text.includes('async function refreshJob') && appJs.text.includes('refreshJob();'), 'switching detail tabs re-fetches the job (timeline/dispute never go stale)');
   const passPage = await req(`/passport/${demoProfileId}`);
   check(passPage.status === 200 && passPage.text.includes('width=device-width'), 'server passport page has a viewport meta (no 980px layout on phones)');

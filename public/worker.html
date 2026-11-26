@@ -21,7 +21,7 @@
   <div id="w-err" class="error" hidden></div>
   <!-- P4: success checkmark only — no card stacks, tilt or heavy shadows here. -->
   <div id="w-check" class="success-check" hidden aria-hidden="true"></div>
-  <div id="w-sandbox" class="sandbox" hidden><b>SANDBOX — not a live AppLink call.</b><br><span id="w-sandbox-text"></span></div>
+  <div class="notice blue" id="w-otp-note" hidden><b>Your code</b><br><span id="w-otp-note-text"></span></div>
 
   <section id="w-record" hidden>
     <div class="record" id="w-summary"></div>
@@ -114,7 +114,7 @@
     <p class="notice" id="w-close-note" hidden data-i18n="w.closeNote">কোড পাঠানো হয়েছে — Hirer-কে কোডটি জানান। / Code sent — give it to the hirer.</p>
   </section>
 
-  <p class="small" data-i18n="w.foot" style="margin-top:28px;color:#666">DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়।</p>
+  <p class="small" data-i18n="w.foot" style="margin-top:28px;color:#666">DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।</p>
   <p class="small"><a href="index.html">DealCraft হোম</a> · <a href="passport.html">WorkPassport</a></p>
 </main>
 <script>
@@ -161,7 +161,7 @@ var WI18N={
  'w.closeText':{bn:'কাজ শেষ হলে নিচের বোতাম চাপুন — একটি OTP কোড আসবে। কোডটি Hirer-কে জানান, Hirer ওই কোড দিয়ে কাজটি বন্ধ করবেন।',en:'When the work is done, tap below — a code arrives. Give it to the hirer; they close the job with it.'},
  'w.closeBtn':{bn:'কাজ শেষ — Confirm close',en:'Confirm close'},
  'w.closeNote':{bn:'কোড পাঠানো হয়েছে — Hirer-কে কোডটি জানান।',en:'Code sent — give it to the hirer.'},
- 'w.foot':{bn:'DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়।',en:'DealCraft holds no money — it records payment acknowledgements only. AppLink reaches Banglalink subscribers only.'}
+ 'w.foot':{bn:'DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।',en:'DealCraft holds no money — it records payment acknowledgements only.'}
 };
 function wApplyLang(){document.documentElement.lang=wLang;
  document.querySelectorAll('[data-i18n]').forEach(function(el){var v=WI18N[el.getAttribute('data-i18n')];if(v)el.textContent=v[wLang]||v.bn;});
@@ -189,7 +189,7 @@ function show(id){$(id).hidden=false;}
 function parsePayload(ev){try{return typeof ev.payload_json==='string'?JSON.parse(ev.payload_json||'{}'):(ev.payload||{});}catch(e){return{};}}
 async function requestOtp(purpose){
  var r=await api('/api/worker/'+encodeURIComponent(token)+'/request-otp',{method:'POST',body:JSON.stringify({purpose:purpose})});
- if(r&&r.sandbox){$('w-sandbox').hidden=false;$('w-sandbox-text').textContent='OTP: '+(r.sandbox.otp||'—')+' — '+(r.sandbox.note||'');}
+ if(r&&r.sandbox&&r.sandbox.otp){$('w-otp-note').hidden=false;$('w-otp-note-text').textContent=(wLang==='bn'?'আপনার কোড: ':'Your code: ')+(r.sandbox.otp||'—');}
  return r;}
 async function load(){
  if(!token){err('No worker link token. Ask the hirer to send your link again. / কোনো লিংক নেই। Hirer-কে আবার লিংক পাঠাতে বলুন।');return;}
@@ -308,7 +308,7 @@ $('w-ch-send').addEventListener('click',async function(){try{await api('/api/cha
   $('w-change').hidden=true;}catch(e){err(e.message);}});
 /* The OTP box must only open AFTER the fresh payment-ack code has arrived:
    opening it first lets the old code (from the previous OTP box) still sit
-   in the sandbox text, so a fast submit sends a stale code and fails. */
+   in the notice, so a fast submit sends a stale code and fails. */
 function payAck(dec){return async function(){payDecision=dec;
   try{await requestOtp('payment-ack');$('w-pay-otp-box').hidden=false;$('w-pay-otp').focus();}
   catch(e){err(e.message);}};}
@@ -323,8 +323,8 @@ $('w-photo-send').addEventListener('click',async function(){var f=$('w-photo').f
   if(!r.ok){var d=null;try{d=await r.json();}catch(e){}throw new Error((d&&(d.error||d.message))||('HTTP '+r.status));}
   $('w-photo-send').textContent='আপলোড হয়েছে — Uploaded';}catch(e){err(e.message);}});
 /* Close: the worker only requests the close-confirm OTP and hands the code
-   to the hirer (by SMS in live mode, in the sandbox box here). The hirer
-   types it into the close box on the job page — that call verifies it. */
+   to the hirer. The hirer types it into the close box on the job page —
+   that call verifies it. */
 $('w-close-btn').addEventListener('click',async function(){try{await requestOtp('close-confirm');$('w-close-note').hidden=false;$('w-close-btn').disabled=true;}catch(e){err(e.message);}});
 $('w-res-accept').addEventListener('click',async function(){if(!disputeId)return;
  try{await api('/api/disputes/'+encodeURIComponent(disputeId)+'/resolve-response'+wt(),{method:'POST',body:JSON.stringify({decision:'accept'})});

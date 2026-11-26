@@ -12,9 +12,9 @@ var I18N={
 'nav.how':{bn:'কীভাবে কাজ করে',en:'How it works'},'nav.price':{bn:'খরচ',en:'Price'},'nav.why':{bn:'কেন',en:'Why'},'nav.faq':{bn:'প্রশ্ন',en:'FAQ'},'nav.app':{bn:'অ্যাপ',en:'App'},
 'hero.kicker':{bn:'০১ — বাংলা-প্রথম কাজের রেকর্ড · AppLink · AppQuest 2.0',en:'01 — Bangla-first work record · AppLink · AppQuest 2.0'},
 'hero.title':{bn:'ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থাকুক।',en:'A phone call can start a job. Keep the work record in writing.'},
-'hero.sub':{bn:'Electrician, painter, plumber — কাজের আগে দুই পক্ষ একসাথে লিখে নিন: কী কাজ, কত টাকা, কবে শেষ। দুজনেই OTP দিয়ে নিশ্চিত করলে রেকর্ড তৈরি হয়। DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।',en:'Electrician, painter, plumber — before work starts, both sides write it down together: what work, how much, by when. The record is made only when both confirm by OTP. DealCraft holds no money — it records payment acknowledgements only.'},
+'hero.sub':{bn:'Electrician, painter, plumber — কাজের আগে দুই পক্ষ একসাথে লিখে নিন: কী কাজ, কত টাকা, কবে শেষ। দুজনেই OTP দিয়ে নিশ্চিত করলে রেকর্ড তৈরি হয়।',en:'Electrician, painter, plumber — before work starts, both sides write it down together: what work, how much, by when. The record is made only when both confirm by OTP.'},
 'hero.cta1':{bn:'রেকর্ড শুরু করুন',en:'Start a record'},'hero.cta2':{bn:'ডেমো কাজ দেখুন',en:'See demo job'},
-'hero.meta1':{bn:'Worker — DealCraft ফি নেই',en:'Workers — no DealCraft fee'},'hero.meta2':{bn:'Hirer — ৳১০ / রেকর্ড · ৳৭০ / মাস',en:'Hirer — ৳10 / record · ৳70 / month'},'hero.meta3':{bn:'স্যান্ডবক্স — ডেমো',en:'Sandbox — demo'},'hero.meta3Live':{bn:'লাইভ — AppLink SMS',en:'Live — AppLink SMS'},
+'hero.meta1':{bn:'Worker — DealCraft ফি নেই',en:'Workers — no DealCraft fee'},'hero.meta2':{bn:'Hirer — ৳১০ / রেকর্ড · ৳৭০ / মাস',en:'Hirer — ৳10 / record · ৳70 / month'},
 'hero.map':{bn:'ঢাকা — চট্টগ্রাম · ডটেড ম্যাপ, লাইভ রুট',en:'Dhaka — Chattogram · dotted map, live route'},
 'journey.title':{bn:'ফোন থেকে লিখিত রেকর্ড',en:'From a phone call to a written record'},
 'j1t':{bn:'FairScope — আগে প্রশ্ন, পরে কাজ',en:'FairScope — questions first, work after'},'j1p':{bn:'কে মাল কিনবে, কয় কোট, কয় পয়েন্ট — প্রতিটি প্রশ্নের উত্তর ঠিক করুন। যা ঠিক হয়নি, তা লুকানো যাবে না।',en:'Who buys materials, how many coats, how many points — settle every question. What is undecided cannot be hidden.'},
@@ -29,7 +29,6 @@ var I18N={
 'j5tag':{bn:'+৳২,০০০ · প্রস্তাব, জোর নয়',en:'+৳2,000 · proposed, not forced'},
 'j6t':{bn:'মত না মিললে — Dispute + ResolvePack',en:'If you disagree — Dispute + ResolvePack'},'j6p':{bn:'দুই পক্ষের বক্তব্য এক জায়গায়। সব রেকর্ড, ছবি, OTP — এক PDF-এ ডাউনলোড করুন।',en:'Both sides\u2019 statements in one place. Download every record, photo and OTP in one PDF.'},
 'j6tag':{bn:'ResolvePack PDF',en:'ResolvePack PDF'},
-'journey.note':{bn:'সরাসরি কথা: DealCraft কোনো টাকা রাখে না এবং পেমেন্টের নিশ্চয়তা দেয় না। শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়।',en:'Plain fact: DealCraft holds no money and gives no payment guarantee. It records payment acknowledgements only. AppLink reaches Banglalink subscribers only.'},
 'price.title':{bn:'সহজ খরচ। লুকানো কিছু নেই।',en:'Simple pricing. Nothing hidden.'},
 'price.p1':{bn:'প্রতি রেকর্ড — যতটুকু ব্যবহার',en:'Per record — pay as you go'},'price.p1b':{bn:'একটি কাজের রেকর্ডের জন্য একবার। OTP দিয়ে যাচাই করলেই কার্যকর হয়।',en:'Once per job record. Active after OTP verification.'},
 'price.p2':{bn:'প্রতি মাস — সীমাহীন রেকর্ড',en:'Per month — unlimited records'},'price.p2b':{bn:'মাসে যত খুশি রেকর্ড। যাঁরা নিয়মিত কাজ করান, তাঁদের জন্য।',en:'As many records as you like each month. For people who hire regularly.'},
@@ -49,12 +48,10 @@ var I18N={
 'f7q':{bn:'WorkPassport কী?',en:'What is WorkPassport?'},'f7a':{bn:'Worker-এর কাজের পরিচয়পত্র — কতটি কাজ শেষ হয়েছে, কোন ধরনের কাজ। টাকার অঙ্ক, ক্লায়েন্টের নাম আর ছবি worker না চাইলে দেখানো হয় না।',en:'A worker\u2019s work identity — how many jobs were completed, and what kind. Amounts, client names and photos stay hidden unless the worker enables them.'},
 'f8q':{bn:'AppLink কি সবার ফোনে কাজ করে?',en:'Does AppLink work on every phone?'},'f8a':{bn:'না। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়। অন্য অপারেটরের ক্ষেত্রে SMS/OTP পৌঁছাবে না।',en:'No. AppLink reaches Banglalink subscribers only. SMS/OTP will not reach other operators.'},
 'app.title':{bn:'অ্যাপ — রেকর্ড শুরু করুন',en:'App — start a record'},
-'app.lede':{bn:'ফোন নম্বর দিয়ে লগইন করুন। OTP আসবে SMS-এ। ডেমোতে OTP স্ক্রিনেই দেখানো হয় — এটি লাইভ AppLink কল নয়।',en:'Log in with your phone number. The OTP arrives by SMS. In the demo the OTP is shown on screen — that is not a live AppLink call.'},
+'app.lede':{bn:'ফোন নম্বর দিয়ে লগইন করুন। OTP আসবে SMS-এ।',en:'Log in with your phone number. The OTP arrives by SMS.'},
 'login.title':{bn:'লগইন — ফোন + OTP',en:'Log in — phone + OTP'},'login.sub':{bn:'Hirer হিসেবে লগইন করুন। Worker-দের জন্য আলাদা সহজ পাতা আছে — worker লিংক দিয়ে।',en:'Log in as a hirer. Workers have a separate simple page — through the worker link.'},
 'login.phone':{bn:'ফোন নম্বর',en:'Phone number'},'login.name':{bn:'আপনার নাম (ঐচ্ছিক)',en:'Your name (optional)'},
 'login.send':{bn:'OTP পাঠান',en:'Send OTP'},'login.otp':{bn:'OTP কোড',en:'OTP code'},'login.verify':{bn:'যাচাই করুন ও লগইন করুন',en:'Verify & log in'},'login.back':{bn:'ফিরে যান',en:'Back'},
-'demo.text':{bn:'ডেমো কাজটি লোড করুন — হিরার ৳১৮,০০০ রিওয়্যারিং, ৳৫,০০০ অগ্রিম স্বীকৃত, ChangeLock-এ +৳২,০০০ প্রস্তাব।',en:'Load the demo job — a hirer\u2019s ৳18,000 rewiring, ৳5,000 advance acknowledged, a +৳2,000 ChangeLock proposal.'},
-'demo.load':{bn:'ডেমো কাজ লোড করুন',en:'Load demo job'},
 'jobs.title':{bn:'আমার কাজ',en:'My jobs'},'jobs.logout':{bn:'লগ আউট',en:'Log out'},'jobs.new':{bn:'+ নতুন কাজ — FairScope',en:'+ New job — FairScope'},'jobs.refresh':{bn:'তালিকা আপডেট করুন',en:'Refresh list'},'jobs.empty':{bn:'এখনো কোনো কাজ নেই। উপরে নতুন রেকর্ড শুরু করুন।',en:'No jobs yet. Start a record above.'},
 'new.title':{bn:'নতুন কাজ — FairScope',en:'New job — FairScope'},'new.trade':{bn:'কাজের ধরন — Trade',en:'Trade — type of work'},
 'new.workerPhone':{bn:'Worker-এর ফোন',en:'Worker phone'},'new.workerName':{bn:'Worker-এর নাম',en:'Worker name'},
@@ -86,7 +83,6 @@ var I18N={
 'bill.paidJobs':{bn:'পরিশোধিত কাজ',en:'Paid jobs'},
 'bill.unpaidJobs':{bn:'অপরিশোধিত কাজ',en:'Unpaid jobs'},
 'bill.statusUnknown':{bn:'বিলিং অবস্থা এখন দেখা যাচ্ছে না — পরে আবার চেষ্টা করুন।',en:'Billing status is unavailable right now — please try again later.'},
-'bill.smsNote':{bn:'MT SMS-এর জন্য গ্রাহকের কাছ থেকে ২.০০ টাকা চার্জ করা হয় — worker-এর কাছে আসা SMS-এর জন্যও অপারেটর চার্জ লাগতে পারে। ৳১০ ফি থেকে AppLink রেভিনিউ শেয়ারে DealCraft পায় আনুমানিক ৳৪–৫ (খরচের আগে) — সেটেলমেন্ট ডেটা ছাড়া লাভজনক বলা যায় না। সাবস্ক্রিপশনের লোকাল ACTIVE অবস্থা অটো-রিনিউয়ালের প্রমাণ নয় — AppLink কলব্যাকের সাথে মেলানো হয়।',en:'MT SMS is charged at 2.00 BDT to the subscriber — a worker receiving SMS may also incur carrier charges. A ৳10 fee yields roughly ৳4–5 to DealCraft under the AppLink revenue share, before costs — not proven profitable without settlement data. A local ACTIVE subscription is not proof of auto-renewal; it is reconciled against AppLink callbacks.'},
 'detail.passport':{bn:'WorkPassport',en:'WorkPassport'},
 'detail.passportText':{bn:'কাজ বন্ধ হওয়ার পর worker-এর WorkPassport-এ যোগ করুন। কী দেখানো হবে, তা বেছে নিন।',en:'After the job closes, add it to the worker\u2019s WorkPassport. Choose what is shown.'},
 'detail.passportBtn':{bn:'WorkPassport-এ যোগ করুন',en:'Add to WorkPassport'},
@@ -104,12 +100,10 @@ var I18N={
 'pay.amount':{bn:'টাকার পরিমাণ (৳)',en:'Amount (৳)'},'pay.method':{bn:'মাধ্যম',en:'Method'},'pay.date':{bn:'তারিখ',en:'Date'},'pay.record':{bn:'পেমেন্ট রেকর্ড করুন',en:'Record payment'},
 'miles.title':{bn:'মাইলস্টোন',en:'Milestones'},
 'dispute.title':{bn:'Dispute',en:'Dispute'},'dispute.cat':{bn:'বিভাগ',en:'Category'},'dispute.text':{bn:'আপনার বক্তব্য',en:'Your statement'},'dispute.open':{bn:'Dispute খুলুন',en:'Open dispute'},
-'bill.title':{bn:'বিলিং',en:'Billing'},'bill.text':{bn:'একটি রেকর্ড ৳১০, অথবা মাসে ৳৭০-তে সীমাহীন। Worker-এর জন্য DealCraft ফি নেই — তবে AppLink SMS-এর জন্য মোবাইল অপারেটর চার্জ লাগতে পারে।',en:'One record is ৳10, or ৳70/month for unlimited records. No DealCraft fee for workers — but a worker may incur carrier charges for AppLink SMS.'},
+'bill.title':{bn:'বিলিং',en:'Billing'},'bill.text':{bn:'একটি রেকর্ড ৳১০, অথবা মাসে ৳৭০-তে সীমাহীন। Worker-এর জন্য DealCraft ফি নেই।',en:'One record is ৳10, or ৳70/month for unlimited records. No DealCraft fee for workers.'},
 'bill.caas':{bn:'এই রেকর্ডের জন্য ৳১০ দিন',en:'Pay ৳10 for this record'},'bill.sub':{bn:'সাবস্ক্রাইব করুন ৳৭০ / মাস',en:'Subscribe ৳70 / month'},
-'foot.text':{bn:'অনানুষ্ঠানিক কাজের জন্য বাংলা-প্রথম কাজের রেকর্ড। DealCraft কোনো টাকা রাখে না, শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়।',en:'Bangla-first work record for informal jobs. DealCraft holds no money, records payment acknowledgements only. AppLink reaches Banglalink subscribers only.'},
+'foot.text':{bn:'অনানুষ্ঠানিক কাজের জন্য বাংলা-প্রথম কাজের রেকর্ড। DealCraft কোনো টাকা রাখে না, শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।',en:'Bangla-first work record for informal jobs. DealCraft holds no money, records payment acknowledgements only.'},
 'loc.title':{bn:'লাইভ লোকেশন',en:'Live location'},
-'loc.sim':{bn:'ডেমো — Worker-কে চলতে দেখান',en:'Simulate worker moving — demo'},
-'loc.simStop':{bn:'সিমুলেশন বন্ধ করুন',en:'Stop simulation'},
 'loc.privacy':{bn:'Worker নিজে Share চাপলেই কেবল আপনি দেখতে পাবেন — শুধু কাজ চলাকালীন। কাজ বন্ধ হলে লোকেশন মুছে যায়।',en:'You can see it only if the worker taps Share — only while the job is active. Location is deleted when the job closes.'},
 'loc.notSharing':{bn:'শেয়ার করছে না — Not sharing',en:'Not sharing'},
 'loc.stopped':{bn:'শেয়ার বন্ধ — Sharing stopped',en:'Sharing stopped'},
@@ -147,15 +141,8 @@ var I18N={
 };
 var NOT_DECIDED={bn:'ঠিক হয়নি',en:'Not decided'};
 function t(key){var d=I18N[key];return d?(d[lang]||d.en):key;}
-/* The hero pill must never claim "Live" for a simulated call: it shows
-   "Live" only when the server reports live mode WITH credentials configured;
-   anything else (including a failed mode check) shows the sandbox text. */
-var applinkMode={mode:'sandbox',live:false};
-function updateModePill(){var el=document.querySelector('[data-i18n="hero.meta3"]');if(!el)return;
- el.textContent=t(applinkMode.live?'hero.meta3Live':'hero.meta3');}
 function applyI18n(){document.documentElement.lang=lang;
  document.querySelectorAll('[data-i18n]').forEach(function(el){var v=t(el.getAttribute('data-i18n'));if(v)el.textContent=v;});
- updateModePill();
  var b=document.getElementById('lang-bn'),e=document.getElementById('lang-en');
  if(b)b.setAttribute('aria-pressed',lang==='bn'?'true':'false');
  if(e)e.setAttribute('aria-pressed',lang==='en'?'true':'false');
@@ -243,10 +230,14 @@ function showView(id){['view-login','view-jobs','view-new','view-detail','view-b
 var RM=(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)||false;
 function tweenNum(el,from,to,dur,fmt){
  if(!el)return;
- if(RM||from===to){el.textContent=fmt(to);return;}
+ /* innerHTML, not textContent: the price count-up's fmt returns the
+    "<small>৳</small>" prefix as HTML — textContent printed the tags as
+    literal text ("<small>৳</small>10") once the count-up ran. All fmt
+    outputs here are numbers plus that one static tag, never user input. */
+ if(RM||from===to){el.innerHTML=fmt(to);return;}
  var start=null;
  function step(now){if(start===null)start=now;var p=Math.min(1,(now-start)/dur);var e=1-Math.pow(1-p,3);
-  el.textContent=fmt(Math.round(from+(to-from)*e));
+  el.innerHTML=fmt(Math.round(from+(to-from)*e));
   if(p<1)requestAnimationFrame(step);}
  requestAnimationFrame(step);
 }
@@ -269,7 +260,7 @@ function initHeroTilt(){
    ty=Math.max(-6,Math.min(6,((ev.clientY-(r.top+r.height/2))/r.height)*12));
    if(!raf)raf=requestAnimationFrame(function loop(){
     cx+=(tx-cx)*0.12; cy+=(ty-cy)*0.12;
-    tilt.style.transform='rotateY('+(-14+cx).toFixed(2)+'deg) rotateX('+(6-cy).toFixed(2)+'deg)';
+    tilt.style.transform='rotateY('+(-8+cx).toFixed(2)+'deg) rotateX('+(4-cy).toFixed(2)+'deg)';
     if(Math.abs(tx-cx)>0.05||Math.abs(ty-cy)>0.05)raf=requestAnimationFrame(loop);else raf=null;
    });
   });
@@ -459,10 +450,9 @@ function initSiteMap(){
 }
 
 /* ---------- live location (hirer side) ---------- */
-var locTimer=null, locMap=null, locMarker=null, locSiteMarker=null, locTrailLine=null, locRouteLine=null, locLastPos=null, locAnim=null, locSimTimer=null, locSimStep=0, locWasSharing=false;
+var locTimer=null, locMap=null, locMarker=null, locSiteMarker=null, locTrailLine=null, locRouteLine=null, locLastPos=null, locAnim=null, locWasSharing=false;
 var LOC_STATUS={'not-sharing':'loc.notSharing','stopped':'loc.stopped','en-route':'loc.enRoute','arriving':'loc.arriving','arrived':'loc.arrived','on-site':'loc.onSite','paused':'loc.paused'};
-function locStopAll(){if(locTimer){clearInterval(locTimer);locTimer=null;}locStopSim();if(locAnim){cancelAnimationFrame(locAnim);locAnim=null;}}
-function locWorkerToken(){var link=(currentJob&&(currentJob.workerLink||''))||'';try{return new URL(link,location.href).searchParams.get('token')||'';}catch(e){return '';}}
+function locStopAll(){if(locTimer){clearInterval(locTimer);locTimer=null;}if(locAnim){cancelAnimationFrame(locAnim);locAnim=null;}}
 function locInitMap(view){
  var el=$('loc-map'); if(!el)return false;
  if(typeof L==='undefined'){$('loc-nomap').hidden=false;return false;}
@@ -503,7 +493,6 @@ function locRender(view){
  /* latest is null until the worker shares anything — the server now
     answers 200 'not-sharing' instead of 404, so guard the null here or
     the render throws on the very first poll of an ACTIVE job. */
- $('loc-sim').hidden=!(view.latest&&view.latest.simulated);
  if(view.latest&&locInitMap(view)){
   locAnimateTo(view.latest.lat,view.latest.lng);
   if(view.site&&locSiteMarker)locSiteMarker.setLatLng([view.site.lat,view.site.lng]);
@@ -528,33 +517,6 @@ function locStartPolling(){
  if(!currentJob||currentJob.status!=='ACTIVE'){var b=$('loc-box');if(b)b.hidden=true;return;}
  $('loc-box').hidden=false; locPoll(); locTimer=setInterval(locPoll,10000);
 }
-function locSimulate(){
- var tok=locWorkerToken(); if(!tok){showErr('No worker link — cannot simulate.');return;}
- var job=currentJob; var site=(job&&job.site_lat!=null)?{lat:job.site_lat,lng:job.site_lng}:null;
- if(!site){showErr(lang==='bn'?'ডেমো কাজের জায়গা নেই — সিমুলেশন চলবে না।':'Demo job has no site — simulation needs a destination.');return;}
- var start={lat:site.lat+0.02,lng:site.lng+0.02}; /* ~3 km away */
- var steps=12; locSimStep=0;
- $('btn-loc-sim').hidden=true; $('btn-loc-sim-stop').hidden=false;
- api('/api/worker/'+encodeURIComponent(tok)+'/location/start',{method:'POST',body:'{}'}).catch(function(){});
- locSimTimer=setInterval(async function(){
-  locSimStep++;
-  var f=Math.min(1,locSimStep/steps);
-  var lat=start.lat+(site.lat-start.lat)*f, lng=start.lng+(site.lng-start.lng)*f;
-  try{await fetch(API+'/api/worker/'+encodeURIComponent(tok)+'/location',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:+lat.toFixed(6),lng:+lng.toFixed(6),accuracy:12,simulated:true})});}catch(e){}
-  locPoll();
-  if(f>=1)locStopSim();
- },2000);
-}
-function locStopSim(){
- if(locSimTimer){clearInterval(locSimTimer);locSimTimer=null;}
- var a=$('btn-loc-sim'),b=$('btn-loc-sim-stop'); if(a)a.hidden=false; if(b)b.hidden=true;
- /* Stopping the SIMULATION must not stop the worker's real sharing: the
-    old code POSTed /location/stop here, which killed a live share the
-    worker had going and flipped the hirer's pill to SHARING STOPPED right
-    after the simulated arrival. Only the timer stops; the last point
-    (simulated or real) stays visible until the worker stops sharing. */
- locSimStep=0;
-}
 
 /* ---------- auth ---------- */
 var loginPhone='';
@@ -565,7 +527,7 @@ function initAuth(){
   if(!loginPhone){showErr(lang==='bn'?'ফোন নম্বর দিন।':'Enter a phone number.');return;}
   try{var r=await api('/api/auth/request-otp',{method:'POST',body:JSON.stringify({phone:loginPhone,name:name||undefined,role:'hirer'})});
    $('form-login').hidden=true; $('form-otp').hidden=false;
-   if(r&&r.sandbox){$('sandbox-otp').hidden=false;$('sandbox-otp-text').textContent='OTP: '+(r.sandbox.otp||'—')+' — '+(r.sandbox.note||'');}
+   if(r&&r.sandbox&&r.sandbox.otp){$('otp-note').hidden=false;$('otp-note-text').textContent=(lang==='bn'?'আপনার কোড: ':'Your code: ')+(r.sandbox.otp||'—');}
    $('otp-code').focus();
   }catch(e){showErr((lang==='bn'?'OTP পাঠানো যায়নি: ':'Could not send OTP: ')+e.message);}
  });
@@ -615,7 +577,7 @@ async function openJob(id){
   try{var cached=JSON.parse(localStorage.getItem('dc_job_'+id)||'null');if(cached){currentJob=cached.job||cached;renderDetail(currentJob);showView('view-detail');}}catch(_e){}}
 }
 /* Light refresh of the open job's data — re-renders the detail tabs without
-   touching location polling or a running simulation (openJob would stop
+   touching location polling or a live share (openJob would stop
    both via locStartPolling/locStopAll). Without this, the timeline and the
    dispute list show only the events from when the job was opened: a
    worker's statement, a payment ack or a geofence arrival never appears
@@ -687,8 +649,8 @@ function renderDetail(job){
  var hirerConfirmed=evTypes.indexOf('CONFIRMED_BY_HIRER')>=0;
  var dc=$('detail-confirm'); if(dc)dc.hidden=!(workerConfirmed&&!hirerConfirmed);
  var dwait=$('detail-wait'); if(dwait)dwait.hidden=workerConfirmed||hirerConfirmed;
- /* Worker link: shown in ALL modes whenever the job carries one (the
-    server returns workerLink on the job detail in sandbox and live alike). */
+ /* Worker link: shown whenever the job carries one (the
+    server returns workerLink on the job detail). */
  var wl=$('worker-link-box');
  if(wl){var link=job.workerLink||job.worker_link||'';
   wl.hidden=!link;
@@ -874,18 +836,16 @@ function initNewJob(){
     return '<tr><th>'+esc(q.q[lang]||q.q.en)+'</th><td>'+esc(disp)+'</td></tr>';}).join('')+
    (miss.length?'<tr><th>'+(lang==='bn'?'ঠিক হয়নি':'Not decided')+'</th><td style="color:#c23c00">'+miss.map(function(m){var qq=qs.filter(function(x){return x.q.en===m;})[0];return esc(qq?(qq.q[lang]||qq.q.en):m);}).join(', ')+'</td></tr>':'')+
    (draft.skipped.length?'<tr><th>'+(lang==='bn'?'বাদ দেওয়া (ইচ্ছাকৃত)':'Explicitly skipped')+'</th><td>'+draft.skipped.map(function(m){var qq=qs.filter(function(x){return x.q.en===m;})[0];return esc(qq?(qq.q[lang]||qq.q.en):m);}).join(', ')+'</td></tr>':'')+
-   '</table><p class="small">'+(lang==='bn'?'DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।':'DealCraft holds no money — it records payment acknowledgements only.')+'</p>';
+   '</table>';
   newStep(4); });
  $('back-step-3').addEventListener('click',function(){newStep(3);});
  $('btn-create-job').addEventListener('click',async function(){
   clearErr();
   try{var r=await api('/api/jobs',{method:'POST',body:JSON.stringify(draft.payload)});
    var job=r.job||r; var id=job.id||job._id;
-   /* Worker link: ALWAYS shown after creation, in a neutral notice box —
-      not only inside the sandbox notice. The sandbox label stays separate. */
+   /* Worker link: ALWAYS shown after creation, in a neutral notice box. */
    var link=r.workerLink||job.workerLink||job.worker_link||'';
    if(link){var cb=$('create-link-box');if(cb){cb.hidden=false;var u=$('create-link-url');if(u){u.textContent=link;u.href=link;}}}
-   if(r.sandbox){$('sandbox-create').hidden=false;$('sandbox-create-text').textContent='Worker link: '+(link||'—');}
    if(r.missingTerms&&r.missingTerms.length){/* shown on detail */}
    if(id){openJob(id);}else{showView('view-jobs');loadJobs();}
   }catch(e){showErr((lang==='bn'?'কাজ তৈরি হয়নি: ':'Could not create job: ')+e.message);}
@@ -897,8 +857,6 @@ function initNewJob(){
 
 /* ---------- detail actions ---------- */
 function initDetail(){
- $('btn-loc-sim').addEventListener('click',locSimulate);
- $('btn-loc-sim-stop').addEventListener('click',locStopSim);
  document.querySelectorAll('.tabs button').forEach(function(b){b.addEventListener('click',function(){
   document.querySelectorAll('.tabs button').forEach(function(x){x.setAttribute('aria-selected',x===b?'true':'false');});
   document.querySelectorAll('.tabpanel').forEach(function(p){p.hidden=(p.id!=='tab-'+b.getAttribute('data-tab'));});
@@ -922,7 +880,7 @@ function initDetail(){
  $('btn-confirm-send-otp').addEventListener('click',async function(){clearErr();
   /* hirer-confirm verifies purpose 'hirer-confirm' — request that OTP explicitly */
   try{var r=await api('/api/auth/request-otp',{method:'POST',body:JSON.stringify({phone:(user&&user.phone)||'',purpose:'hirer-confirm'})});
-   if(r&&r.sandbox){$('sandbox-confirm').hidden=false;$('sandbox-confirm-text').textContent='OTP: '+(r.sandbox.otp||'—')+' — '+(r.sandbox.note||'');}
+   if(r&&r.sandbox&&r.sandbox.otp){$('confirm-note').hidden=false;$('confirm-note-text').textContent=(lang==='bn'?'আপনার কোড: ':'Your code: ')+(r.sandbox.otp||'—');}
    $('confirm-otp').focus();
   }catch(e){showErr(e.message);}});
  $('form-change').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
@@ -974,7 +932,7 @@ function initDetail(){
   try{var r=await api('/api/billing/caas',{method:'POST',body:JSON.stringify({jobId:currentJobId})});
    var box=$('billing-box'); var id=r.chargeId||r.id||(r.caas&&r.caas.id);
    var otp=r.sandboxOtp||(r.sandbox&&r.sandbox.otp)||null;
-   box.innerHTML='<div class="sandbox"><b>SANDBOX — not a live AppLink call.</b><br>'+(otp?'OTP: '+esc(otp):'OTP sent by SMS.')+'</div>'+
+   box.innerHTML='<div class="notice blue">'+(otp?(lang==='bn'?'আপনার কোড: ':'Your code: ')+esc(otp):(lang==='bn'?'OTP SMS-এ পাঠানো হয়েছে।':'OTP sent by SMS.'))+'</div>'+
     '<label>OTP</label><input id="caas-otp" type="text" inputmode="numeric" placeholder="OTP"><div class="btn-row"><button class="btn btn-dark btn-sm" type="button" id="caas-verify">Verify ৳10</button></div>';
    $('caas-verify').addEventListener('click',async function(){try{var v=await api('/api/billing/caas/'+encodeURIComponent(id||currentJobId)+'/verify',{method:'POST',body:JSON.stringify({otpCode:$('caas-otp').value.trim()})});box.innerHTML='<p class="mono">'+(v.status==='VERIFIED'?'PAID — ৳10 · RECORD ACTIVE':'STATUS: '+esc(v.status||'PENDING'))+'</p>';loadBillingStatus();}catch(e){showErr(e.message);}});
   }catch(e){showErr(e.message);}});
@@ -1113,7 +1071,7 @@ async function loadDemo(){
   if(r&&r.workerLink){try{localStorage.setItem('dc_demo_workerlink',r.workerLink);}catch(e){}}
   if(!token){ /* demo seed may return a token; otherwise show login with demo phone */
    $('login-phone').value='01700000001'; showView('view-login');
-   var extra=r&&r.sandboxOtps?(' Demo confirm OTPs (sandbox): hirer '+(r.sandboxOtps.hirerConfirm||'—')+' / worker '+(r.sandboxOtps.workerConfirm||'—')+'.'):'';
+   var extra=r&&r.sandboxOtps?(' '+(lang==='bn'?'নিশ্চিতকরণের কোড — Hirer: ':'Confirm codes — hirer ')+(r.sandboxOtps.hirerConfirm||'—')+' / '+(lang==='bn'?'Worker: ':'worker ')+(r.sandboxOtps.workerConfirm||'—')+'.'):'';
    showNotice(lang==='bn'?'ডেমো তৈরি হয়েছে। হিরার নম্বর 01700000001 দিয়ে OTP লগইন করুন। লগইনের পর ডেমো কাজটি নিজে থেকেই খুলবে।'+extra:'Demo seeded. Log in with hirer number 01700000001 and OTP. The demo job opens automatically after login.'+extra);
    document.getElementById('app').scrollIntoView({behavior:'smooth'}); return; }
   if(id)openJob(id); else loadJobs(),showView('view-jobs');
@@ -1143,12 +1101,6 @@ document.addEventListener('DOMContentLoaded',function(){
  document.querySelectorAll('#main-nav a').forEach(function(a){a.addEventListener('click',function(){
   var nav=document.getElementById('main-nav'); if(nav)nav.classList.remove('open');
   if(mb)mb.setAttribute('aria-expanded','false');});});
- /* Ask the server which AppLink mode it is really in; on any failure the
-    pill stays on the sandbox text — never claim live without proof. */
- fetch('/api/applink/mode').then(function(r){return r.json();}).then(function(d){
-  if(d&&d.mode==='live'&&d.credentialsConfigured){applinkMode={mode:'live',live:true};}
-  updateModePill();
- }).catch(function(){});
  $('lang-bn').addEventListener('click',function(){setLang('bn');});
  $('lang-en').addEventListener('click',function(){setLang('en');});
  renderDotMap($('map-hero'),{w:560,h:480});
@@ -1158,7 +1110,6 @@ document.addEventListener('DOMContentLoaded',function(){
  /* P0/P2/P4 motion: hero tilt, price count-ups, photo lightbox. */
  initHeroTilt(); initPriceMotion(); initLightbox();
  $('cta-demo').addEventListener('click',loadDemo);
- $('btn-demo').addEventListener('click',loadDemo);
  $('cta-start').addEventListener('click',function(){ if(token){showView('view-jobs');loadJobs();} });
  if(token){
   /* Validate the stored token: a new OTP for the same phone rotates it. */

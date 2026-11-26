@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>DealCraft — ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থাকুক।</title>
-<meta name="description" content="DealCraft — Bangla-first mutually confirmed digital work record for informal jobs. DealCraft holds no money; it records payment acknowledgements only. AppLink reaches Banglalink subscribers only.">
+<meta name="description" content="DealCraft — Bangla-first mutually confirmed digital work record for informal jobs: electrician, painter, plumber. Both sides confirm by OTP.">
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -49,7 +49,7 @@
   <div class="hero-text">
     <p class="kicker" data-i18n="hero.kicker">01 — Bangla-first work record · AppLink · AppQuest 2.0</p>
     <h1 class="hero-title"><span class="bn" data-i18n="hero.title">ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থাকুক।</span></h1>
-    <p class="hero-sub" data-i18n="hero.sub">Electrician, painter, plumber — কাজের আগে দুই পক্ষ একসাথে লিখে নিন: কী কাজ, কত টাকা, কবে শেষ। দুজনেই OTP দিয়ে নিশ্চিত করলে রেকর্ড তৈরি হয়। DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।</p>
+    <p class="hero-sub" data-i18n="hero.sub">Electrician, painter, plumber — কাজের আগে দুই পক্ষ একসাথে লিখে নিন: কী কাজ, কত টাকা, কবে শেষ। দুজনেই OTP দিয়ে নিশ্চিত করলে রেকর্ড তৈরি হয়।</p>
     <div class="btn-row">
       <a class="btn btn-hero" href="#app" id="cta-start" data-i18n="hero.cta1">Start a record</a>
       <button class="btn btn-ghost" type="button" id="cta-demo" data-i18n="hero.cta2">See demo job</button>
@@ -57,9 +57,8 @@
     <div class="hero-meta">
       <span class="mono grey" data-i18n="hero.meta1">Workers — no DealCraft fee</span>
       <span class="mono grey" data-i18n="hero.meta2">Hirer — ৳10 / record · ৳70 / month</span>
-      <span class="live-pill" data-i18n="hero.meta3">Sandbox — demo</span>
     </div>
-    <p class="small hero-life-note">A record is not a fixed document — it is a history of what both sides accepted. That is the whole product.</p>
+    <p class="small hero-life-note">Your whole job history — in one place, agreed by both sides.</p>
   </div>
   <div class="hero-visual">
     <div class="hero-dots" aria-hidden="true"><span class="pulse-dot"></span></div>
@@ -106,7 +105,6 @@
     <article class="jstep" data-step="4"><div class="jstep-num">05</div><div><h3 data-i18n="j5t">দাম বা সময় বদলাতে হলে — ChangeLock</h3><p data-i18n="j5p">কাজ বেড়ে গেলে মুখে নয়, লিখিত প্রস্তাব। পুরনো দাম <span class="price-old">৳18,000</span> → নতুন দাম <span class="price-new">৳20,000</span>। Worker মানলে তবেই V2 হয়।</p><span class="tag"><b>V2</b> · <span data-i18n="j5tag">+৳2,000 · proposed, not forced</span></span></div></article>
     <article class="jstep" data-step="5"><div class="jstep-num">06</div><div><h3 data-i18n="j6t">মত না মিললে — Dispute + ResolvePack</h3><p data-i18n="j6p">দুই পক্ষের বক্তব্য এক জায়গায়। সব রেকর্ড, ছবি, OTP — এক PDF-এ ডাউনলোড করুন।</p><span class="tag"><b>V2</b> · <span data-i18n="j6tag">ResolvePack PDF</span></span></div></article>
   </div>
-  <p class="small" data-i18n="journey.note">Plain fact: DealCraft holds no money and gives no payment guarantee. It records payment acknowledgements only. AppLink reaches Banglalink subscribers only.</p>
       <div class="btn-row"><a class="btn" href="#app">Start a record</a></div>
     </div>
     <div class="journey-visual">
@@ -186,8 +184,8 @@
 
 <!-- APP -->
 <section class="section section-white app" id="app"><div class="wrap">
-  <div class="sec-head"><span class="sec-num">06 / APP</span><h2 class="sec-title" data-i18n="app.title">অ্যাপ — রেকর্ড শুরু করুন</h2></div>
-  <p class="lede" data-i18n="app.lede">ফোন নম্বর দিয়ে লগইন করুন। OTP আসবে SMS-এ। ডেমোতে OTP স্ক্রিনেই দেখানো হয় — এটি লাইভ AppLink কল নয়।</p>
+  <div class="sec-head"><span class="sec-num">06 / APP</span><h2 class="sec-title" data-i18n="app.title">অ্যাপ — রেকর্ড শুরু করুন</h2><span class="demo-badge"><i aria-hidden="true"></i>Demo mode</span></div>
+  <p class="lede" data-i18n="app.lede">ফোন নম্বর দিয়ে লগইন করুন। OTP আসবে SMS-এ।</p>
   <div id="app-error" class="error" role="alert" hidden></div>
   <div id="app-notice" class="notice blue" role="status" hidden></div>
 
@@ -204,17 +202,12 @@
       <div class="btn-row"><button class="btn btn-dark" type="submit" data-i18n="login.send">Send OTP</button></div>
     </form>
     <form id="form-otp" hidden>
-      <div class="sandbox" id="sandbox-otp" hidden><b>SANDBOX — not a live AppLink call.</b><br><span id="sandbox-otp-text"></span></div>
+      <div class="notice blue" id="otp-note" hidden><b>Your code</b><br><span id="otp-note-text"></span></div>
       <label for="otp-code" data-i18n="login.otp">OTP code</label>
       <input id="otp-code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code" required>
       <div class="btn-row"><button class="btn btn-dark" type="submit" data-i18n="login.verify">Verify &amp; log in</button>
       <button class="btn btn-dark-ghost" type="button" id="otp-back" data-i18n="login.back">Back</button></div>
     </form>
-    <div class="demo-card">
-      <p class="mono">DEMO — ৳18,000 REWIRING · V1 → V2 ৳20,000</p>
-      <p data-i18n="demo.text">ডেমো কাজটি লোড করুন — হিরার ৳18,000 রিওয়্যারিং, ৳5,000 অগ্রিম স্বীকৃত, ChangeLock-এ +৳2,000 প্রস্তাব।</p>
-      <div class="btn-row"><button class="btn" type="button" id="btn-demo" data-i18n="demo.load">Load demo job</button></div>
-    </div>
   </div>
 
   <!-- JOB LIST -->
@@ -336,7 +329,6 @@
     <div id="new-step-4" hidden>
       <div class="record" id="review-record"></div>
       <div class="notice blue" hidden id="create-link-box"><b data-i18n="detail.workerLinkTitle">Worker link</b><p><a id="create-link-url" href="#" target="_blank" rel="noopener">—</a></p><div class="btn-row"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-resend-link-create" data-i18n="detail.resendLink">Resend worker link</button></div></div>
-      <div class="sandbox" hidden id="sandbox-create"><b>SANDBOX — not a live AppLink call.</b><br><span id="sandbox-create-text"></span></div>
       <div class="btn-row"><button class="btn btn-dark-ghost" type="button" id="back-step-3" data-i18n="new.back">Back</button>
       <button class="btn btn-dark" type="button" id="btn-create-job" data-i18n="new.create">Create job &amp; send to worker</button></div>
     </div>
@@ -358,17 +350,15 @@
     <div id="loc-box" class="notice" hidden>
       <b data-i18n="loc.title">Live location — লাইভ লোকেশন</b>
       <p><span class="pill" id="loc-status-pill">—</span> <span id="loc-text">—</span></p>
-      <p class="small" id="loc-sim" hidden><b>SIMULATED — not a real phone.</b> Demo movement only. / ডেমো চলাচল — আসল ফোন নয়।</p>
       <div id="loc-map" hidden></div>
       <p class="small" id="loc-nomap" hidden>Map did not load — showing text only. / ম্যাপ লোড হয়নি — শুধু লেখা দেখানো হচ্ছে।</p>
-      <div class="btn-row"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-loc-sim" data-i18n="loc.sim">Simulate worker moving — ডেমো</button><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-loc-sim-stop" hidden data-i18n="loc.simStop">Stop simulation</button></div>
       <p class="small" data-i18n="loc.privacy">Worker shares only if they tap Share — only you can see it, only while the job is active. It stops when the job closes.</p>
     </div>
     <div id="detail-warn" class="warn" hidden><h4 data-i18n="warn.title">Missing terms — ঠিক হয়নি</h4><ul id="detail-missing"></ul></div>
     <div id="detail-confirm" class="notice" hidden>
       <b data-i18n="detail.confirmTitle">Hirer confirmation needed</b>
       <p data-i18n="detail.confirmText">Worker নিশ্চিত করেছেন। আপনার OTP দিয়ে রেকর্ডটি চূড়ান্ত করুন।</p>
-      <div class="sandbox" id="sandbox-confirm" hidden><b>SANDBOX — not a live AppLink call.</b><br><span id="sandbox-confirm-text"></span></div>
+      <div class="notice blue" id="confirm-note" hidden><b>Your code</b><br><span id="confirm-note-text"></span></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="confirm-otp" type="text" inputmode="numeric" placeholder="OTP" style="max-width:180px"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-confirm-send-otp" data-i18n="detail.sendOtp">Send confirm OTP</button><button class="btn btn-dark btn-sm" type="button" id="btn-hirer-confirm" data-i18n="detail.confirmBtn">Confirm with OTP</button></div>
     </div>
     <div id="detail-wait" class="notice blue" hidden>
@@ -454,9 +444,8 @@
     </div>
     <div class="tabpanel" id="tab-billing" hidden>
       <h3 data-i18n="bill.title">Billing</h3>
-      <p data-i18n="bill.text">একটি রেকর্ড ৳10, অথবা মাসে ৳70-তে সীমাহীন। Worker-এর জন্য DealCraft ফি নেই — তবে AppLink SMS-এর জন্য মোবাইল অপারেটর চার্জ লাগতে পারে।</p>
+      <p data-i18n="bill.text">একটি রেকর্ড ৳10, অথবা মাসে ৳70-তে সীমাহীন। Worker-এর জন্য DealCraft ফি নেই।</p>
       <div id="billing-status" class="notice blue" hidden></div>
-      <p class="small" data-i18n="bill.smsNote">MT SMS is charged at 2.00 BDT to the subscriber — a worker receiving SMS may also incur carrier charges. A ৳10 fee yields roughly ৳4–5 to DealCraft under the AppLink revenue share, before costs — not proven profitable without settlement data. A local ACTIVE subscription is not proof of auto-renewal; it is reconciled against AppLink callbacks.</p>
       <div class="btn-row"><button class="btn btn-dark" type="button" id="btn-caas" data-i18n="bill.caas">Pay ৳10 for this record</button>
       <button class="btn btn-dark-ghost" type="button" id="btn-sub" data-i18n="bill.sub">Subscribe ৳70 / month</button></div>
       <div id="billing-box"></div>
@@ -476,9 +465,8 @@
 <div class="foot-grid">
   <div>
     <p class="brand">DEALCRAFT</p>
-    <p class="small" data-i18n="foot.text">Bangla-first work record for informal jobs. DealCraft holds no money, records payment acknowledgements only. AppLink reaches Banglalink subscribers only.</p>
+    <p class="small" data-i18n="foot.text">Bangla-first work record for informal jobs. DealCraft holds no money, records payment acknowledgements only.</p>
     <p class="mono grey" style="margin-top:20px">APPLINK · APPQUEST 2.0 · DHAKA — CHATTOGRAM</p>
-    <p class="mono grey">DEMO — ৳18,000 REWIRING · V1 → V2 ৳20,000</p>
   </div>
   <div class="foot-map"><div id="map-footer"></div></div>
 </div>
