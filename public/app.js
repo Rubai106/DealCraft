@@ -10,36 +10,27 @@ var currentJob=null, currentJobId=null, draft={trade:'ELECTRICIAN',answers:{},sk
 /* ---------- i18n ---------- */
 var I18N={
 'nav.how':{bn:'কীভাবে কাজ করে',en:'How it works'},'nav.price':{bn:'খরচ',en:'Price'},'nav.why':{bn:'কেন',en:'Why'},'nav.faq':{bn:'প্রশ্ন',en:'FAQ'},'nav.app':{bn:'অ্যাপ',en:'App'},
-'hero.kicker':{bn:'০১ — বাংলা-প্রথম কাজের রেকর্ড · AppLink · AppQuest 2.0',en:'01 — Bangla-first work record · AppLink · AppQuest 2.0'},
-'hero.title':{bn:'ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থাকুক।',en:'A phone call can start a job. Keep the work record in writing.'},
-'hero.sub':{bn:'Electrician, painter, plumber — কাজের আগে দুই পক্ষ একসাথে লিখে নিন: কী কাজ, কত টাকা, কবে শেষ। দুজনেই OTP দিয়ে নিশ্চিত করলে রেকর্ড তৈরি হয়।',en:'Electrician, painter, plumber — before work starts, both sides write it down together: what work, how much, by when. The record is made only when both confirm by OTP.'},
-'hero.cta1':{bn:'রেকর্ড শুরু করুন',en:'Start a record'},'hero.cta2':{bn:'ডেমো কাজ দেখুন',en:'See demo job'},
-'hero.meta1':{bn:'Worker — DealCraft ফি নেই',en:'Workers — no DealCraft fee'},'hero.meta2':{bn:'Hirer — ৳১০ / রেকর্ড · ৳৭০ / মাস',en:'Hirer — ৳10 / record · ৳70 / month'},
-'hero.map':{bn:'ঢাকা — চট্টগ্রাম · ডটেড ম্যাপ, লাইভ রুট',en:'Dhaka — Chattogram · dotted map, live route'},
+'hero.title1':{bn:'মুখের কথা নয়।',en:'Not words.'},'hero.title2':{bn:'লিখিত রেকর্ড।',en:'A written record.'},
+'hero.sub':{bn:'ইলেকট্রিশিয়ান, পেইন্টার, প্লাম্বার — কাজের শর্ত, দাম আর পেমেন্ট, দুই পক্ষের সম্মতিতে লেখা থাকে।',en:'Electrician, painter, plumber — scope, price and payments, written down and confirmed by both sides.'},
+'hero.cta1':{bn:'রেকর্ড শুরু করুন',en:'Start a record'},'hero.cta2':{bn:'ডেমো দেখুন →',en:'See the demo →'},
 'journey.title':{bn:'ফোন থেকে লিখিত রেকর্ড',en:'From a phone call to a written record'},
-'j1t':{bn:'FairScope — আগে প্রশ্ন, পরে কাজ',en:'FairScope — questions first, work after'},'j1p':{bn:'কে মাল কিনবে, কয় কোট, কয় পয়েন্ট — প্রতিটি প্রশ্নের উত্তর ঠিক করুন। যা ঠিক হয়নি, তা লুকানো যাবে না।',en:'Who buys materials, how many coats, how many points — settle every question. What is undecided cannot be hidden.'},
-'j1tag':{bn:'৮টি প্রশ্ন · ইলেকট্রিশিয়ান',en:'8 questions · electrician'},
-'j2t':{bn:'দুজনেই নিশ্চিত করুন — OTP',en:'Both sides confirm — OTP'},'j2p':{bn:'Hirer আর worker — দুজনেই ফোনে OTP দিয়ে রেকর্ডটি নিশ্চিত করেন। একজনের কথায় রেকর্ড হয় না।',en:'Hirer and worker both confirm the record by OTP on their phones. One side alone cannot make a record.'},
-'j2tag':{bn:'দুই পক্ষের সম্মতি',en:'Mutual confirmation'},
-'j3t':{bn:'কাজ চলাকালীন — মাইলস্টোন আর ছবি',en:'During work — milestones and photos'},'j3p':{bn:'প্রতিটি ধাপ শেষ হলে worker ছবি দিয়ে জানান, hirer অনুমোদন দেন। সবকিছু সময়সহ লেখা থাকে।',en:'When a step finishes, the worker reports it with a photo and the hirer approves. Everything is kept with its time.'},
-'j3tag':{bn:'টাইমলাইন · ছবি',en:'Timeline · photos'},
-'j4t':{bn:'টাকা দিলে — PayProof',en:'When you pay — PayProof'},'j4p':{bn:'অগ্রিম বা কিস্তি দিলে রেকর্ড করুন। Worker “পেয়েছি” বললে তবেই টাকাটা স্বীকৃত হয়। বাকি টাকা সবসময় চোখের সামনে।',en:'Record an advance or instalment. It counts as acknowledged only when the worker says “Received”. The remaining amount stays visible.'},
-'j4tag':{bn:'৳৫,০০০ অগ্রিম স্বীকৃত',en:'৳5,000 advance acknowledged'},
-'j5t':{bn:'দাম বা সময় বদলাতে হলে — ChangeLock',en:'To change price or time — ChangeLock'},'j5p':{bn:'কাজ বেড়ে গেলে মুখে নয়, লিখিত প্রস্তাব। পুরনো দাম ৳১৮,০০০ → নতুন দাম ৳২০,০০০। Worker মানলে তবেই V2 হয়।',en:'If work grows, propose it in writing — not by word of mouth. Old price ৳18,000 → new price ৳20,000. It becomes V2 only if the worker accepts.'},
-'j5tag':{bn:'+৳২,০০০ · প্রস্তাব, জোর নয়',en:'+৳2,000 · proposed, not forced'},
-'j6t':{bn:'মত না মিললে — Dispute + ResolvePack',en:'If you disagree — Dispute + ResolvePack'},'j6p':{bn:'দুই পক্ষের বক্তব্য এক জায়গায়। সব রেকর্ড, ছবি, OTP — এক PDF-এ ডাউনলোড করুন।',en:'Both sides\u2019 statements in one place. Download every record, photo and OTP in one PDF.'},
-'j6tag':{bn:'ResolvePack PDF',en:'ResolvePack PDF'},
+'j1t':{bn:'FairScope — আগে প্রশ্ন, পরে কাজ',en:'FairScope — questions first, work after'},'j1p':{bn:'মাল, কোট, পয়েন্ট — সব প্রশ্নের উত্তর কাজের আগেই ঠিক করুন।',en:'Materials, coats, points — settle every question before work starts.'},
+'j2t':{bn:'দুজনেই নিশ্চিত করুন — OTP',en:'Both sides confirm — OTP'},'j2p':{bn:'দুজনেই OTP দিয়ে রেকর্ড নিশ্চিত করেন — একজনের কথায় হয় না।',en:'Both sides confirm the record by OTP — one side alone cannot.'},
+'j3t':{bn:'কাজ চলাকালীন — মাইলস্টোন আর ছবি',en:'During work — milestones and photos'},'j3p':{bn:'ধাপ শেষ হলে ছবি দিয়ে জানান, hirer অনুমোদন দেন।',en:'When a step finishes, a photo reports it; the hirer approves.'},
+'j4t':{bn:'টাকা দিলে — PayProof',en:'When you pay — PayProof'},'j4p':{bn:'টাকা দিলে লিখুন — worker “পেয়েছি” বললে তবেই স্বীকৃত।',en:'Record a payment — it counts only when the worker says “Received”.'},
+'j5t':{bn:'দাম বা সময় বদলাতে হলে — ChangeLock',en:'To change price or time — ChangeLock'},'j5p':{bn:'কাজ বাড়লে লিখিত প্রস্তাব — পুরনো দাম ৳১৮,০০০, নতুন ৳২০,০০০।',en:'If work grows, propose it in writing — old price ৳18,000, new ৳20,000.'},
+'j6t':{bn:'মত না মিললে — Dispute + ResolvePack',en:'If you disagree — Dispute + ResolvePack'},'j6p':{bn:'দুই পক্ষের বক্তব্য এক জায়গায় — সবকিছু এক PDF-এ।',en:'Both sides\u2019 statements in one place — everything in one PDF.'},
 'price.title':{bn:'সহজ খরচ। লুকানো কিছু নেই।',en:'Simple pricing. Nothing hidden.'},
-'price.p1':{bn:'প্রতি রেকর্ড — যতটুকু ব্যবহার',en:'Per record — pay as you go'},'price.p1b':{bn:'একটি কাজের রেকর্ডের জন্য একবার। OTP দিয়ে যাচাই করলেই কার্যকর হয়।',en:'Once per job record. Active after OTP verification.'},
-'price.p2':{bn:'প্রতি মাস — সীমাহীন রেকর্ড',en:'Per month — unlimited records'},'price.p2b':{bn:'মাসে যত খুশি রেকর্ড। যাঁরা নিয়মিত কাজ করান, তাঁদের জন্য।',en:'As many records as you like each month. For people who hire regularly.'},
-'price.p3':{bn:'Worker — সবসময় ফ্রি',en:'Workers — free, always'},'price.p3b':{bn:'Worker-এর জন্য DealCraft সবসময় ফ্রি। তাঁদের কোনো চার্জ নেই।',en:'DealCraft is always free for workers. No charge for them.'},
+'price.p1':{bn:'প্রতি রেকর্ড — যতটুকু ব্যবহার',en:'Per record — pay as you go'},
+'price.p2':{bn:'প্রতি মাস — সীমাহীন রেকর্ড',en:'Per month — unlimited records'},
+'price.p3':{bn:'Worker — সবসময় ফ্রি',en:'Workers — free, always'},
 'why.title':{bn:'কেন লিখিত রেকর্ড?',en:'Why a written record?'},
-'w1t':{bn:'মুখের কথা ভুলে যায়, লেখা থাকে',en:'Spoken words are forgotten; writing stays'},'w1p':{bn:'“বলেছিলাম” আর “বলিনি” — এই তর্কে কাজ আটকে যায়। লিখিত রেকর্ডে দুই পক্ষের সম্মতি একসাথে থাকে।',en:'“I said it” versus “you didn\u2019t” stalls work. A written record holds both sides\u2019 agreement together.'},
-'w2t':{bn:'ঠিক না হওয়া কথা আগেই চোখে পড়ে',en:'Undecided terms show up early'},'w2p':{bn:'FairScope যা ঠিক হয়নি, তা বড় করে দেখায়। কাজ শুরুর আগেই সিদ্ধান্ত নিন — মাঝপথে নয়।',en:'FairScope shows what is undecided in large print. Decide before work starts — not halfway through.'},
+'w1t':{bn:'মুখের কথা ভুলে যায়, লেখা থাকে',en:'Spoken words are forgotten; writing stays'},'w1p':{bn:'“বলেছিলাম” আর “বলিনি” — এই তর্কে কাজ আটকে যায়।',en:'“I said it” versus “you didn\u2019t” stalls work.'},
+'w2t':{bn:'ঠিক না হওয়া কথা আগেই চোখে পড়ে',en:'Undecided terms show up early'},'w2p':{bn:'FairScope যা ঠিক হয়নি, তা বড় করে দেখায়।',en:'FairScope shows what is undecided, up front.'},
 'w3t':{bn:'টাকার হিসাব সবসময় পরিষ্কার',en:'The money is always clear'},'w3p':{bn:'মোট কত, কত দেওয়া হয়েছে, কত বাকি — তিনটি সংখ্যা সবসময় একসাথে।',en:'Total, paid, remaining — three numbers, always together.'},
-'w4t':{bn:'বদল হলে লিখিত প্রস্তাব',en:'Changes need a written proposal'},'w4p':{bn:'দাম বা সময় বদলাতে হলে ChangeLock প্রস্তাব লাগে। এক পক্ষ একা বদলাতে পারে না।',en:'Changing price or time needs a ChangeLock proposal. One side cannot change it alone.'},
+'w4t':{bn:'বদল হলে লিখিত প্রস্তাব',en:'Changes need a written proposal'},'w4p':{bn:'দাম বা সময় বদলাতে হলে ChangeLock প্রস্তাব লাগে।',en:'Changing price or time needs a ChangeLock proposal.'},
 'faq.title':{bn:'প্রশ্ন ও উত্তর',en:'Questions & answers'},
-'f1q':{bn:'DealCraft কি টাকা রাখে?',en:'Does DealCraft hold money?'},'f1a':{bn:'না। DealCraft কোনো টাকা রাখে না, escrow করে না, পেমেন্টের নিশ্চয়তা দেয় না। শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।',en:'No. DealCraft holds no money, does no escrow, and gives no payment guarantee. It records payment acknowledgements only.'},
+'f1q':{bn:'DealCraft কি টাকা রাখে?',en:'Does DealCraft hold money?'},'f1a':{bn:'না। DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।',en:'No. DealCraft holds no money — it records payment acknowledgements only.'},
 'f2q':{bn:'Worker-এর কি টাকা দিতে হয়?',en:'Does a worker have to pay?'},'f2a':{bn:'না। Worker-এর জন্য DealCraft সবসময় ফ্রি।',en:'No. DealCraft is always free for workers.'},
 'f3q':{bn:'OTP না দিলে কী হবে?',en:'What if the OTP is not given?'},'f3a':{bn:'রেকর্ড তৈরি হবে না। দুই পক্ষের OTP নিশ্চিতকরণ ছাড়া কোনো রেকর্ড কার্যকর হয় না।',en:'No record is made. Without OTP confirmation from both sides, no record takes effect.'},
 'f4q':{bn:'দাম বদলাতে চাইলে?',en:'What if I want to change the price?'},'f4a':{bn:'ChangeLock-এ লিখিত প্রস্তাব দিন। অপর পক্ষ মানলে নতুন দাম কার্যকর হয়, না মানলে পুরনো দামই থাকে।',en:'Send a written proposal in ChangeLock. The new price applies only if the other side accepts; otherwise the old price stands.'},
@@ -61,7 +52,7 @@ var I18N={
 'new.milestones':{bn:'মাইলস্টোন — ধাপ (ঐচ্ছিক)',en:'Milestones — steps (optional)'},'new.addMs':{bn:'+ মাইলস্টোন যোগ করুন',en:'+ Add milestone'},'new.review':{bn:'রেকর্ড দেখুন',en:'Review record'},
 'new.create':{bn:'কাজ তৈরি করুন ও worker-কে পাঠান',en:'Create job & send to worker'},
 'warn.title':{bn:'Missing terms — ঠিক হয়নি',en:'Missing terms — not decided'},'warn.text':{bn:'নিচের বিষয়গুলো এখনো ঠিক হয়নি। প্রতিটি শর্তের উত্তর দিন, অথবা সেই শর্তটি আলাদাভাবে বাদ দিন — সব একসাথে বাদ দেওয়া যায় না।',en:'The items below are still undecided. Answer each one, or skip that one term explicitly — they are never skipped in bulk.'},
-'warn.resolve':{bn:'এখনই ঠিক করুন',en:'Resolve now'},'warn.skip':{bn:'বাদ দিয়ে এগিয়ে যান',en:'Skip — continue anyway'},
+'warn.resolve':{bn:'এখনই ঠিক করুন',en:'Resolve now'},
 'bal.agreed':{bn:'সম্মত দাম',en:'Agreed'},'bal.paid':{bn:'স্বীকৃত পেমেন্ট',en:'Acknowledged paid'},'bal.rem':{bn:'বাকি',en:'Remaining'},
 'detail.back':{bn:'← সব কাজ',en:'← All jobs'},'detail.confirmTitle':{bn:'Hirer-এর নিশ্চিতকরণ দরকার',en:'Hirer confirmation needed'},
 'detail.confirmText':{bn:'Worker নিশ্চিত করেছেন। আপনার OTP দিয়ে রেকর্ডটি চূড়ান্ত করুন।',en:'The worker has confirmed. Finalise the record with your OTP.'},
@@ -102,7 +93,7 @@ var I18N={
 'dispute.title':{bn:'Dispute',en:'Dispute'},'dispute.cat':{bn:'বিভাগ',en:'Category'},'dispute.text':{bn:'আপনার বক্তব্য',en:'Your statement'},'dispute.open':{bn:'Dispute খুলুন',en:'Open dispute'},
 'bill.title':{bn:'বিলিং',en:'Billing'},'bill.text':{bn:'একটি রেকর্ড ৳১০, অথবা মাসে ৳৭০-তে সীমাহীন। Worker-এর জন্য DealCraft ফি নেই।',en:'One record is ৳10, or ৳70/month for unlimited records. No DealCraft fee for workers.'},
 'bill.caas':{bn:'এই রেকর্ডের জন্য ৳১০ দিন',en:'Pay ৳10 for this record'},'bill.sub':{bn:'সাবস্ক্রাইব করুন ৳৭০ / মাস',en:'Subscribe ৳70 / month'},
-'foot.text':{bn:'অনানুষ্ঠানিক কাজের জন্য বাংলা-প্রথম কাজের রেকর্ড। DealCraft কোনো টাকা রাখে না, শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।',en:'Bangla-first work record for informal jobs. DealCraft holds no money, records payment acknowledgements only.'},
+'foot.text':{bn:'DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।',en:'DealCraft holds no money — payment acknowledgements only.'},
 'loc.title':{bn:'লাইভ লোকেশন',en:'Live location'},
 'loc.privacy':{bn:'Worker নিজে Share চাপলেই কেবল আপনি দেখতে পাবেন — শুধু কাজ চলাকালীন। কাজ বন্ধ হলে লোকেশন মুছে যায়।',en:'You can see it only if the worker taps Share — only while the job is active. Location is deleted when the job closes.'},
 'loc.notSharing':{bn:'শেয়ার করছে না — Not sharing',en:'Not sharing'},
@@ -186,13 +177,9 @@ function initJourney(){
  function onScroll(){
   var r=sec.getBoundingClientRect(), total=r.height-window.innerHeight*0.6;
   var p=total>0?Math.min(1,Math.max(0,-r.top/total)):1;
-  var pct=Math.round(p*100);
-  var ring=document.getElementById('ring-fg'), rp=document.getElementById('ring-pct'), pl=document.getElementById('journey-pct-label'), jl=document.getElementById('journey-label');
-  if(ring)ring.setAttribute('stroke-dashoffset',(163.4*(1-p)).toFixed(1));
-  if(rp)rp.textContent=pct+'%'; if(pl)pl.textContent='SCROLL — '+pct+'%';
-  if(jl)jl.textContent=pct<70?'V1 — ৳18,000 · AGREED':'V2 — ৳20,000 · CHANGELOCK';
   steps.forEach(function(s,i){s.classList.toggle('active', p*(steps.length)>i);});
-  /* P1: the journey card follows the same scroll state. */
+  /* P1: the journey card follows the same scroll state. The card's own
+     state changes are the progress — no scroll-percentage chrome. */
   var activeCount=0; steps.forEach(function(s){if(s.classList.contains('active'))activeCount++;});
   setJourneyState(Math.max(0,Math.min(5,activeCount-1)));
  }
@@ -349,7 +336,7 @@ function setJourneyState(s){
  $('jc-ver').textContent=s>=4?'V2 · BOTH SIDES CONFIRMED':'V1 · AGREED';
  $('jc-agreed').textContent=taka(agreed);
  $('jc-rem').textContent=taka(rem);
- tweenNum($('jc-paid'),prev>=3?5000:0,paid,500,taka);
+ tweenNum($('jc-paid'),prev>=3?5000:0,paid,650,taka);
  $('jc-bar').style.width=(s>=3?25:0)+'%';
  var otp=$('jc-otp'); otp.hidden=s<1;
  if(s===1){otp.classList.remove('stamp');void otp.offsetWidth;otp.classList.add('stamp');}
@@ -1176,7 +1163,7 @@ document.addEventListener('DOMContentLoaded',function(){
  $('lang-en').addEventListener('click',function(){setLang('en');});
  renderDotMap($('map-hero'),{w:560,h:480});
  renderDotMap($('map-footer'),{w:560,h:300,step:15});
- renderDotMap($('map-journey'),{w:520,h:360,step:16});
+ /* No journey map: the dotted map lives only in the footer now. */
  initJourney(); initAuth(); initNewJob(); initDetail(); initBidding(); renderFairScope();
  /* P0/P2/P4 motion: hero tilt, price count-ups, photo lightbox. */
  initHeroTilt(); initPriceMotion(); initLightbox();
