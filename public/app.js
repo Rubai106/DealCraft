@@ -17,14 +17,14 @@ var I18N={
 'journey.title':{bn:'রেকর্ডের প্রতিটি ধাপ।',en:'Every step of the record.'},
 'j1t':{bn:'FairScope — আগে প্রশ্ন, পরে কাজ',en:'FairScope — questions first, work after'},'j1p':{bn:'মাল, কোট, পয়েন্ট — সব প্রশ্নের উত্তর কাজের আগেই ঠিক করুন।',en:'Materials, coats, points — settle every question before work starts.'},
 'j2t':{bn:'দুজনেই নিশ্চিত করুন — OTP',en:'Both sides confirm — OTP'},'j2p':{bn:'দুজনেই OTP দিয়ে রেকর্ড নিশ্চিত করেন — একজনের কথায় হয় না।',en:'Both sides confirm the record by OTP — one side alone cannot.'},
-'j3t':{bn:'কাজ চলাকালীন — মাইলস্টোন আর ছবি',en:'During work — milestones and photos'},'j3p':{bn:'ধাপ শেষ হলে ছবি দিয়ে জানান, hirer অনুমোদন দেন।',en:'When a step finishes, a photo reports it; the hirer approves.'},
-'j4t':{bn:'টাকা দিলে — PayProof',en:'When you pay — PayProof'},'j4p':{bn:'টাকা দিলে লিখুন — worker “পেয়েছি” বললে তবেই স্বীকৃত।',en:'Record a payment — it counts only when the worker says “Received”.'},
+'j3t':{bn:'কাজ চলাকালীন — মাইলস্টোন আর ছবি',en:'During work — milestones and photos'},'j3p':{bn:'ধাপ শেষ হলে ছবি দিয়ে জানান, হায়ারার অনুমোদন দেন।',en:'When a step finishes, a photo reports it; the hirer approves.'},
+'j4t':{bn:'টাকা দিলে — PayProof',en:'When you pay — PayProof'},'j4p':{bn:'টাকা দিলে লিখুন — ওয়ার্কার “পেয়েছি” বললে তবেই স্বীকৃত।',en:'Record a payment — it counts only when the worker says “Received”.'},
 'j5t':{bn:'দাম বা সময় বদলাতে হলে — ChangeLock',en:'To change price or time — ChangeLock'},'j5p':{bn:'কাজ বাড়লে লিখিত প্রস্তাব — পুরনো দাম ৳১৮,০০০, নতুন ৳২০,০০০।',en:'If work grows, propose it in writing — old price ৳18,000, new ৳20,000.'},
 'j6t':{bn:'মত না মিললে — Dispute + ResolvePack',en:'If you disagree — Dispute + ResolvePack'},'j6p':{bn:'দুই পক্ষের বক্তব্য এক জায়গায় — সবকিছু এক PDF-এ।',en:'Both sides\u2019 statements in one place — everything in one PDF.'},
 'price.title':{bn:'সহজ খরচ। লুকানো কিছু নেই।',en:'Simple pricing. Nothing hidden.'},
 'price.p1':{bn:'প্রতি রেকর্ড — যতটুকু ব্যবহার',en:'Per record — pay as you go'},
 'price.p2':{bn:'প্রতি মাস — সীমাহীন রেকর্ড',en:'Per month — unlimited records'},
-'price.p3':{bn:'Worker — সবসময় ফ্রি',en:'Workers — free, always'},
+'price.p3':{bn:'ওয়ার্কার — সবসময় ফ্রি',en:'Workers — free, always'},
 'why.title':{bn:'কেন লিখিত রেকর্ড?',en:'Why a written record?'},
 'w1t':{bn:'মুখের কথা ভুলে যায়, লেখা থাকে',en:'Spoken words are forgotten; writing stays'},'w1p':{bn:'“বলেছিলাম” আর “বলিনি” — এই তর্কে কাজ আটকে যায়।',en:'“I said it” versus “you didn\u2019t” stalls work.'},
 'w2t':{bn:'ঠিক না হওয়া কথা আগেই চোখে পড়ে',en:'Undecided terms show up early'},'w2p':{bn:'FairScope যা ঠিক হয়নি, তা বড় করে দেখায়।',en:'FairScope shows what is undecided, up front.'},
@@ -32,42 +32,43 @@ var I18N={
 'w4t':{bn:'বদল হলে লিখিত প্রস্তাব',en:'Changes need a written proposal'},'w4p':{bn:'দাম বা সময় বদলাতে হলে ChangeLock প্রস্তাব লাগে।',en:'Changing price or time needs a ChangeLock proposal.'},
 'faq.title':{bn:'প্রশ্ন ও উত্তর',en:'Questions & answers'},
 'f1q':{bn:'DealCraft কি টাকা রাখে?',en:'Does DealCraft hold money?'},'f1a':{bn:'না। DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।',en:'No. DealCraft holds no money — it records payment acknowledgements only.'},
-'f2q':{bn:'Worker-এর কি টাকা দিতে হয়?',en:'Does a worker have to pay?'},'f2a':{bn:'না। Worker-এর জন্য DealCraft সবসময় ফ্রি।',en:'No. DealCraft is always free for workers.'},
+'f2q':{bn:'ওয়ার্কারের কি টাকা দিতে হয়?',en:'Does a worker have to pay?'},'f2a':{bn:'না। ওয়ার্কারের জন্য DealCraft সবসময় ফ্রি।',en:'No. DealCraft is always free for workers.'},
 'f3q':{bn:'OTP না দিলে কী হবে?',en:'What if the OTP is not given?'},'f3a':{bn:'রেকর্ড তৈরি হবে না। দুই পক্ষের OTP নিশ্চিতকরণ ছাড়া কোনো রেকর্ড কার্যকর হয় না।',en:'No record is made. Without OTP confirmation from both sides, no record takes effect.'},
 'f4q':{bn:'দাম বদলাতে চাইলে?',en:'What if I want to change the price?'},'f4a':{bn:'ChangeLock-এ লিখিত প্রস্তাব দিন। অপর পক্ষ মানলে নতুন দাম কার্যকর হয়, না মানলে পুরনো দামই থাকে।',en:'Send a written proposal in ChangeLock. The new price applies only if the other side accepts; otherwise the old price stands.'},
-'f5q':{bn:'টাকা দিয়েছি — প্রমাণ কী?',en:'I paid — what is the proof?'},'f5a':{bn:'PayProof-এ টাকার রেকর্ড করুন। Worker “পেয়েছি” বললে তবেই সেটি স্বীকৃত হয়।',en:'Record it in PayProof. It counts as acknowledged only when the worker says “Received”.'},
+'f5q':{bn:'টাকা দিয়েছি — প্রমাণ কী?',en:'I paid — what is the proof?'},'f5a':{bn:'PayProof-এ টাকার রেকর্ড করুন। ওয়ার্কার “পেয়েছি” বললে তবেই সেটি স্বীকৃত হয়।',en:'Record it in PayProof. It counts as acknowledged only when the worker says “Received”.'},
 'f6q':{bn:'মত না মিললে কী করব?',en:'What if we disagree?'},'f6a':{bn:'Dispute খুলুন — দুই পক্ষের বক্তব্য এক জায়গায় থাকবে। ResolvePack PDF ডাউনলোড করে রাখতে পারবেন।',en:'Open a dispute — both sides\u2019 statements stay in one place. You can download the ResolvePack PDF.'},
-'f7q':{bn:'WorkPassport কী?',en:'What is WorkPassport?'},'f7a':{bn:'Worker-এর কাজের পরিচয়পত্র — কতটি কাজ শেষ হয়েছে, কোন ধরনের কাজ। টাকার অঙ্ক, ক্লায়েন্টের নাম আর ছবি worker না চাইলে দেখানো হয় না।',en:'A worker\u2019s work identity — how many jobs were completed, and what kind. Amounts, client names and photos stay hidden unless the worker enables them.'},
+'f7q':{bn:'WorkPassport কী?',en:'What is WorkPassport?'},'f7a':{bn:'ওয়ার্কারের কাজের পরিচয়পত্র — কতটি কাজ শেষ হয়েছে, কোন ধরনের কাজ। টাকার অঙ্ক, ক্লায়েন্টের নাম আর ছবি ওয়ার্কার না চাইলে দেখানো হয় না।',en:'A worker\u2019s work identity — how many jobs were completed, and what kind. Amounts, client names and photos stay hidden unless the worker enables them.'},
 'f8q':{bn:'AppLink কি সবার ফোনে কাজ করে?',en:'Does AppLink work on every phone?'},'f8a':{bn:'না। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়। অন্য অপারেটরের ক্ষেত্রে SMS/OTP পৌঁছাবে না।',en:'No. AppLink reaches Banglalink subscribers only. SMS/OTP will not reach other operators.'},
 'app.title':{bn:'অ্যাপ — রেকর্ড শুরু করুন',en:'App — start a record'},
 'app.lede':{bn:'ফোন নম্বর দিয়ে লগইন করুন। OTP আসবে SMS-এ।',en:'Log in with your phone number. The OTP arrives by SMS.'},
-'login.title':{bn:'লগইন — ফোন + OTP',en:'Log in — phone + OTP'},'login.sub':{bn:'Hirer হিসেবে লগইন করুন।',en:'Log in as a hirer.'},
+'login.title':{bn:'লগইন — ফোন + OTP',en:'Log in — phone + OTP'},'login.sub':{bn:'হায়ারার হিসেবে লগইন করুন।',en:'Log in as a hirer.'},
 'login.phone':{bn:'ফোন নম্বর',en:'Phone number'},'login.name':{bn:'আপনার নাম (ঐচ্ছিক)',en:'Your name (optional)'},
 'login.send':{bn:'OTP পাঠান',en:'Send OTP'},'login.otp':{bn:'OTP কোড',en:'OTP code'},'login.verify':{bn:'যাচাই করুন ও লগইন করুন',en:'Verify & log in'},'login.back':{bn:'ফিরে যান',en:'Back'},
 'jobs.title':{bn:'আমার কাজ',en:'My jobs'},'jobs.logout':{bn:'লগ আউট',en:'Log out'},'jobs.new':{bn:'+ নতুন কাজ — FairScope',en:'+ New job — FairScope'},'jobs.refresh':{bn:'তালিকা আপডেট করুন',en:'Refresh list'},'jobs.empty':{bn:'এখনো কোনো কাজ নেই। উপরে নতুন রেকর্ড শুরু করুন।',en:'No jobs yet. Start a record above.'},
-'new.title':{bn:'নতুন কাজ — FairScope',en:'New job — FairScope'},'new.trade':{bn:'কাজের ধরন — Trade',en:'Trade — type of work'},
-'new.workerPhone':{bn:'Worker-এর ফোন',en:'Worker phone'},'new.workerName':{bn:'Worker-এর নাম',en:'Worker name'},
+'new.s1':{bn:'১ · ব্যবসা',en:'1 · Trade'},'new.s2':{bn:'২ · ফেয়ারস্কোপ',en:'2 · FairScope'},'new.s3':{bn:'৩ · দাম ও তারিখ',en:'3 · Price & dates'},'new.s4':{bn:'৪ · পর্যালোচনা',en:'4 · Review'},
+'new.title':{bn:'নতুন কাজ — FairScope',en:'New job — FairScope'},'new.trade':{bn:'কাজের ধরন',en:'Trade — type of work'},
+'new.workerPhone':{bn:'ওয়ার্কারের ফোন',en:'Worker phone'},'new.workerName':{bn:'ওয়ার্কারের নাম',en:'Worker name'},
 'new.next':{bn:'পরের ধাপ — FairScope প্রশ্ন',en:'Next — FairScope questions'},'new.next2':{bn:'পরের ধাপ — দাম ও তারিখ',en:'Next — price & dates'},'new.back':{bn:'ফিরে যান',en:'Back'},
-'new.fsHint':{bn:'প্রতিটি প্রশ্নের উত্তর দিন। “ঠিক হয়নি” Missing-Term হিসেবে দেখাবে।',en:'Answer every question. “Not decided” stays visible as a missing term.'},
-'new.price':{bn:'সম্মত দাম (৳)',en:'Agreed price (৳)'},'new.deadline':{bn:'শেষ তারিখ',en:'Deadline'},'new.scope':{bn:'কাজের বিবরণ — Scope',en:'Scope — work description'},
+'new.fsHint':{bn:'প্রতিটি প্রশ্নের উত্তর দিন। যা ঠিক হয়নি, তা আলাদা করে দেখাবে।',en:'Answer every question. “Not decided” stays visible as a missing term.'},
+'new.price':{bn:'সম্মত দাম (৳)',en:'Agreed price (৳)'},'new.deadline':{bn:'শেষ তারিখ',en:'Deadline'},'new.scope':{bn:'কাজের বিবরণ',en:'Scope — work description'},
 'new.milestones':{bn:'মাইলস্টোন — ধাপ (ঐচ্ছিক)',en:'Milestones — steps (optional)'},'new.addMs':{bn:'+ মাইলস্টোন যোগ করুন',en:'+ Add milestone'},'new.review':{bn:'রেকর্ড দেখুন',en:'Review record'},
-'new.create':{bn:'কাজ তৈরি করুন ও worker-কে পাঠান',en:'Create job & send to worker'},
-'warn.title':{bn:'Missing terms — ঠিক হয়নি',en:'Missing terms — not decided'},'warn.text':{bn:'এখনো ঠিক হয়নি। প্রতিটি শর্তের উত্তর দিন, অথবা সেই শর্তটি আলাদাভাবে বাদ দিন — সব একসাথে নয়।',en:'Still undecided. Answer each one, or skip that one term explicitly — never in bulk.'},
+'new.create':{bn:'কাজ তৈরি করুন ও ওয়ার্কারকে পাঠান',en:'Create job & send to worker'},
+'warn.title':{bn:'ঠিক হয়নি এমন শর্ত',en:'Missing terms — not decided'},'warn.text':{bn:'এখনো ঠিক হয়নি। প্রতিটি শর্তের উত্তর দিন, অথবা সেই শর্তটি আলাদাভাবে বাদ দিন — সব একসাথে নয়।',en:'Still undecided. Answer each one, or skip that one term explicitly — never in bulk.'},
 'warn.resolve':{bn:'এখনই ঠিক করুন',en:'Resolve now'},
 'bal.agreed':{bn:'সম্মত দাম',en:'Agreed'},'bal.paid':{bn:'স্বীকৃত পেমেন্ট',en:'Acknowledged paid'},'bal.rem':{bn:'বাকি',en:'Remaining'},
-'detail.back':{bn:'← সব কাজ',en:'← All jobs'},'detail.confirmTitle':{bn:'Hirer-এর নিশ্চিতকরণ দরকার',en:'Hirer confirmation needed'},
-'detail.confirmText':{bn:'Worker নিশ্চিত করেছেন। আপনার OTP দিয়ে রেকর্ডটি চূড়ান্ত করুন।',en:'The worker has confirmed. Finalise the record with your OTP.'},
+'detail.back':{bn:'← সব কাজ',en:'← All jobs'},'detail.confirmTitle':{bn:'হায়ারারের নিশ্চিতকরণ দরকার',en:'Hirer confirmation needed'},
+'detail.confirmText':{bn:'ওয়ার্কার নিশ্চিত করেছেন। আপনার OTP দিয়ে রেকর্ডটি চূড়ান্ত করুন।',en:'The worker has confirmed. Finalise the record with your OTP.'},
 'detail.confirmBtn':{bn:'OTP দিয়ে নিশ্চিত করুন',en:'Confirm with OTP'},
 'detail.sendOtp':{bn:'নিশ্চিতকরণের OTP পাঠান',en:'Send confirm OTP'},
 'detail.force':{bn:'তবুও বন্ধ করুন — সব মাইলস্টোন এখনো অনুমোদিত হয়নি',en:'Close anyway — not all milestones are approved yet'},
-'detail.waitTitle':{bn:'Worker-এর নিশ্চিতকরণের অপেক্ষায়',en:'Waiting for worker confirmation'},
-'detail.waitText':{bn:'Worker এখনো নিশ্চিত করেননি। Worker তাঁর লিংক থেকে OTP দিয়ে নিশ্চিত করলে আপনি এখানে নিশ্চিত করতে পারবেন।',en:'The worker has not confirmed yet. Once the worker confirms by OTP from their link, you can confirm here.'},
-'detail.workerLinkTitle':{bn:'Worker-এর লিংক',en:'Worker link'},
-'detail.resendLink':{bn:'Worker-এর লিংক আবার পাঠান',en:'Resend worker link'},
-'detail.resendOk':{bn:'Worker-এর লিংক আবার পাঠানো হয়েছে।',en:'Worker link resent.'},
+'detail.waitTitle':{bn:'ওয়ার্কারের নিশ্চিতকরণের অপেক্ষায়',en:'Waiting for worker confirmation'},
+'detail.waitText':{bn:'ওয়ার্কার এখনো নিশ্চিত করেননি। ওয়ার্কার তাঁর লিংক থেকে OTP দিয়ে নিশ্চিত করলে আপনি এখানে নিশ্চিত করতে পারবেন।',en:'The worker has not confirmed yet. Once the worker confirms by OTP from their link, you can confirm here.'},
+'detail.workerLinkTitle':{bn:'ওয়ার্কারের লিংক',en:'Worker link'},
+'detail.resendLink':{bn:'ওয়ার্কারের লিংক আবার পাঠান',en:'Resend worker link'},
+'detail.resendOk':{bn:'ওয়ার্কারের লিংক আবার পাঠানো হয়েছে।',en:'Worker link resent.'},
 'detail.photoKind':{bn:'ছবির ধরন',en:'Photo kind'},
-'detail.photoBefore':{bn:'আগে — BEFORE',en:'BEFORE — before work'},
-'detail.photoAfter':{bn:'পরে — AFTER',en:'AFTER — after work'},
+'detail.photoBefore':{bn:'আগে',en:'BEFORE — before work'},
+'detail.photoAfter':{bn:'পরে',en:'AFTER — after work'},
 'nav.menu':{bn:'মেনু',en:'Menu'},
 'bill.statusTitle':{bn:'বিলিং অবস্থা',en:'Billing status'},
 'bill.subActive':{bn:'সাবস্ক্রিপশন সক্রিয় — ৳৭০ / মাস',en:'Subscription active — ৳70 / month'},
@@ -76,35 +77,35 @@ var I18N={
 'bill.unpaidJobs':{bn:'অপরিশোধিত কাজ',en:'Unpaid jobs'},
 'bill.statusUnknown':{bn:'বিলিং অবস্থা এখন দেখা যাচ্ছে না — পরে আবার চেষ্টা করুন।',en:'Billing status is unavailable right now — please try again later.'},
 'detail.passport':{bn:'WorkPassport',en:'WorkPassport'},
-'detail.passportText':{bn:'কাজ বন্ধ হওয়ার পর worker-এর WorkPassport-এ যোগ করুন। কী দেখানো হবে, তা বেছে নিন।',en:'After the job closes, add it to the worker\u2019s WorkPassport. Choose what is shown.'},
+'detail.passportText':{bn:'কাজ বন্ধ হওয়ার পর ওয়ার্কারের WorkPassport-এ যোগ করুন। কী দেখানো হবে, তা বেছে নিন।',en:'After the job closes, add it to the worker\u2019s WorkPassport. Choose what is shown.'},
 'detail.passportBtn':{bn:'WorkPassport-এ যোগ করুন',en:'Add to WorkPassport'},
 'detail.photos':{bn:'ছবি',en:'Photos'},'detail.addPhoto':{bn:'ছবি যোগ করুন',en:'Add a photo'},'detail.upload':{bn:'ছবি আপলোড করুন',en:'Upload photo'},
 'detail.close':{bn:'কাজ বন্ধ করুন',en:'Close job'},'detail.closeText':{bn:'কাজ শেষ হলে দুই পক্ষের সম্মতিতে বন্ধ করুন।',en:'When work is done, close it with both sides\u2019 agreement.'},
-'detail.closeHow':{bn:'Worker তার পাতায় “কাজ শেষ” চাপলে একটি কোড পান — সেই কোড এখানে লিখুন। কোড না থাকলে “একা বন্ধ করুন” বেছে নিন (Hirer-only)।',en:'The worker taps “Confirm close” on their page and gets a code — enter it here. Without the code, choose “Close alone” (hirer-only).'},
-'detail.closeOtp':{bn:'Worker-এর OTP কোড — Worker close code',en:'Worker close code'},
-'detail.closeAnyway':{bn:'একা বন্ধ করুন — Worker-এর কোড ছাড়া (Hirer-only)',en:'Close alone — without the worker\u2019s code (hirer-only)'},
+'detail.closeHow':{bn:'ওয়ার্কার তার পাতায় “কাজ শেষ” চাপলে একটি কোড পান — সেই কোড এখানে লিখুন। কোড না থাকলে “একা বন্ধ করুন” বেছে নিন (শুধু হায়ারার)।',en:'The worker taps “Confirm close” on their page and gets a code — enter it here. Without the code, choose “Close alone” (hirer-only).'},
+'detail.closeOtp':{bn:'ওয়ার্কারের বন্ধের কোড',en:'Worker close code'},
+'detail.closeAnyway':{bn:'একা বন্ধ করুন — ওয়ার্কারের কোড ছাড়া (শুধু হায়ারার)',en:'Close alone — without the worker\u2019s code (hirer-only)'},
 'detail.closeBtn':{bn:'কাজ বন্ধ করুন — সম্পূর্ণ হয়েছে নিশ্চিত করুন',en:'Close job — confirm completion'},'detail.pack':{bn:'ResolvePack ডাউনলোড (PDF)',en:'Download ResolvePack (PDF)'},
 'tab.timeline':{bn:'টাইমলাইন',en:'Timeline'},'tab.change':{bn:'ChangeLock',en:'ChangeLock'},'tab.pay':{bn:'PayProof',en:'PayProof'},'tab.miles':{bn:'মাইলস্টোন',en:'Milestones'},'tab.dispute':{bn:'Dispute',en:'Dispute'},'tab.billing':{bn:'বিলিং',en:'Billing'},
 'change.title':{bn:'পরিবর্তনের প্রস্তাব — ChangeLock',en:'Propose a change — ChangeLock'},
-'change.text':{bn:'দাম বা সময় বদলাতে হলে লিখিত প্রস্তাব দিন। Worker মানলে তবেই নতুন সংস্করণ (V2) হয়।',en:'To change price or time, send a written proposal. It becomes a new version (V2) only if the worker accepts.'},
-'change.delta':{bn:'দামের পরিবর্তন (৳, যেমন +2000 বা -1000)',en:'Price change (৳, e.g. +2000 or -1000)'},'change.deadline':{bn:'নতুন শেষ তারিখ (ঐচ্ছিক)',en:'New deadline (optional)'},'change.reason':{bn:'কারণ',en:'Reason'},'change.send':{bn:'Worker-কে প্রস্তাব পাঠান',en:'Send proposal to worker'},
-'pay.title':{bn:'পেমেন্ট রেকর্ড — PayProof',en:'Record a payment — PayProof'},'pay.text':{bn:'টাকা দিলে এখানে লিখুন। Worker “Received” বললে তবেই স্বীকৃত হয়।',en:'Write it here when you pay. It counts as acknowledged only when the worker says “Received”.'},
+'change.text':{bn:'দাম বা সময় বদলাতে হলে লিখিত প্রস্তাব দিন। ওয়ার্কার মানলে তবেই নতুন সংস্করণ (V2) হয়।',en:'To change price or time, send a written proposal. It becomes a new version (V2) only if the worker accepts.'},
+'change.delta':{bn:'দামের পরিবর্তন (৳, যেমন +2000 বা -1000)',en:'Price change (৳, e.g. +2000 or -1000)'},'change.deadline':{bn:'নতুন শেষ তারিখ (ঐচ্ছিক)',en:'New deadline (optional)'},'change.reason':{bn:'কারণ',en:'Reason'},'change.send':{bn:'ওয়ার্কারকে প্রস্তাব পাঠান',en:'Send proposal to worker'},
+'pay.title':{bn:'পেমেন্ট রেকর্ড — PayProof',en:'Record a payment — PayProof'},'pay.text':{bn:'টাকা দিলে এখানে লিখুন। ওয়ার্কার “পেয়েছি” বললে তবেই স্বীকৃত হয়।',en:'Write it here when you pay. It counts as acknowledged only when the worker says “Received”.'},
 'pay.amount':{bn:'টাকার পরিমাণ (৳)',en:'Amount (৳)'},'pay.method':{bn:'মাধ্যম',en:'Method'},'pay.date':{bn:'তারিখ',en:'Date'},'pay.record':{bn:'পেমেন্ট রেকর্ড করুন',en:'Record payment'},
 'miles.title':{bn:'মাইলস্টোন',en:'Milestones'},
-'dispute.title':{bn:'Dispute',en:'Dispute'},'dispute.cat':{bn:'বিভাগ',en:'Category'},'dispute.text':{bn:'আপনার বক্তব্য',en:'Your statement'},'dispute.open':{bn:'Dispute খুলুন',en:'Open dispute'},
-'bill.title':{bn:'বিলিং',en:'Billing'},'bill.text':{bn:'একটি রেকর্ড ৳১০, অথবা মাসে ৳৭০-তে সীমাহীন। Worker-এর জন্য DealCraft ফি নেই।',en:'One record is ৳10, or ৳70/month for unlimited records. No DealCraft fee for workers.'},
+'dispute.title':{bn:'বিরোধ',en:'Dispute'},'dispute.cat':{bn:'বিভাগ',en:'Category'},'dispute.text':{bn:'আপনার বক্তব্য',en:'Your statement'},'dispute.open':{bn:'Dispute খুলুন',en:'Open dispute'},
+'bill.title':{bn:'বিলিং',en:'Billing'},'bill.text':{bn:'একটি রেকর্ড ৳১০, অথবা মাসে ৳৭০-তে সীমাহীন। ওয়ার্কারের জন্য DealCraft ফি নেই।',en:'One record is ৳10, or ৳70/month for unlimited records. No DealCraft fee for workers.'},
 'bill.caas':{bn:'এই রেকর্ডের জন্য ৳১০ দিন',en:'Pay ৳10 for this record'},'bill.sub':{bn:'সাবস্ক্রাইব করুন ৳৭০ / মাস',en:'Subscribe ৳70 / month'},
 'foot.text':{bn:'DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।',en:'DealCraft holds no money — payment acknowledgements only.'},
 'foot.title':{bn:'ফোনে কাজ শুরু হয়।',en:'Work starts on the phone.'},
 'loc.title':{bn:'লাইভ লোকেশন',en:'Live location'},
-'loc.privacy':{bn:'Worker নিজে Share চাপলেই কেবল আপনি দেখতে পাবেন — শুধু কাজ চলাকালীন। কাজ বন্ধ হলে লোকেশন মুছে যায়।',en:'You can see it only if the worker taps Share — only while the job is active. Location is deleted when the job closes.'},
-'loc.notSharing':{bn:'শেয়ার করছে না — Not sharing',en:'Not sharing'},
-'loc.stopped':{bn:'শেয়ার বন্ধ — Sharing stopped',en:'Sharing stopped'},
-'loc.enRoute':{bn:'আসছে — En route',en:'En route'},
-'loc.arriving':{bn:'কাছে আসছে — Arriving',en:'Arriving'},
-'loc.arrived':{bn:'পৌঁছেছে — Arrived on site',en:'Arrived on site'},
-'loc.onSite':{bn:'কাজের জায়গায় আছে — On site',en:'On site'},
-'loc.paused':{bn:'বিরতি — Paused',en:'Paused'},
+'loc.privacy':{bn:'ওয়ার্কার নিজে শেয়ার চাপলেই কেবল আপনি দেখতে পাবেন — শুধু কাজ চলাকালীন। কাজ বন্ধ হলে লোকেশন মুছে যায়।',en:'You can see it only if the worker taps Share — only while the job is active. Location is deleted when the job closes.'},
+'loc.notSharing':{bn:'শেয়ার করছে না',en:'Not sharing'},
+'loc.stopped':{bn:'শেয়ার বন্ধ',en:'Sharing stopped'},
+'loc.enRoute':{bn:'আসছে',en:'En route'},
+'loc.arriving':{bn:'কাছে আসছে',en:'Arriving'},
+'loc.arrived':{bn:'পৌঁছেছে',en:'Arrived on site'},
+'loc.onSite':{bn:'কাজের জায়গায় আছে',en:'On site'},
+'loc.paused':{bn:'বিরতি',en:'Paused'},
 'loc.away':{bn:'সরলরেখা দূরত্ব',en:'straight-line distance'},'loc.eta':{bn:'পৌঁছাতে',en:'ETA'},
 'site.title':{bn:'কাজের জায়গা (ঐচ্ছিক)',en:'Job site (optional)'},
 'site.hint':{bn:'ম্যাপে ট্যাপ করে পিন বসান, অথবা আপনার বর্তমান লোকেশন ব্যবহার করুন।',en:'Tap the map to drop a pin, or use your current location.'},
@@ -116,7 +117,7 @@ var I18N={
 'live.title':{bn:'মিস্ত্রি কোথায়, চোখের সামনে।',en:'See your repairer on the way.'},
 'live.sub':{bn:'কাজ শুরু হলে মিস্ত্রি লাইভ লোকেশন শেয়ার করেন — আপনি ম্যাপে দেখেন।',en:'Once work starts, your repairer shares live location — you watch it on the map.'},
 'live.cta':{bn:'অ্যাপে লাইভ লোকেশন দেখুন →',en:'See live location in the app →'},
-'live.privacy':{bn:'শুধু শেয়ার চলাকালীন, শুধু এই কাজের Hirer দেখেন।',en:'Only while sharing, and only for that job’s hirer.'},
+'live.privacy':{bn:'শুধু শেয়ার চলাকালীন, শুধু এই কাজের হায়ারার দেখেন।',en:'Only while sharing, and only for that job’s hirer.'},
 'find.title':{bn:'ছবি দিন। দাম আসবে।',en:'Send a photo. Prices come back.'},
 'find.sub':{bn:'সমস্যার ছবি তুলুন — কাছের মিস্ত্রিরা দাম দেবেন, আপনি বেছে নিন।',en:'Photograph the problem — nearby repairers bid a price, you choose.'},
 'find.cta':{bn:'ছবি দিয়ে কাজ দিন →',en:'Post a job with a photo →'},
@@ -138,7 +139,7 @@ var I18N={
 'bid.back':{bn:'← সব কাজ',en:'← All jobs'},
 'bid.postTitle':{bn:'মিস্ত্রি খুঁজুন — ছবি দিয়ে কাজ দিন',en:'Find a repairer — post a job with a photo'},
 'bid.postText':{bn:'সমস্যার ছবি তুলুন, কাজের ধরন বেছে নিন, সংক্ষেপে লিখুন। কাছের মিস্ত্রিরা দাম দেবেন — একজনকে বেছে নিলে দুই পক্ষ OTP দিয়ে নিশ্চিত করবেন।',en:'Take a photo of the problem, pick the trade, write a short description. Nearby repairers bid a price — pick one, then both sides confirm by OTP.'},
-'bid.trade':{bn:'কাজের ধরন — Trade',en:'Trade — type of work'},
+'bid.trade':{bn:'কাজের ধরন',en:'Trade — type of work'},
 'bid.desc':{bn:'সমস্যাটা কী (সর্বোচ্চ ৫০০ অক্ষর)',en:'What is wrong? (max 500 characters)'},
 'bid.photos':{bn:'সমস্যার ছবি (সর্বোচ্চ ৩টি)',en:'Photos of the problem (max 3)'},
 'bid.address':{bn:'কাজের জায়গা',en:'Job site'},
@@ -147,21 +148,189 @@ var I18N={
 'bid.post':{bn:'দরের জন্য কাজ দিন',en:'Post job for bids'},
 'bid.mine':{bn:'আমার দর-খোলা কাজ',en:'My open bid jobs'},
 'bid.findTitle':{bn:'কাজ খুঁজুন — দর দিন',en:'Find work — bid on jobs'},
-'bid.findText':{bn:'খোলা কাজ — কাছের কাজ আগে। দর দিলেই কাজ পাওয়া যায় না। Hirer বেছে নিলে দুই পক্ষ OTP দিয়ে নিশ্চিত করেন।',en:'Open jobs — nearest first. A bid alone does not win the job. The hirer picks one, then both sides confirm by OTP.'},
+'bid.findText':{bn:'খোলা কাজ — কাছের কাজ আগে। দর দিলেই কাজ পাওয়া যায় না। হায়ারার বেছে নিলে দুই পক্ষ OTP দিয়ে নিশ্চিত করেন।',en:'Open jobs — nearest first. A bid alone does not win the job. The hirer picks one, then both sides confirm by OTP.'},
 'bid.useLoc':{bn:'আমার লোকেশন ব্যবহার করুন — কাছের কাজ আগে',en:'Use my location — nearest first'},
 'bid.refresh':{bn:'আপডেট করুন',en:'Refresh'},
 'bid.acceptNote':{bn:'দর দিলেই চুক্তি হয় না — বেছে নিলে রেকর্ড তৈরি হয়, তারপর দুই পক্ষের OTP দিয়ে নিশ্চিত করতে হয়।',en:'A bid alone is not an agreement — picking one creates a record, which both sides must then confirm by OTP.'},
-'bid.closeNoHire':{bn:'দর বন্ধ করুন — কাউকে বাছা হয়নি',en:'Close bidding — nobody picked'}
+'bid.closeNoHire':{bn:'দর বন্ধ করুন — কাউকে বাছা হয়নি',en:'Close bidding — nobody picked'},
+/* Section 2: labels for static showcase cards, journey card, price card,
+   OTP code labels, trade names, photo kinds, statuses and event labels. */
+'otp.code':{bn:'আপনার কোড',en:'Your code'},
+'trade.electrician':{bn:'ইলেকট্রিশিয়ান',en:'ELECTRICIAN'},
+'trade.painter':{bn:'পেইন্টার',en:'PAINTER'},
+'trade.plumber':{bn:'প্লাম্বার',en:'PLUMBER'},
+'card.ghostVer':{bn:'V1 · বাতিল',en:'V1 · SUPERSEDED'},
+'card.fp':{bn:'SHA-256 ফিঙ্গারপ্রিন্ট',en:'SHA-256 FINGERPRINT'},
+'card.mainVer':{bn:'V2 · চালু',en:'V2 · ACTIVE'},
+'card.foot':{bn:'V1 অক্ষত আছে · OTP-তে নিশ্চিত',en:'V1 KEPT INTACT · OTP-CONFIRMED'},
+'chip.pay':{bn:'৳5,000 পেয়েছি — ওয়ার্কার · PayProof',en:'৳5,000 received — Worker · PayProof'},
+'chip.otp':{bn:'✓ দুজনেই OTP নিশ্চিত করেছেন',en:'✓ Both confirmed by OTP'},
+'demo.scope':{bn:'পুরো ফ্ল্যাটের রিওয়্যারিং · ১২ পয়েন্ট',en:'Full flat rewiring · 12 points'},
+'card.photoNote':{bn:'ছবি · মাইলস্টোন সম্পূর্ণ',en:'PHOTO · MILESTONE COMPLETE'},
+'card.changeNote':{bn:'⇄ +৳2,000 · ChangeLock — আরও ২ পয়েন্ট · প্রস্তাব, জোর নয়',en:'⇄ +৳2,000 · ChangeLock — TWO EXTRA POINTS · PROPOSED, NOT FORCED'},
+'card.packNote':{bn:'পুরো রেকর্ড · টাইমলাইন + ছবি',en:'FULL RECORD · TIMELINE + PHOTOS'},
+'card.ghostNote':{bn:'V1 · ৳18,000 · অক্ষত আছে',en:'V1 · ৳18,000 · KEPT INTACT'},
+'jc.ver1':{bn:'V1 · সম্মত',en:'V1 · AGREED'},
+'jc.ver2':{bn:'V2 · দুই পক্ষ নিশ্চিত করেছে',en:'V2 · BOTH SIDES CONFIRMED'},
+'price.v1':{bn:'12 × ৳10 ব্যবহার অনুযায়ী',en:'12 × ৳10 PAY-AS-YOU-GO'},
+'price.v2':{bn:'মাসে ৳70-তে ১২টি রেকর্ড',en:'12 RECORDS AT ৳70 / MONTH'},
+'price.v3':{bn:'আপনি বাঁচান',en:'YOU SAVE'},
+'price.pb2':{bn:'৳70 / মাস',en:'৳70 / MONTH'},
+'app.demoBadge':{bn:'ডেমো মোড',en:'Demo mode'},
+'nav.skip':{bn:'মূল অংশে যান',en:'Skip to content'},
+'loc.nomap':{bn:'ম্যাপ লোড হয়নি — শুধু লেখা দেখানো হচ্ছে।',en:'Map did not load — showing text only.'},
+'why.live':{bn:'লাইভ লোকেশন — কাজ চালু থাকলে ওয়ার্কার তাঁর লোকেশন শেয়ার করতে পারেন, শুধু সেই কাজের হায়ারার দেখতে পান।',en:'Live location — while a job is active, the worker can share their location, visible only to that job\'s hirer.'},
+'site.nomap':{bn:'ম্যাপ লোড হয়নি — ঠিকানা লিখুন।',en:'Map did not load — you can still type the address.'},
+'pp.showAmounts':{bn:'টাকার অঙ্ক দেখান',en:'Show amounts'},
+'pp.showClient':{bn:'ক্লায়েন্ট দেখান',en:'Show client'},
+'pp.showPhotos':{bn:'ছবি দেখান',en:'Show photos'},
+'dis.cat1':{bn:'কাজ শেষ হয়নি',en:'Work not completed'},
+'dis.cat2':{bn:'কাজের মান',en:'Quality'},
+'dis.cat3':{bn:'টাকা',en:'Payment'},
+'dis.cat4':{bn:'কাজের পরিধি',en:'Scope or extra work'},
+'dis.cat5':{bn:'সম্পত্তির ক্ষতি',en:'Property damage'},
+'pay.mCash':{bn:'নগদ',en:'Cash'},
+'kind.before':{bn:'আগে',en:'BEFORE'},
+'kind.after':{bn:'পরে',en:'AFTER'},
+'cl.agreed':{bn:'সম্মত',en:'AGREED'},
+'cl.confirmed':{bn:'দুই পক্ষ নিশ্চিত করেছে',en:'BOTH SIDES CONFIRMED'},
+'cl.proposed':{bn:'প্রস্তাবিত',en:'PROPOSED'},
+'pay.ack':{bn:'স্বীকৃত',en:'Acknowledged'},
+'pay.awaiting':{bn:'অপেক্ষায়',en:'Awaiting'},
+'ms.title':{bn:'মাইলস্টোন',en:'Milestone'},
+'ms.approved':{bn:'অনুমোদিত',en:'Approved'},
+'ms.completeWait':{bn:'সম্পূর্ণ — অনুমোদনের অপেক্ষায়',en:'Complete — awaiting approval'},
+'ms.pending':{bn:'অপেক্ষায়',en:'Pending'},
+'site.picked':{bn:'জায়গা',en:'Site'},
+'detail.workerLinkLabel':{bn:'ওয়ার্কার লিংক',en:'Worker link'},
+'detail.missingPill':{bn:'ঠিক হয়নি',en:'Missing'},
+'job.loading':{bn:'লোড হচ্ছে…',en:'LOADING…'},
+'change.sent':{bn:'প্রস্তাব পাঠানো হয়েছে।',en:'Proposal sent.'},
+'caas.verify':{bn:'৳10 যাচাই করুন',en:'Verify ৳10'},
+'caas.paid':{bn:'পরিশোধিত — ৳10 · রেকর্ড চালু',en:'PAID — ৳10 · RECORD ACTIVE'},
+'caas.status':{bn:'অবস্থা',en:'Status'},
+'sub.done':{bn:'সাবস্ক্রাইব হয়েছে — ৳70 / মাস',en:'SUBSCRIBED — ৳70 / MONTH'},
+'detail.skippedPill':{bn:'বাদ দেওয়া হয়েছে',en:'Skipped — explicit'}
 };
 var NOT_DECIDED={bn:'ঠিক হয়নি',en:'Not decided'};
+/* ---------- Section 2: event / status / trade label dictionaries ----------
+   Every DB constant that can reach the UI is mapped here, BN + EN. Stored
+   values never change (the backend still counts 'Not decided', event types
+   stay SNAKE_CASE); only the rendered label is localised. Unknown values
+   fall back to a prettified constant so nothing renders raw SNAKE_CASE. */
+var EVENT_LABELS={
+'AGREEMENT_CREATED':{bn:'রেকর্ড তৈরি হয়েছে',en:'Record created'},
+'CONFIRMED_BY_HIRER':{bn:'হায়ারার নিশ্চিত করেছেন',en:'Hirer confirmed'},
+'CONFIRMED_BY_WORKER':{bn:'ওয়ার্কার নিশ্চিত করেছেন',en:'Worker confirmed'},
+'ARRIVED_ON_SITE':{bn:'ওয়ার্কার কাজের জায়গায় পৌঁছেছেন',en:'Worker arrived on site'},
+'CHANGE_PROPOSED':{bn:'পরিবর্তনের প্রস্তাব দেওয়া হয়েছে',en:'Change proposed'},
+'CHANGE_APPROVED':{bn:'পরিবর্তন মানা হয়েছে',en:'Change approved'},
+'CHANGE_REJECTED':{bn:'পরিবর্তন মানা হয়নি',en:'Change rejected'},
+'CHANGE_CLARIFIED':{bn:'পরিবর্তন নিয়ে প্রশ্ন করা হয়েছে',en:'Change clarified'},
+'PAYMENT_RECORDED':{bn:'পেমেন্ট রেকর্ড করা হয়েছে',en:'Payment recorded'},
+'PAYMENT_ACKNOWLEDGED':{bn:'পেমেন্ট স্বীকৃত হয়েছে',en:'Payment acknowledged'},
+'PAYMENT_DISPUTED':{bn:'পেমেন্ট নিয়ে আপত্তি জানানো হয়েছে',en:'Payment disputed'},
+'MILESTONE_COMPLETED':{bn:'মাইলস্টোন সম্পূর্ণ হয়েছে',en:'Milestone completed'},
+'MILESTONE_APPROVED':{bn:'মাইলস্টোন অনুমোদিত হয়েছে',en:'Milestone approved'},
+'PHOTO_ADDED':{bn:'ছবি যোগ করা হয়েছে',en:'Photo added'},
+'DISPUTE_OPENED':{bn:'Dispute খোলা হয়েছে',en:'Dispute opened'},
+'DISPUTE_RESOLVED':{bn:'Dispute মিটমাট হয়েছে',en:'Dispute resolved'},
+'RESOLUTION_PROPOSED':{bn:'সমাধানের প্রস্তাব দেওয়া হয়েছে',en:'Resolution proposed'},
+'RESOLUTION_ACCEPTED':{bn:'সমাধানের প্রস্তাব মানা হয়েছে',en:'Resolution accepted'},
+'RESOLUTION_REJECTED':{bn:'সমাধানের প্রস্তাব মানা হয়নি',en:'Resolution rejected'},
+'STATEMENT_ADDED':{bn:'বক্তব্য যোগ করা হয়েছে',en:'Statement added'},
+'JOB_CLOSED':{bn:'কাজ বন্ধ করা হয়েছে',en:'Job closed'},
+'BID_JOB_POSTED':{bn:'দরের জন্য কাজ দেওয়া হয়েছে',en:'Job posted for bids'},
+'BID_JOB_PHOTO_ADDED':{bn:'দরের কাজে ছবি যোগ করা হয়েছে',en:'Photo added to bid job'},
+'BID_PLACED':{bn:'দর দেওয়া হয়েছে',en:'Bid placed'},
+'BID_ACCEPTED':{bn:'দর বেছে নেওয়া হয়েছে',en:'Bid accepted'},
+'BID_NOT_SELECTED':{bn:'দর বাছা হয়নি',en:'Bid not selected'},
+'BID_JOB_CLOSED_NO_HIRE':{bn:'দর বন্ধ করা হয়েছে — কাউকে বাছা হয়নি',en:'Bidding closed — nobody picked'},
+/* Server-labelled events: the payload carries labelEn/labelBn (see
+   server.js SUMMARY_SMS_LABELS / DEADLINE_PASSED_LABELS); the dictionary
+   holds the same wording as a fallback and the renderer prefers the
+   payload labels when present. */
+'SUMMARY_SMS_SENT':{bn:'চুক্তির সারাংশ SMS-এ পাঠানো হয়েছে',en:'Agreement summary sent by SMS'},
+'DEADLINE_PASSED':{bn:'শেষ তারিখ পার হয়েছে — নতুন তারিখ প্রস্তাব করা যাবে',en:'Deadline passed — a new deadline can be proposed'}
+};
+var STATUS_LABELS={
+'DRAFT':{bn:'খসড়া',en:'Draft'},'PENDING':{bn:'অপেক্ষায়',en:'Pending'},
+'ACTIVE':{bn:'চালু',en:'Active'},'CLOSED':{bn:'বন্ধ',en:'Closed'},
+'DISPUTED':{bn:'Dispute খোলা',en:'Disputed'},'OPEN':{bn:'খোলা',en:'Open'},
+'ACCEPTED':{bn:'বেছে নেওয়া হয়েছে',en:'Accepted'},
+'CLOSED_NO_HIRE':{bn:'বন্ধ — কাউকে বাছা হয়নি',en:'Closed — no hire'},
+'LIVE':{bn:'চালু',en:'Live'},'NOT_SELECTED':{bn:'বাছা হয়নি',en:'Not selected'},
+'EXPIRED':{bn:'মেয়াদ শেষ',en:'Expired'},'AWAITING':{bn:'অপেক্ষায়',en:'Awaiting'},
+'ACKNOWLEDGED':{bn:'স্বীকৃত',en:'Acknowledged'},'APPROVED':{bn:'অনুমোদিত',en:'Approved'},
+'REJECTED':{bn:'মানা হয়নি',en:'Rejected'},'COMPLETE':{bn:'সম্পূর্ণ',en:'Complete'},
+'COMPLETED':{bn:'সম্পূর্ণ',en:'Complete'},'CLARIFICATION':{bn:'প্রশ্ন করা হয়েছে',en:'Clarification'},
+'RESOLVED':{bn:'মিটমাট হয়েছে',en:'Resolved'},'VERIFIED':{bn:'যাচাই হয়েছে',en:'Verified'},
+'CANCELLED':{bn:'বাতিল',en:'Cancelled'},'FAILED':{bn:'ব্যর্থ',en:'Failed'}
+};
+var DISPUTE_CAT_LABELS={
+'work not completed':{bn:'কাজ শেষ হয়নি',en:'Work not completed'},
+'quality':{bn:'কাজের মান',en:'Quality'},'payment':{bn:'টাকা',en:'Payment'},
+'scope or extra work':{bn:'কাজের পরিধি',en:'Scope or extra work'},
+'property damage':{bn:'সম্পত্তির ক্ষতি',en:'Property damage'}
+};
+function prettifyConst(s){return String(s==null?'':s).replace(/_/g,' ').toLowerCase().replace(/(^| )([a-z])/g,function(m,p,c){return p+c.toUpperCase();});}
+function eventLabel(type){var d=EVENT_LABELS[type];return d?(d[lang]||d.en):prettifyConst(type);}
+/* Job / bid / payment / milestone / dispute statuses share one lookup. */
+function statusLabel(s){if(s==null||s==='')return '—';var d=STATUS_LABELS[String(s).toUpperCase()];return d?(d[lang]||d.en):prettifyConst(s);}
+function tradeLabel(tr){if(!tr)return '';var k='trade.'+String(tr).toLowerCase();return I18N[k]?t(k):tr;}
+function kindLabel(k){if(!k)return '';var d={BEFORE:{bn:'আগে',en:'BEFORE'},AFTER:{bn:'পরে',en:'AFTER'}}[String(k).toUpperCase()];return d?(d[lang]||d.en):k;}
+/* 'hirer:8801…' / 'worker:8801…' / bare 'hirer' / 'worker' -> localised role + phone. */
+function actorLabel(a){
+ if(a==null||a==='')return '';
+ if(String(a).toLowerCase()==='system')return lang==='bn'?'সিস্টেম':'System';
+ var m=String(a).match(/^(hirer|worker)[:\s]*(.*)$/i);
+ if(!m)return String(a);
+ var role=m[1].toLowerCase()==='hirer'?(lang==='bn'?'হায়ারার':'Hirer'):(lang==='bn'?'ওয়ার্কার':'Worker');
+ return m[2]?role+' · '+m[2]:role;
+}
+/* FairScope lookups by the ENGLISH question text (the stored key): find the
+   question in the job's trade first, then in any trade. Used wherever a
+   stored answer / missing term is rendered — the detail record, the
+   missing-terms lists, and event details. */
+function fsQuestion(qEn,trade){
+ var trades=trade?[trade]:[]; Object.keys(FAIRSCOPE).forEach(function(tr){if(trades.indexOf(tr)<0)trades.push(tr);});
+ for(var i=0;i<trades.length;i++){var qs=FAIRSCOPE[trades[i]]||[];
+  for(var j=0;j<qs.length;j++){if(qs[j].q.en===qEn)return qs[j];}}
+ return null;
+}
+function fsQuestionLabel(qEn,trade){var q=fsQuestion(qEn,trade);return q?(q.q[lang]||q.q.en):qEn;}
+function fsAnswerLabel(qEn,vEn,trade){
+ if(vEn==='Not decided')return NOT_DECIDED[lang];
+ var q=fsQuestion(qEn,trade); if(!q)return vEn;
+ var ix=q.opts.en.indexOf(vEn); if(ix<0)return vEn;
+ return (q.opts[lang]||q.opts.en)[ix];
+}
 function t(key){var d=I18N[key];return d?(d[lang]||d.en):key;}
 function applyI18n(){document.documentElement.lang=lang;
+ document.title=lang==='bn'?'DealCraft — দাম পরিষ্কার। কাজ পরিষ্কার।':'DealCraft — Clear price. Clear work.';
  document.querySelectorAll('[data-i18n]').forEach(function(el){var v=t(el.getAttribute('data-i18n'));if(v)el.textContent=v;});
+ /* The Demo-mode badge keeps its <i> dot: only its text node is localised. */
+ var db=document.querySelector('.demo-badge');
+ if(db){var n=db.lastChild; if(n&&n.nodeType===3)n.textContent=t('app.demoBadge');}
+ /* Placeholders are not data-i18n text: localise them here so no English
+    placeholder survives in Bangla mode. */
+ var PH={'login-name':{bn:'নাম',en:'Your name'},'otp-code':{bn:'6 অঙ্কের কোড',en:'6-digit code'},
+ 'confirm-otp':{bn:'OTP',en:'OTP'},'close-otp':{bn:'6 অঙ্কের কোড',en:'6-digit code'},
+ 'bid-desc':{bn:'যেমন: বাথরুমের পাইপ ফেটে পানি পড়ছে',en:'e.g. bathroom pipe burst, water leaking'},
+ 'bid-address':{bn:'যেমন: বাড়ি ১২, রোড ৫, ধানমন্ডি, ঢাকা',en:'e.g. House 12, Road 5, Dhanmondi, Dhaka'},
+ 'site-address':{bn:'যেমন: বাড়ি ১২, রোড ৫, ধানমন্ডি, ঢাকা',en:'e.g. House 12, Road 5, Dhanmondi, Dhaka'},
+ 'job-scope':{bn:'যেমন: পুরো ফ্ল্যাটের রিওয়্যারিং, ১২ পয়েন্ট',en:'e.g. full flat rewiring, 12 points'},
+ 'ch-reason':{bn:'যেমন: আরও ৩ পয়েন্ট যোগ হয়েছে',en:'e.g. 3 more points added'},
+ 'dis-text':{bn:'কী হয়েছে, সংক্ষেপে লিখুন',en:'What happened, in brief'},
+ 'bid-note':{bn:'যেমন: মালামালসহ',en:'e.g. including materials'}};
+ Object.keys(PH).forEach(function(id){var el=$(id);if(el)el.setAttribute('placeholder',PH[id][lang]||PH[id].en);});
+ document.querySelectorAll('.ms-title').forEach(function(el){el.setAttribute('placeholder',lang==='bn'?'মাইলস্টোনের নাম — যেমন: ওয়্যারিং শেষ':'Milestone title');});
+ document.querySelectorAll('.ms-amount').forEach(function(el){el.setAttribute('placeholder',lang==='bn'?'টাকার পরিমাণ ৳':'Amount ৳');});
  var b=document.getElementById('lang-bn'),e=document.getElementById('lang-en');
  if(b)b.setAttribute('aria-pressed',lang==='bn'?'true':'false');
  if(e)e.setAttribute('aria-pressed',lang==='en'?'true':'false');
  localStorage.setItem('dc_lang',lang);}
-function setLang(l){lang=l;applyI18n();renderFairScope();if(currentJob)renderDetail(currentJob);if(liveMap)liveRender(liveP<0?liveProgress():liveP);}
+function setLang(l){lang=l;applyI18n();renderFairScope();if(currentJob)renderDetail(currentJob);if(liveMap)liveRender(liveP<0?liveProgress():liveP);/* The journey card's version line is set by setJourneyState (scroll-driven), not by applyI18n — refresh it so it follows a language toggle. */var jv=$('jc-ver');if(jv&&typeof journeyState!=='undefined'&&journeyState>=0)jv.textContent=journeyState>=4?t('jc.ver2'):t('jc.ver1');}
 
 /* ---------- dotted Bangladesh map ---------- */
 /* Approximate border polygon as [lon,lat] pairs. */
@@ -357,7 +526,7 @@ function setJourneyState(s){
  var card=$('journey-card'); if(!card)return;
  var prev=journeyState; journeyState=s; card.setAttribute('data-state',String(s));
  var agreed=s>=4?20000:18000, paid=s>=3?5000:0, rem=agreed-paid;
- $('jc-ver').textContent=s>=4?'V2 · BOTH SIDES CONFIRMED':'V1 · AGREED';
+ $('jc-ver').textContent=s>=4?t('jc.ver2'):t('jc.ver1');
  $('jc-agreed').textContent=taka(agreed);
  $('jc-rem').textContent=taka(rem);
  tweenNum($('jc-paid'),prev>=3?5000:0,paid,650,taka);
@@ -424,28 +593,28 @@ function initCompare(el){
 /* ---------- FairScope ---------- */
 var FAIRSCOPE={
  ELECTRICIAN:[
-  {q:{bn:'কে তার/মালামাল কিনবে?',en:'Who buys wires/materials?'},opts:{bn:['Hirer কিনবে','Worker কিনবে','দুজনে ভাগ করে'],en:['Hirer buys','Worker buys','Shared']}},
+  {q:{bn:'কে তার/মালামাল কিনবে?',en:'Who buys wires/materials?'},opts:{bn:['হায়ারার কিনবে','ওয়ার্কার কিনবে','দুজনে ভাগ করে'],en:['Hirer buys','Worker buys','Shared']}},
   {q:{bn:'তারের ব্র্যান্ড ও স্পেসিফিকেশন',en:'Wire brand and specification'},opts:{bn:['BRB / BBS','পলি কেবল','অন্য ব্র্যান্ড'],en:['BRB / BBS','Poly Cable','Other brand']}},
   {q:{bn:'পয়েন্টের সংখ্যা',en:'Number of points'},opts:{bn:['৫-এর কম','৫–১০','১০-এর বেশি'],en:['Under 5','5–10','Over 10']}},
   {q:{bn:'সার্কিট ব্রেকার কি অন্তর্ভুক্ত?',en:'Circuit breakers included?'},opts:{bn:['হ্যাঁ','না','আংশিক'],en:['Yes','No','Partly']}},
   {q:{bn:'দেয়াল কাটা ও মেরামত কি অন্তর্ভুক্ত?',en:'Wall cutting and wall repair — included?'},opts:{bn:['হ্যাঁ','না','শুধু কাটা'],en:['Yes','No','Cutting only']}},
   {q:{bn:'চূড়ান্ত টেস্টিং কি অন্তর্ভুক্ত?',en:'Final testing included?'},opts:{bn:['হ্যাঁ','না'],en:['Yes','No']}},
-  {q:{bn:'পরিবহন খরচ',en:'Transport cost'},opts:{bn:['Hirer দেবে','Worker দেবে','দামে অন্তর্ভুক্ত'],en:['Hirer pays','Worker pays','Included in price']}},
-  {q:{bn:'বর্জ্য অপসারণ',en:'Waste removal'},opts:{bn:['Worker করবে','Hirer করবে'],en:['Worker does it','Hirer does it']}}],
+  {q:{bn:'পরিবহন খরচ',en:'Transport cost'},opts:{bn:['হায়ারার দেবে','ওয়ার্কার দেবে','দামে অন্তর্ভুক্ত'],en:['Hirer pays','Worker pays','Included in price']}},
+  {q:{bn:'বর্জ্য অপসারণ',en:'Waste removal'},opts:{bn:['ওয়ার্কার করবে','হায়ারার করবে'],en:['Worker does it','Hirer does it']}}],
  PAINTER:[
   {q:{bn:'এলাকা / রুম',en:'Area / rooms'},opts:{bn:['১ রুম','২–৩ রুম','পুরো ফ্ল্যাট'],en:['1 room','2–3 rooms','Whole flat']}},
   {q:{bn:'কোটের সংখ্যা',en:'Number of coats'},opts:{bn:['১ কোট','২ কোট','৩ কোট'],en:['1 coat','2 coats','3 coats']}},
   {q:{bn:'প্রাইমার কি অন্তর্ভুক্ত?',en:'Primer included?'},opts:{bn:['হ্যাঁ','না'],en:['Yes','No']}},
   {q:{bn:'রঙের ব্র্যান্ড',en:'Paint brand'},opts:{bn:['Asian Paints','Berger','অন্য ব্র্যান্ড'],en:['Asian Paints','Berger','Other brand']}},
   {q:{bn:'সারফেস প্রস্তুতি',en:'Surface preparation'},opts:{bn:['পুট্টি + ঘষা','শুধু ঘষা','কিছুই না'],en:['Putty + sanding','Sanding only','None']}},
-  {q:{bn:'আসবাব সরানো',en:'Furniture moving'},opts:{bn:['Worker করবে','Hirer করবে'],en:['Worker does it','Hirer does it']}},
-  {q:{bn:'পরিষ্কার',en:'Cleanup'},opts:{bn:['Worker করবে','Hirer করবে'],en:['Worker does it','Hirer does it']}}],
+  {q:{bn:'আসবাব সরানো',en:'Furniture moving'},opts:{bn:['ওয়ার্কার করবে','হায়ারার করবে'],en:['Worker does it','Hirer does it']}},
+  {q:{bn:'পরিষ্কার',en:'Cleanup'},opts:{bn:['ওয়ার্কার করবে','হায়ারার করবে'],en:['Worker does it','Hirer does it']}}],
  PLUMBER:[
   {q:{bn:'পাইপের উপাদান',en:'Pipe material'},opts:{bn:['CPVC','UPVC','GI'],en:['CPVC','UPVC','GI']}},
-  {q:{bn:'ফিটিংস — Hirer দেবে নাকি Worker?',en:'Fixtures included or supplied by hirer'},opts:{bn:['Hirer দেবে','Worker দেবে','দামে অন্তর্ভুক্ত'],en:['Hirer supplies','Worker supplies','Included in price']}},
+  {q:{bn:'ফিটিংস — হায়ারার দেবে নাকি ওয়ার্কার?',en:'Fixtures included or supplied by hirer'},opts:{bn:['হায়ারার দেবে','ওয়ার্কার দেবে','দামে অন্তর্ভুক্ত'],en:['Hirer supplies','Worker supplies','Included in price']}},
   {q:{bn:'দেয়াল ভাঙা ও মেরামত',en:'Wall breaking and restoration'},opts:{bn:['হ্যাঁ','না','শুধু ভাঙা'],en:['Yes','No','Breaking only']}},
   {q:{bn:'লিক টেস্টিং',en:'Leak testing'},opts:{bn:['হ্যাঁ','না'],en:['Yes','No']}},
-  {q:{bn:'মালামালের দায়িত্ব',en:'Materials responsibility'},opts:{bn:['Hirer','Worker','ভাগ করে'],en:['Hirer','Worker','Shared']}}]
+  {q:{bn:'মালামালের দায়িত্ব',en:'Materials responsibility'},opts:{bn:['হায়ারার','ওয়ার্কার','ভাগ করে'],en:['Hirer','Worker','Shared']}}]
 };
 /* Answers are stored in ENGLISH: the backend counts exactly 'Not decided' as a
    missing term and keys answers by the English question text. The UI shows the
@@ -496,8 +665,8 @@ function updateMissingWarn(){
  var ul=$('missing-list');
  if(ul)ul.innerHTML=miss.map(function(m){
   var skipped=draft.skipped.indexOf(m)>=0;
-  return '<li><span>'+esc(m)+'</span> '+(skipped
-   ?'<span class="pill pill-orange">'+(lang==='bn'?'বাদ দেওয়া — Skipped':'Skipped — explicit')+'</span>'
+  return '<li><span>'+esc(fsQuestionLabel(m,null))+'</span> '+(skipped
+   ?'<span class="pill pill-orange">'+esc(t('detail.skippedPill'))+'</span>'
    :'<button type="button" class="btn btn-dark-ghost btn-sm" data-skip-term="'+esc(m)+'">'+(lang==='bn'?'এই শর্তটি বাদ দিন':'Skip this term')+'</button>')+'</li>';
  }).join('');
  if(ul)ul.querySelectorAll('[data-skip-term]').forEach(function(b){b.addEventListener('click',function(){
@@ -520,11 +689,11 @@ var siteMap=null, siteMarker=null;
 function setSite(lat,lng,silent){
  draft.site={lat:+lat.toFixed(6),lng:+lng.toFixed(6),address:($('site-address')||{}).value?$('site-address').value.trim():''};
  if(siteMap){if(siteMarker)siteMarker.setLatLng([lat,lng]);else siteMarker=L.marker([lat,lng]).addTo(siteMap);if(!silent)siteMap.setView([lat,lng],15);}
- var p=$('site-picked'); if(p){p.hidden=false;p.textContent='SITE: '+draft.site.lat+', '+draft.site.lng+(draft.site.address?' · '+draft.site.address:'');}
+ var p=$('site-picked'); if(p){p.hidden=false;p.textContent=t('site.picked')+': '+draft.site.lat+', '+draft.site.lng+(draft.site.address?' · '+draft.site.address:'');}
 }
 function initSiteMap(){
  var el=$('site-map'); if(!el||siteMap)return;
- if(typeof L==='undefined'){el.innerHTML='<p class="small">Map did not load — you can still type the address. / ম্যাপ লোড হয়নি — ঠিকানা লিখুন।</p>';return;}
+ if(typeof L==='undefined'){el.innerHTML='<p class="small">'+esc(t('site.nomap'))+'</p>';return;}
  siteMap=L.map(el).setView([23.8103,90.4125],12);
  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(siteMap);
  siteMap.on('click',function(e){setSite(e.latlng.lat,e.latlng.lng);});
@@ -662,6 +831,24 @@ function initLiveMap(){
  liveRender(liveProgress());
 }
 
+/* ---------- feature flags (server is the single source of truth) ----------
+   FEATURE_BIDDING defaults OFF: when off, the nav link, the landing
+   section and the in-app bidding buttons are hidden. The flag is never
+   hardcoded here — /api/config serves it. If the config cannot be read,
+   bidding stays hidden (safe default = flag default). */
+var BIDDING_ON=false;
+async function loadConfig(){
+  try{var r=await api('/api/config');BIDDING_ON=!!(r&&r.biddingEnabled);}catch(e){BIDDING_ON=false;}
+  applyBiddingVisibility();
+}
+function applyBiddingVisibility(){
+  var navFind=document.querySelector('.nav-links a[href="#find"]');
+  if(navFind)navFind.style.display=BIDDING_ON?'':'none';
+  var sec=$('find'); if(sec)sec.style.display=BIDDING_ON?'':'none';
+  var bp=$('btn-bid-post'); if(bp)bp.style.display=BIDDING_ON?'':'none';
+  var fw=$('btn-find-work'); if(fw)fw.style.display=BIDDING_ON?'':'none';
+}
+
 /* ---------- auth ---------- */
 var loginPhone='';
 function initAuth(){
@@ -671,7 +858,7 @@ function initAuth(){
   if(!loginPhone){showErr(lang==='bn'?'ফোন নম্বর দিন।':'Enter a phone number.');return;}
   try{var r=await api('/api/auth/request-otp',{method:'POST',body:JSON.stringify({phone:loginPhone,name:name||undefined,role:'hirer'})});
    $('form-login').hidden=true; $('form-otp').hidden=false;
-   if(r&&r.sandbox&&r.sandbox.otp){$('otp-note').hidden=false;$('otp-note-text').textContent=(lang==='bn'?'আপনার কোড: ':'Your code: ')+(r.sandbox.otp||'—');}
+   if(r&&r.sandbox&&r.sandbox.otp){$('otp-note').hidden=false;$('otp-note-text').textContent=(r.sandbox.otp||'—');}
    $('otp-code').focus();
   }catch(e){showErr((lang==='bn'?'OTP পাঠানো যায়নি: ':'Could not send OTP: ')+e.message);}
  });
@@ -693,11 +880,11 @@ function initAuth(){
 /* ---------- jobs ---------- */
 /* API rows use snake_case (worker_name, worker_phone, current_version). */
 function pick(o,names){for(var i=0;i<names.length;i++){if(o&&o[names[i]]!=null&&o[names[i]]!=='')return o[names[i]];}return '';}
-function jobTitle(j){var trade=j.trade||j.scope||'JOB';var w=pick(j,['workerName','worker_name'])||pick(j,['workerPhone','worker_phone']);return (trade+' — '+w).toUpperCase();}
+function jobTitle(j){var trade=tradeLabel(j.trade||j.scope||'JOB');var w=pick(j,['workerName','worker_name'])||pick(j,['workerPhone','worker_phone']);return (trade+' — '+w).toUpperCase();}
 function jobPhone(j){return pick(j,['workerPhone','worker_phone']);}
 function jobVersion(j,full){var vs=(full&&full.versions)||j.versions||[];return j.current_version||j.version||j.currentVersion||(vs.length||1);}
 async function loadJobs(){
- clearErr(); var list=$('job-list'); if(!list)return; list.innerHTML='<p class="mono grey">LOADING…</p>';
+ clearErr(); var list=$('job-list'); if(!list)return; list.innerHTML='<p class="mono grey">'+esc(t('job.loading'))+'</p>';
  try{var r=await api('/api/jobs'); var jobs=Array.isArray(r)?r:(r.jobs||r.data||[]);
   $('me-line').textContent=user?((user.name||'')+' · '+(user.phone||'')):'';
   $('jobs-empty').hidden=jobs.length>0;
@@ -705,8 +892,8 @@ async function loadJobs(){
    var id=j.id||j._id; var ver='V'+(j.current_version||j.version||j.currentVersion||1);
    var status=j.status||j.state||'DRAFT';
    /* List rows carry no price/deadline from the API — show only what exists. */
-   var meta=[ver,esc(status),esc(jobPhone(j))].filter(Boolean).join(' · ');
-   return '<div class="job-row"><div><div class="t">'+esc(jobTitle(j))+'</div><div class="m">'+meta+'</div></div><div style="display:flex;gap:8px;align-items:center"><span class="pill '+((status==='CONFIRMED'||status==='ACTIVE')?'pill-orange':'pill-grey')+'">'+esc(status)+'</span><button class="btn btn-dark btn-sm" type="button" data-open="'+esc(id)+'">'+(lang==='bn'?'খুলুন':'Open')+'</button></div></div>';
+   var meta=[ver,statusLabel(status),esc(jobPhone(j))].filter(Boolean).join(' · ');
+   return '<div class="job-row"><div><div class="t">'+esc(jobTitle(j))+'</div><div class="m">'+meta+'</div></div><div style="display:flex;gap:8px;align-items:center"><span class="pill '+((status==='CONFIRMED'||status==='ACTIVE')?'pill-orange':'pill-grey')+'">'+esc(statusLabel(status))+'</span><button class="btn btn-dark btn-sm" type="button" data-open="'+esc(id)+'">'+(lang==='bn'?'খুলুন':'Open')+'</button></div></div>';
   }).join('')||'';
   list.querySelectorAll('[data-open]').forEach(function(b){b.addEventListener('click',function(){openJob(b.getAttribute('data-open'));});});
  }catch(e){list.innerHTML='';showErr((lang==='bn'?'কাজের তালিকা আনা যায়নি: ':'Could not load jobs: ')+e.message);}
@@ -742,7 +929,7 @@ function eventDetail(ev){
   if(p.priceDelta!=null)bits.push('Δ '+taka(p.priceDelta));
   if(p.deadline)bits.push(fmtDate(p.deadline));
   if(p.reason)bits.push(p.reason);
-  if(p.missingTerms&&p.missingTerms.length)bits.push((lang==='bn'?'ঠিক হয়নি: ':'Not decided: ')+p.missingTerms.join(', '));
+  if(p.missingTerms&&p.missingTerms.length)bits.push((lang==='bn'?'ঠিক হয়নি: ':'Not decided: ')+p.missingTerms.map(function(m){return fsQuestionLabel(typeof m==='string'?m:(m.question||m.name||String(m)),null);}).join(', '));
   if(p.changeId)bits.push('#'+String(p.changeId).slice(0,8));
   if(p.amount!=null)bits.push(taka(p.amount));
   if(p.note)bits.push(p.note);
@@ -759,18 +946,48 @@ function renderDetail(job){
  var ver='V'+(job.current_version||job.version||job.currentVersion||(versions.length||1));
  $('detail-title').textContent=jobTitle(job);
  $('detail-meta').textContent=ver+' · '+taka(price)+' · '+(deadline?fmtDate(deadline):'—')+' · '+jobPhone(job);
- var pills=''; if(job.status)pills+='<span class="pill pill-orange">'+esc(job.status)+'</span>';
- if(job.workerLink)pills+='<span class="pill">WORKER LINK: '+esc(job.workerLink)+'</span>';
+ var pills=''; if(job.status)pills+='<span class="pill pill-orange">'+esc(statusLabel(job.status))+'</span>';
+ if(job.workerLink)pills+='<span class="pill">'+esc(t('detail.workerLinkLabel'))+': '+esc(job.workerLink)+'</span>';
  var miss=job.missingTerms||(lv&&lv.scope?lv.scope.skippedTerms:[])||[];
- if(miss.length)pills+='<span class="pill pill-orange">MISSING: '+miss.length+'</span>';
+ if(miss.length)pills+='<span class="pill pill-orange">'+esc(t('detail.missingPill'))+': '+miss.length+'</span>';
  $('detail-pills').innerHTML=pills;
+ /* Deadline nudge (one-tap "Propose new deadline"): shown only when a
+    DEADLINE_PASSED event is on the timeline and the job is still ACTIVE.
+    A nudge, never enforcement — it opens the existing ChangeLock flow
+    pre-filled as a deadline extension (current deadline + 7 days) and
+    changes nothing until the other side accepts. Plain lang-ternary
+    strings here, not i18n-dictionary keys (Section 2 owns that dict). */
+ var dpEv=null; for(var dei=0;dei<events.length;dei++){if(events[dei].type==='DEADLINE_PASSED'){dpEv=events[dei];break;}}
+ var nudge=document.getElementById('deadline-nudge');
+ if(dpEv&&job.status==='ACTIVE'){
+  if(!nudge){nudge=document.createElement('div');nudge.id='deadline-nudge';nudge.className='notice';
+   var tabsEl=document.querySelector('#view-detail .tabs');
+   if(tabsEl&&tabsEl.parentNode)tabsEl.parentNode.insertBefore(nudge,tabsEl);}
+  nudge.hidden=false;
+  var dpDl=''; try{dpDl=JSON.parse(dpEv.payload_json||'{}').deadline||'';}catch(e){}
+  var baseDl=deadline||dpDl||'';
+  var nextDl=''; try{var nd=new Date(baseDl); nd.setDate(nd.getDate()+7); nextDl=nd.toISOString().slice(0,10);}catch(e){nextDl='';}
+  nudge.innerHTML='<b>'+(lang==='bn'?'শেষ তারিখ পার হয়েছে':'Deadline passed')+'</b><p>'
+   +(lang==='bn'?'কাজের শেষ তারিখ পার হয়ে গেছে। কোনো জরিমানা বা চার্জ নেই — নতুন তারিখ প্রস্তাব করুন।':'The deadline has passed. No penalty, no charge — propose a new deadline.')
+   +'</p><div class="btn-row"><button class="btn btn-dark btn-sm" type="button" id="btn-deadline-propose">'
+   +(lang==='bn'?'নতুন তারিখ প্রস্তাব করুন':'Propose new deadline')+'</button></div>';
+  var dpBtn=$('btn-deadline-propose');
+  if(dpBtn)dpBtn.addEventListener('click',function(){
+   var tab=document.querySelector('.tabs button[data-tab="change"]'); if(tab)tab.click();
+   var dl=$('ch-deadline'); if(dl&&nextDl)dl.value=nextDl;
+   var rs=$('ch-reason'); if(rs)rs.value=(lang==='bn'?'কাজ শেষ হয়নি — নতুন শেষ তারিখ: '+nextDl:'Work is not finished yet — new deadline: '+nextDl);
+   if(dl)dl.focus();
+  });
+ }else if(nudge){nudge.hidden=true;}
  /* one-page record from the latest version */
  var rec=$('detail-record');
  if(rec&&lv&&lv.scope){var sc=lv.scope;
   rec.hidden=false;
-  rec.innerHTML='<h3>'+esc(job.trade||'')+' — '+(lang==='bn'?'এক পাতার কাজের রেকর্ড':'One-page work record')+' ('+ver+')</h3><table>'+
+  rec.innerHTML='<h3>'+esc(tradeLabel(job.trade))+' — '+(lang==='bn'?'এক পাতার কাজের রেকর্ড':'One-page work record')+' ('+ver+')</h3><table>'+
    '<tr><th>'+(lang==='bn'?'বিবরণ':'Scope')+'</th><td>'+esc(sc.scope||'—')+'</td></tr>'+
-   Object.keys(sc.answers||{}).map(function(k){return '<tr><th>'+esc(k)+'</th><td>'+esc(sc.answers[k])+'</td></tr>';}).join('')+
+   /* Item 10: stored answers are English keys — render the localised
+      question and option labels for the job's trade. */
+   Object.keys(sc.answers||{}).map(function(k){return '<tr><th>'+esc(fsQuestionLabel(k,job.trade))+'</th><td>'+esc(fsAnswerLabel(k,sc.answers[k],job.trade))+'</td></tr>';}).join('')+
    '</table>';
  } else if(rec){rec.hidden=true;}
  var agreed=bal.agreed!=null?bal.agreed:price||0, paid=bal.acknowledgedPaid!=null?bal.acknowledgedPaid:0, rem=bal.remaining!=null?bal.remaining:(agreed-paid);
@@ -782,7 +999,7 @@ function renderDetail(job){
  renderDetail._prevBal={agreed:agreed,paid:paid,rem:rem};
  $('bar-paid').style.width=agreed?Math.min(100,paid/agreed*100)+'%':'0%';
  $('bar-agreed').style.width='0%';
- var dw=$('detail-warn'); if(dw){dw.hidden=!miss.length;var ul=$('detail-missing');if(ul)ul.innerHTML=miss.map(function(m){return '<li>'+esc(typeof m==='string'?m:(m.question||m.name||JSON.stringify(m)))+'</li>';}).join('');}
+ var dw=$('detail-warn'); if(dw){dw.hidden=!miss.length;var ul=$('detail-missing');if(ul)ul.innerHTML=miss.map(function(m){var q=typeof m==='string'?m:(m.question||m.name||JSON.stringify(m));return '<li>'+esc(fsQuestionLabel(q,job.trade))+'</li>';}).join('');}
  /* Hirer confirm box: show ONLY once the worker has actually confirmed
     (a CONFIRMED_BY_WORKER event) and the hirer has not yet confirmed
     (no CONFIRMED_BY_HIRER event). Never show it on PENDING alone, and
@@ -803,13 +1020,21 @@ function renderDetail(job){
  /* timeline — events are {type, actor, payload_json, created_at} */
  var tl=$('timeline-list');
  tl.innerHTML=events.length?events.map(function(ev,ei){
-  var label=ev.label||ev.type||ev.title||ev.event||''; var when=ev.createdAt||ev.created_at||ev.at||ev.date||'';
+  /* Item 9: never render a raw DB constant — every event type has a
+     BN + EN label in EVENT_LABELS; unknown types are prettified. */
+  var type=(ev.type||ev.event||'');
+  var pl={}; try{pl=typeof ev.payload_json==='string'?JSON.parse(ev.payload_json||'{}'):(ev.payload||{});}catch(e){pl={};}
+  var label=type?eventLabel(type):(ev.label||ev.title||'');
+  /* Server-labelled events travel with labelEn/labelBn in the payload —
+     prefer those over the dictionary (same wording, kept in sync). */
+  if(pl&&(pl.labelBn||pl.labelEn))label=lang==='bn'?(pl.labelBn||pl.labelEn):(pl.labelEn||pl.labelBn);
+  var when=ev.createdAt||ev.created_at||ev.at||ev.date||'';
   var det=eventDetail(ev)||(ev.note||ev.detail||'');
   /* P2: coloured node dots per event type (payment=orange, change=dark,
      confirmation=green). The newest card also enters highlighted. */
   var t=(ev.type||ev.event||'');
   var cls=/PAYMENT/.test(t)?'tl-pay':/CHANGE/.test(t)?'tl-change':/CONFIRM/.test(t)?'tl-confirm':'';
-  return '<li class="'+cls+(ei===events.length-1?' tl-new':'')+'"><div class="when">'+esc(when?fmtDate(when):'')+' · '+esc(ev.actor||'')+'</div><div><b>'+esc(String(label).replace(/_/g,' '))+'</b></div>'+(det?'<div class="small">'+esc(det)+'</div>':'')+'</li>';
+  return '<li class="'+cls+(ei===events.length-1?' tl-new':'')+'"><div class="when">'+esc(when?fmtDate(when):'')+' · '+esc(actorLabel(ev.actor))+'</div><div><b>'+esc(label)+'</b></div>'+(det?'<div class="small">'+esc(det)+'</div>':'')+'</li>';
  }).join(''):'<li><div class="small">'+(lang==='bn'?'এখনো কোনো ঘটনা নেই।':'No events yet.')+'</div></li>';
  /* P2: staggered fade-up on first view (transform/opacity only). */
  tl.querySelectorAll('li').forEach(function(li,i){
@@ -837,14 +1062,14 @@ function renderDetail(job){
     var after=g.filter(function(p){return p&&p.kind==='AFTER';})[0];
     if(before&&after){
      var bu=before.url||before.path||'', au=after.url||after.path||'';
-     return '<figure class="cmp" style="grid-column:1/-1"><img src="'+esc(bu)+'" alt="'+(lang==='bn'?'আগের ছবি':'Before photo')+'" loading="lazy"><div class="cmp-after"><img src="'+esc(au)+'" alt="'+(lang==='bn'?'পরের ছবি':'After photo')+'" loading="lazy"></div><span class="cmp-tag before">BEFORE</span><span class="cmp-tag after">AFTER</span><span class="cmp-handle" aria-hidden="true"></span><button type="button" class="cmp-expand" data-lightbox="'+esc(au)+'" data-alt="'+(lang==='bn'?'পরের ছবি':'After photo')+'" aria-label="'+(lang==='bn'?'ছবি বড় করে দেখুন':'Enlarge photo')+'">⤢</button><input type="range" min="2" max="98" value="50" aria-label="Before / after comparison slider"></figure>';
+     return '<figure class="cmp" style="grid-column:1/-1"><img src="'+esc(bu)+'" alt="'+(lang==='bn'?'আগের ছবি':'Before photo')+'" loading="lazy"><div class="cmp-after"><img src="'+esc(au)+'" alt="'+(lang==='bn'?'পরের ছবি':'After photo')+'" loading="lazy"></div><span class="cmp-tag before">'+esc(t('kind.before'))+'</span><span class="cmp-tag after">'+esc(t('kind.after'))+'</span><span class="cmp-handle" aria-hidden="true"></span><button type="button" class="cmp-expand" data-lightbox="'+esc(au)+'" data-alt="'+(lang==='bn'?'পরের ছবি':'After photo')+'" aria-label="'+(lang==='bn'?'ছবি বড় করে দেখুন':'Enlarge photo')+'">⤢</button><input type="range" min="2" max="98" value="50" aria-label="Before / after comparison slider"></figure>';
     }
     return g.map(function(p){
      var u=typeof p==='string'?p:(p.url||p.path||''); if(!u)return '';
      var kind=(p&&p.kind)||null;
      var when=(p&&(p.taken_at||p.takenAt||p.created_at||p.createdAt))||'';
      return '<figure class="photo"><img src="'+esc(u)+'" data-lightbox="'+esc(u)+'" data-alt="'+(lang==='bn'?'কাজের ছবি':'Job photo')+'" alt="'+(lang==='bn'?'কাজের ছবি':'Job photo')+'" loading="lazy">'+
-      (kind?'<span class="pill '+(kind==='BEFORE'?'pill-grey':'pill-orange')+'">'+esc(kind)+'</span>':'')+
+      (kind?'<span class="pill '+(kind==='BEFORE'?'pill-grey':'pill-orange')+'">'+esc(kindLabel(kind))+'</span>':'')+
       (when?'<figcaption class="mono grey">'+esc(fmtDT(when))+'</figcaption>':'')+'</figure>';
     }).join('');
    }).join('')+'</div>';
@@ -861,7 +1086,7 @@ function renderDetail(job){
    var vn=v.version_no||v.version||(i+1);
    var approved=changeEvs.some(function(ev){var p={};try{p=JSON.parse(ev.payload_json||'{}');}catch(e){}return ev.type==='CHANGE_APPROVED'&&p.version===vn;});
    var proposed=changeEvs.some(function(ev){return ev.type==='CHANGE_PROPOSED';});
-   return '<div class="cl-step" role="listitem"><div class="cl-ver">V'+vn+'</div><div class="cl-price">'+taka(v.price)+'</div><div class="mono grey">'+(v.deadline?fmtDate(v.deadline):'—')+'</div><div class="mono">'+(i===0?'AGREED':approved?'BOTH SIDES CONFIRMED':proposed?'PROPOSED':'—')+'</div></div>'+(i<versions.length-1?'<div class="cl-arrow" aria-hidden="true">→</div>':'');
+   return '<div class="cl-step" role="listitem"><div class="cl-ver">V'+vn+'</div><div class="cl-price">'+taka(v.price)+'</div><div class="mono grey">'+(v.deadline?fmtDate(v.deadline):'—')+'</div><div class="mono">'+(i===0?t('cl.agreed'):approved?t('cl.confirmed'):proposed?t('cl.proposed'):'—')+'</div></div>'+(i<versions.length-1?'<div class="cl-arrow" aria-hidden="true">→</div>':'');
   }).join('')+'</div>';
  }
  cl.innerHTML=(journey||'')+(versions.length?versions.map(function(v){
@@ -871,20 +1096,22 @@ function renderDetail(job){
  var pl=$('pay-list');
  pl.innerHTML=pays.length?pays.map(function(p){
   var ack=p.ack_status==='ACKNOWLEDGED';
-  return '<div class="job-row"><div><div class="t">'+taka(p.amount)+'</div><div class="m">'+esc(p.method||'')+' · '+fmtDate(p.date||p.createdAt||p.created_at)+' · '+esc(p.ack_status||'AWAITING')+'</div></div><span class="pill '+(ack?'pill-orange':'pill-grey')+'">'+(ack?'ACK':'PENDING')+'</span></div>';
+  var ackLab=ack?t('pay.ack'):t('pay.awaiting');
+  var method=p.method==='Cash'?(lang==='bn'?'নগদ':'Cash'):(p.method||'');
+  return '<div class="job-row"><div><div class="t">'+taka(p.amount)+'</div><div class="m">'+esc(method)+' · '+fmtDate(p.date||p.createdAt||p.created_at)+' · '+esc(ackLab)+'</div></div><span class="pill '+(ack?'pill-orange':'pill-grey')+'">'+esc(ackLab)+'</span></div>';
  }).join(''):'<p class="small">'+(lang==='bn'?'কোনো পেমেন্ট রেকর্ড নেই।':'No payments recorded yet.')+'</p>';
  /* milestones — Complete is a worker action (worker page); hirer only approves */
  var ml=$('miles-list');
  ml.innerHTML=miles.length?miles.map(function(m,i){
   var done=m.completed||m.status==='COMPLETE'||m.status==='COMPLETED';
   var appr=m.approved||m.status==='APPROVED';
-  return '<div class="job-row"><div><div class="t">'+esc(m.title||('Milestone '+(i+1)))+'</div><div class="m">'+taka(m.amount)+' · '+(appr?'APPROVED':done?'COMPLETE — AWAITING APPROVAL':'PENDING')+'</div></div><div style="display:flex;gap:8px"><button class="btn btn-dark btn-sm" type="button" data-ms-approve="'+i+'" '+(appr?'disabled':'')+'>'+(lang==='bn'?'অনুমোদন':'Approve')+'</button></div></div>';
+  return '<div class="job-row"><div><div class="t">'+esc(m.title||(t('ms.title')+' '+(i+1)))+'</div><div class="m">'+taka(m.amount)+' · '+(appr?t('ms.approved'):done?t('ms.completeWait'):t('ms.pending'))+'</div></div><div style="display:flex;gap:8px"><button class="btn btn-dark btn-sm" type="button" data-ms-approve="'+i+'" '+(appr?'disabled':'')+'>'+(lang==='bn'?'অনুমোদন':'Approve')+'</button></div></div>';
  }).join(''):'<p class="small">'+(lang==='bn'?'কোনো মাইলস্টোন নেই।':'No milestones.')+'</p>';
  ml.querySelectorAll('[data-ms-approve]').forEach(function(b){b.addEventListener('click',async function(){try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/milestones/'+b.getAttribute('data-ms-approve')+'/approve',{method:'POST',body:'{}'});openJob(currentJobId);}catch(e){showErr(e.message);}});});
  /* disputes — statement text lives in d.statements[] */
  var dl=$('dispute-list');
  dl.innerHTML=disputes.length?disputes.map(function(d){
-  var stmts=(d.statements||[]).map(function(s){return '<div class="small"><b>'+esc(s.side||'')+':</b> '+esc(s.text||'')+'</div>';}).join('');
+  var stmts=(d.statements||[]).map(function(s){return '<div class="small"><b>'+esc(actorLabel(s.side))+':</b> '+esc(s.text||'')+'</div>';}).join('');
   /* Mutual resolution: the hirer PROPOSES how it is resolved; the worker
      accepts or rejects it on the worker page. The job returns to ACTIVE
      only after the worker accepts — DealCraft never decides. */
@@ -895,12 +1122,13 @@ function renderDetail(job){
    ?'<div class="btn-row" style="margin-top:10px"><button class="btn btn-dark btn-sm" type="button" data-dis-propose="'+esc(did)+'">'+(lang==='bn'?'সমাধানের প্রস্তাব দিন':'Propose a resolution')+'</button></div>'
     +'<div data-dis-form="'+esc(did)+'" hidden style="margin-top:10px"><label>'+(lang==='bn'?'কীভাবে মিটমাট হবে?':'How should this be resolved?')+'</label><textarea rows="2" data-dis-text="'+esc(did)+'" placeholder="'+(lang==='bn'?'যেমন: ওই রুমটা বিনা মূল্যে আবার রং করে দেবে':'e.g. repaint that room free of charge')+'"></textarea><div class="btn-row"><button class="btn btn-dark btn-sm" type="button" data-dis-send="'+esc(did)+'">'+(lang==='bn'?'প্রস্তাব পাঠান':'Send proposal')+'</button></div></div>'
     +'<p class="small">'+(accepted
-      ?(lang==='bn'?'Worker প্রস্তাবটি মেনে নিয়েছে — সমাধান হয়েছে।':'The worker accepted the proposal — resolved.')
+      ?(lang==='bn'?'ওয়ার্কার প্রস্তাবটি মেনে নিয়েছে — সমাধান হয়েছে।':'The worker accepted the proposal — resolved.')
       :proposed
-      ?(lang==='bn'?'প্রস্তাব পাঠানো হয়েছে — worker মানলে তবেই সমাধান হবে।':'Proposal sent — it resolves only if the worker accepts it.')
-      :(lang==='bn'?'দুই পক্ষের বক্তব্য থাকলেই প্রস্তাব দেওয়া যায়। Worker মানলে তবেই সমাধান হবে — DealCraft কোনো রায় দেয় না।':'Both sides must have a statement first. It resolves only if the worker accepts — DealCraft never decides.'))+'</p>':'';
-  return '<div class="notice"><b>'+esc(d.category||'Dispute')+'</b><div class="mono grey">'+esc(d.status||'OPEN')+'</div>'+stmts+res+'</div>';
- }).join(''):'<p class="small">'+(lang==='bn'?'কোনো dispute নেই।':'No disputes.')+'</p>';
+      ?(lang==='bn'?'প্রস্তাব পাঠানো হয়েছে — ওয়ার্কার মানলে তবেই সমাধান হবে।':'Proposal sent — it resolves only if the worker accepts it.')
+      :(lang==='bn'?'দুই পক্ষের বক্তব্য থাকলেই প্রস্তাব দেওয়া যায়। ওয়ার্কার মানলে তবেই সমাধান হবে — DealCraft কোনো রায় দেয় না।':'Both sides must have a statement first. It resolves only if the worker accepts — DealCraft never decides.'))+'</p>':'';
+  var catLab=DISPUTE_CAT_LABELS[d.category]?DISPUTE_CAT_LABELS[d.category][lang]||DISPUTE_CAT_LABELS[d.category].en:prettifyConst(d.category||'Dispute');
+  return '<div class="notice"><b>'+esc(catLab)+'</b><div class="mono grey">'+esc(statusLabel(d.status||'OPEN'))+'</div>'+stmts+res+'</div>';
+ }).join(''):'<p class="small">'+(lang==='bn'?'কোনো বিরোধ নেই।':'No disputes.')+'</p>';
  dl.querySelectorAll('[data-dis-propose]').forEach(function(b){b.addEventListener('click',function(){
   var did=b.getAttribute('data-dis-propose');
   var f=dl.querySelector('[data-dis-form="'+did+'"]'); if(f)f.hidden=false;});});
@@ -955,7 +1183,7 @@ function initNewJob(){
  $('back-step-2').addEventListener('click',function(){newStep(2);});
  $('add-milestone').addEventListener('click',function(){
   var d=document.createElement('div'); d.className='field-grid';
-  d.innerHTML='<div><input type="text" class="ms-title" placeholder="Milestone title"></div><div><input type="number" class="ms-amount" min="0" inputmode="numeric" placeholder="Amount ৳"></div>';
+  d.innerHTML='<div><input type="text" class="ms-title" placeholder="'+(lang==='bn'?'মাইলস্টোনের নাম — যেমন: ওয়্যারিং শেষ':'Milestone title')+'"></div><div><input type="number" class="ms-amount" min="0" inputmode="numeric" placeholder="'+(lang==='bn'?'টাকার পরিমাণ ৳':'Amount ৳')+'"></div>';
   $('milestone-rows').appendChild(d); });
  $('to-step-4').addEventListener('click',function(){
   var qs=FAIRSCOPE[draft.trade]||[];
@@ -970,8 +1198,8 @@ function initNewJob(){
    milestones:miles,answers:answers,skippedTerms:draft.skipped.slice(),
    site:draft.site?{lat:draft.site.lat,lng:draft.site.lng,address:$('site-address').value.trim()||draft.site.address||''}:undefined};
   var miss=missingTerms();
-  $('review-record').innerHTML='<h3>'+esc(draft.trade)+' — '+(lang==='bn'?'এক পাতার কাজের রেকর্ড':'One-page work record')+'</h3><table>'+
-   '<tr><th>'+(lang==='bn'?'Worker':'Worker')+'</th><td>'+esc(draft.payload.workerName||'')+' · '+esc(draft.payload.workerPhone)+'</td></tr>'+
+  $('review-record').innerHTML='<h3>'+esc(tradeLabel(draft.trade))+' — '+(lang==='bn'?'এক পাতার কাজের রেকর্ড':'One-page work record')+'</h3><table>'+
+   '<tr><th>'+(lang==='bn'?'ওয়ার্কার':'Worker')+'</th><td>'+esc(draft.payload.workerName||'')+' · '+esc(draft.payload.workerPhone)+'</td></tr>'+
    '<tr><th>'+(lang==='bn'?'দাম':'Price')+'</th><td>'+taka(draft.payload.price)+'</td></tr>'+
    '<tr><th>'+(lang==='bn'?'শেষ তারিখ':'Deadline')+'</th><td>'+esc(draft.payload.deadline||'—')+'</td></tr>'+
    '<tr><th>'+(lang==='bn'?'বিবরণ':'Scope')+'</th><td>'+esc(draft.payload.scope||'—')+'</td></tr>'+
@@ -1025,7 +1253,7 @@ function initDetail(){
  $('btn-confirm-send-otp').addEventListener('click',async function(){clearErr();
   /* hirer-confirm verifies purpose 'hirer-confirm' — request that OTP explicitly */
   try{var r=await api('/api/auth/request-otp',{method:'POST',body:JSON.stringify({phone:(user&&user.phone)||'',purpose:'hirer-confirm'})});
-   if(r&&r.sandbox&&r.sandbox.otp){$('confirm-note').hidden=false;$('confirm-note-text').textContent=(lang==='bn'?'আপনার কোড: ':'Your code: ')+(r.sandbox.otp||'—');}
+   if(r&&r.sandbox&&r.sandbox.otp){$('confirm-note').hidden=false;$('confirm-note-text').textContent=(r.sandbox.otp||'—');}
    $('confirm-otp').focus();
   }catch(e){showErr(e.message);}});
  $('form-change').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
@@ -1034,7 +1262,7 @@ function initDetail(){
       so inserting before it wipes the notice instantly and the hirer never
       sees that the proposal was sent. */
    await openJob(currentJobId); showSuccessCheck();
-   if(r&&r.notifyLink){clearErr();var n=$('change-list');if(n)n.insertAdjacentHTML('afterbegin','<div class="notice"><b>Proposal sent.</b><p class="mono">WORKER LINK: '+esc(r.notifyLink)+'</p></div>');}}
+   if(r&&r.notifyLink){clearErr();var n=$('change-list');if(n)n.insertAdjacentHTML('afterbegin','<div class="notice"><b>'+esc(t('change.sent'))+'</b><p class="mono">'+esc(t('detail.workerLinkLabel'))+': '+esc(r.notifyLink)+'</p></div>');}}
   catch(e){showErr(e.message);}});
  $('form-pay').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
   try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/payments',{method:'POST',body:JSON.stringify({amount:Number($('pay-amount').value),method:$('pay-method').value,date:$('pay-date').value||undefined})});showSuccessCheck();openJob(currentJobId);}
@@ -1064,7 +1292,7 @@ function initDetail(){
      their WorkPassport and choose what it shows. The hirer cannot publish
      the worker's record — the worker does it from the worker page. */
   var box=$('passport-box');
-  if(box)box.innerHTML='<p class="small">'+(lang==='bn'?'WorkPassport worker-এর নিজের: কাজ শেষ হলে worker নিজের লিংক থেকে এই কাজটি যোগ করবেন, আর কী দেখাবে তা নিজেই ঠিক করবেন।':'The WorkPassport belongs to the worker: after the job closes, the worker adds it from their own link and chooses what it shows.')+'</p>';
+  if(box)box.innerHTML='<p class="small">'+(lang==='bn'?'WorkPassport ওয়ার্কারের নিজের: কাজ শেষ হলে ওয়ার্কার নিজের লিংক থেকে এই কাজটি যোগ করবেন, আর কী দেখাবে তা নিজেই ঠিক করবেন।':'The WorkPassport belongs to the worker: after the job closes, the worker adds it from their own link and chooses what it shows.')+'</p>';
  });
  $('btn-resolvepack').addEventListener('click',function(){
   /* window.open carries no Authorization header, so the PDF route (which
@@ -1077,13 +1305,13 @@ function initDetail(){
   try{var r=await api('/api/billing/caas',{method:'POST',body:JSON.stringify({jobId:currentJobId})});
    var box=$('billing-box'); var id=r.chargeId||r.id||(r.caas&&r.caas.id);
    var otp=r.sandboxOtp||(r.sandbox&&r.sandbox.otp)||null;
-   box.innerHTML='<div class="notice">'+(otp?(lang==='bn'?'আপনার কোড: ':'Your code: ')+esc(otp):(lang==='bn'?'OTP SMS-এ পাঠানো হয়েছে।':'OTP sent by SMS.'))+'</div>'+
-    '<label>OTP</label><input id="caas-otp" type="text" inputmode="numeric" placeholder="OTP"><div class="btn-row"><button class="btn btn-dark btn-sm" type="button" id="caas-verify">Verify ৳10</button></div>';
-   $('caas-verify').addEventListener('click',async function(){try{var v=await api('/api/billing/caas/'+encodeURIComponent(id||currentJobId)+'/verify',{method:'POST',body:JSON.stringify({otpCode:$('caas-otp').value.trim()})});box.innerHTML='<p class="mono">'+(v.status==='VERIFIED'?'PAID — ৳10 · RECORD ACTIVE':'STATUS: '+esc(v.status||'PENDING'))+'</p>';loadBillingStatus();}catch(e){showErr(e.message);}});
+   box.innerHTML='<div class="notice">'+(otp?esc(t('otp.code'))+': '+esc(otp):(lang==='bn'?'OTP SMS-এ পাঠানো হয়েছে।':'OTP sent by SMS.'))+'</div>'+
+    '<label>OTP</label><input id="caas-otp" type="text" inputmode="numeric" placeholder="OTP"><div class="btn-row"><button class="btn btn-dark btn-sm" type="button" id="caas-verify">'+esc(t('caas.verify'))+'</button></div>';
+   $('caas-verify').addEventListener('click',async function(){try{var v=await api('/api/billing/caas/'+encodeURIComponent(id||currentJobId)+'/verify',{method:'POST',body:JSON.stringify({otpCode:$('caas-otp').value.trim()})});box.innerHTML='<p class="mono">'+(v.status==='VERIFIED'?esc(t('caas.paid')):esc(t('caas.status'))+': '+esc(statusLabel(v.status||'PENDING')))+'</p>';loadBillingStatus();}catch(e){showErr(e.message);}});
   }catch(e){showErr(e.message);}});
  $('btn-sub').addEventListener('click',async function(){clearErr();
   try{var r=await api('/api/billing/subscribe',{method:'POST',body:JSON.stringify({plan:'monthly'})});
-   $('billing-box').innerHTML='<p class="mono">SUBSCRIBED — ৳70 / MONTH · '+(r.status||r.state||'ACTIVE')+'</p>';loadBillingStatus();
+   $('billing-box').innerHTML='<p class="mono">'+esc(t('sub.done'))+' · '+esc(statusLabel(r.status||r.state||'ACTIVE'))+'</p>';loadBillingStatus();
   }catch(e){showErr(e.message);}});
 }
 
@@ -1102,10 +1330,10 @@ function bidDistText(b){
  return (lang==='bn'?'সরলরেখা দূরত্ব: ':'Straight-line distance: ')+b.distanceKm+' km';
 }
 async function loadMyBidJobs(){
- var box=$('bid-mine-list'); if(!box)return; box.innerHTML='<p class="small">LOADING…</p>';
+ var box=$('bid-mine-list'); if(!box)return; box.innerHTML='<p class="small">'+esc(t('job.loading'))+'</p>';
  try{var r=await api('/api/bid-jobs/mine'); var rows=r.bidJobs||[];
   box.innerHTML=rows.length?rows.map(function(b){
-   return '<div class="job-row"><div><div class="t">'+esc(b.trade)+' — '+esc((b.description||'').slice(0,60))+'</div><div class="m">'+esc(b.status)+' · '+esc(b.liveBids||0)+' live bids · '+esc(fmtDate(b.created_at))+'</div></div><button class="btn btn-dark btn-sm" type="button" data-bidjob="'+esc(b.id)+'">'+(lang==='bn'?'দর দেখুন':'See bids')+'</button></div>';
+   return '<div class="job-row"><div><div class="t">'+esc(tradeLabel(b.trade))+' — '+esc((b.description||'').slice(0,60))+'</div><div class="m">'+esc(statusLabel(b.status))+' · '+esc(b.liveBids||0)+' '+(lang==='bn'?'টি দর':'live bids')+' · '+esc(fmtDate(b.created_at))+'</div></div><button class="btn btn-dark btn-sm" type="button" data-bidjob="'+esc(b.id)+'">'+(lang==='bn'?'দর দেখুন':'See bids')+'</button></div>';
   }).join(''):'<p class="small">'+(lang==='bn'?'এখনো কোনো দর-খোলা কাজ নেই।':'No open bid jobs yet.')+'</p>';
   box.querySelectorAll('[data-bidjob]').forEach(function(btn){btn.addEventListener('click',function(){openBidDetail(btn.getAttribute('data-bidjob'));});});
  }catch(e){box.innerHTML='<p class="small">'+esc(e.message)+'</p>';}
@@ -1114,8 +1342,8 @@ async function openBidDetail(id){
  currentBidJobId=id; clearErr();
  try{var r=await api('/api/bid-jobs/'+encodeURIComponent(id));
   var b=r.bidJob; var bids=r.bids||[];
-  $('bid-detail-title').textContent=b.trade+' — '+((b.description||'').slice(0,80));
-  $('bid-detail-meta').textContent=b.status+' · '+esc(fmtDate(b.created_at))+(b.siteArea?' · '+esc(b.siteArea):'');
+  $('bid-detail-title').textContent=tradeLabel(b.trade)+' — '+((b.description||'').slice(0,80));
+  $('bid-detail-meta').textContent=statusLabel(b.status)+' · '+fmtDate(b.created_at)+(b.siteArea?' · '+b.siteArea:'');
   $('bid-detail-photos').innerHTML=bidPhotosHtml(b.photos);
   var bl=$('bid-list');
   bl.innerHTML=bids.length?bids.map(function(bd){
@@ -1123,7 +1351,7 @@ async function openBidDetail(id){
    var facts=[];
    if(pass.completedJobs!=null)facts.push((lang==='bn'?'সম্পন্ন কাজ: ':'Completed jobs: ')+pass.completedJobs);
    if(pass.trades&&pass.trades.length)facts.push((lang==='bn'?'কাজের ধরন: ':'Trades: ')+pass.trades.join(', '));
-   return '<div class="job-row"><div><div class="t">'+taka(bd.amount)+' · '+esc(bd.workerName||bd.workerPhone||'')+'</div><div class="m">'+esc(bd.note||'')+(bd.earliestStart?' · '+(lang==='bn'?'শুরু: ':'Starts: ')+esc(bd.earliestStart):'')+'</div><div class="m">'+(bd.distanceKm!=null?(lang==='bn'?'সরলরেখা দূরত্ব: ':'Straight-line distance: ')+bd.distanceKm+' km':(lang==='bn'?'দূরত্ব জানা নেই':'Distance unavailable'))+' · '+esc(facts.join(' · '))+'</div><div class="m">'+esc(bd.status)+' · '+(lang==='bn'?'মেয়াদ: ':'Expires: ')+esc(fmtDT(bd.expires_at))+'</div></div>'+
+   return '<div class="job-row"><div><div class="t">'+taka(bd.amount)+' · '+esc(bd.workerName||bd.workerPhone||'')+'</div><div class="m">'+esc(bd.note||'')+(bd.earliestStart?' · '+(lang==='bn'?'শুরু: ':'Starts: ')+esc(bd.earliestStart):'')+'</div><div class="m">'+(bd.distanceKm!=null?(lang==='bn'?'সরলরেখা দূরত্ব: ':'Straight-line distance: ')+bd.distanceKm+' km':(lang==='bn'?'দূরত্ব জানা নেই':'Distance unavailable'))+' · '+esc(facts.join(' · '))+'</div><div class="m">'+esc(statusLabel(bd.status))+' · '+(lang==='bn'?'মেয়াদ: ':'Expires: ')+esc(fmtDT(bd.expires_at))+'</div></div>'+
    (bd.status==='LIVE'?'<button class="btn btn-dark btn-sm" type="button" data-accept="'+esc(bd.id)+'">'+(lang==='bn'?'বেছে নিন':'Pick this bid')+'</button>':'')+'</div>';
   }).join(''):'<p class="small">'+(lang==='bn'?'এখনো কোনো দর আসেনি।':'No bids yet.')+'</p>';
   bl.querySelectorAll('[data-accept]').forEach(function(btn){btn.addEventListener('click',async function(){
@@ -1137,12 +1365,12 @@ async function openBidDetail(id){
  }catch(e){showErr(e.message);}
 }
 async function loadOpenBidJobs(){
- var box=$('find-work-list'); if(!box)return; box.innerHTML='<p class="small">LOADING…</p>';
+ var box=$('find-work-list'); if(!box)return; box.innerHTML='<p class="small">'+esc(t('job.loading'))+'</p>';
  var q=findLoc?('?lat='+findLoc.lat+'&lng='+findLoc.lng):'';
- $('find-loc-note').textContent=findLoc?(lang==='bn'?'আপনার লোকেশন: ':'Your location: ')+findLoc.lat+', '+findLoc.lng+' — '+(lang==='bn'?'কাছের কাজ আগে':'nearest first'):(lang==='bn'?'লোকেশন ছাড়া — নতুন কাজ আগে। দূরত্ব দেখতে “Use my location” চাপুন।':'No location — newest first. Tap “Use my location” to see distance.');
+ $('find-loc-note').textContent=findLoc?(lang==='bn'?'আপনার লোকেশন: ':'Your location: ')+findLoc.lat+', '+findLoc.lng+' — '+(lang==='bn'?'কাছের কাজ আগে':'nearest first'):(lang==='bn'?'লোকেশন ছাড়া — নতুন কাজ আগে। দূরত্ব দেখতে “আমার লোকেশন ব্যবহার করুন” চাপুন।':'No location — newest first. Tap “Use my location” to see distance.');
  try{var r=await api('/api/bid-jobs/open'+q); var rows=r.bidJobs||[];
   box.innerHTML=rows.length?rows.map(function(b){
-   return '<div class="job-row" style="display:block"><div><div class="t">'+esc(b.trade)+' — '+esc((b.description||'').slice(0,80))+'</div><div class="m">'+bidDistText(b)+' · '+esc(b.bidCount||0)+' '+(lang==='bn'?'টি দর':'bids')+' · '+esc(fmtDate(b.created_at))+(b.siteArea?' · '+esc(b.siteArea):'')+'</div></div>'+
+   return '<div class="job-row" style="display:block"><div><div class="t">'+esc(tradeLabel(b.trade))+' — '+esc((b.description||'').slice(0,80))+'</div><div class="m">'+bidDistText(b)+' · '+esc(b.bidCount||0)+' '+(lang==='bn'?'টি দর':'bids')+' · '+esc(fmtDate(b.created_at))+(b.siteArea?' · '+esc(b.siteArea):'')+'</div></div>'+
    bidPhotosHtml(b.photos)+
    '<div class="field-grid"><div><label>'+(lang==='bn'?'আপনার দাম (৳)':'Your price (৳)')+'</label><input type="number" min="1" inputmode="numeric" class="bid-amount" placeholder="4000"></div>'+
    '<div><label>'+(lang==='bn'?'কবে শুরু করতে পারবেন?':'Earliest start')+'</label><input type="text" class="bid-start" placeholder="e.g. 2026-11-28"></div></div>'+
@@ -1177,7 +1405,7 @@ function initBidding(){
  $('btn-bid-me').addEventListener('click',function(){
   if(!('geolocation' in navigator)){showErr(lang==='bn'?'এই ডিভাইসে লোকেশন পাওয়া যাচ্ছে না।':'Location is not available on this device.');return;}
   navigator.geolocation.getCurrentPosition(function(p){bidSite={lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6)};
-   var el=$('bid-picked');el.hidden=false;el.textContent='SITE: '+bidSite.lat+', '+bidSite.lng;},
+   var el=$('bid-picked');el.hidden=false;el.textContent=t('site.picked')+': '+bidSite.lat+', '+bidSite.lng;},
    function(e){showErr(e.message);},{enableHighAccuracy:true,timeout:10000});});
  $('btn-bid-clear').addEventListener('click',function(){bidSite=null;$('bid-address').value='';var el=$('bid-picked');if(el)el.hidden=true;});
  $('btn-find-loc').addEventListener('click',function(){
@@ -1214,10 +1442,16 @@ async function loadDemo(){
   var job=r.job||(r.jobs&&r.jobs[0]); var id=job&&(job.id||job._id);
   if(id){try{localStorage.setItem('dc_pending_demo',id);}catch(e){}}
   if(r&&r.workerLink){try{localStorage.setItem('dc_demo_workerlink',r.workerLink);}catch(e){}}
+  /* Guided demo, one click: the seed mints a real hirer session, so the
+     evaluator lands inside the seeded job — no OTP copying, no manual
+     login. Falls back to the OTP login below when no token came back. */
+  if(r&&r.hirerToken){token=r.hirerToken;localStorage.setItem('dc_token',token);
+   user=r.hirer||{phone:r.hirerPhone||'01700000001',name:'Rahim Uddin'};localStorage.setItem('dc_user',JSON.stringify(user));
+   if(id){openJob(id);}else{showView('view-jobs');loadJobs();}return;}
   if(!token){ /* demo seed may return a token; otherwise show login with demo phone */
    $('login-phone').value='01700000001'; showView('view-login');
-   var extra=r&&r.sandboxOtps?(' '+(lang==='bn'?'নিশ্চিতকরণের কোড — Hirer: ':'Confirm codes — hirer ')+(r.sandboxOtps.hirerConfirm||'—')+' / '+(lang==='bn'?'Worker: ':'worker ')+(r.sandboxOtps.workerConfirm||'—')+'.'):'';
-   showNotice(lang==='bn'?'ডেমো তৈরি হয়েছে। হিরার নম্বর 01700000001 দিয়ে OTP লগইন করুন। লগইনের পর ডেমো কাজটি নিজে থেকেই খুলবে।'+extra:'Demo seeded. Log in with hirer number 01700000001 and OTP. The demo job opens automatically after login.'+extra);
+   var extra=r&&r.sandboxOtps?(' '+(lang==='bn'?'নিশ্চিতকরণের কোড — হায়ারার: ':'Confirm codes — hirer ')+(r.sandboxOtps.hirerConfirm||'—')+' / '+(lang==='bn'?'ওয়ার্কার: ':'worker ')+(r.sandboxOtps.workerConfirm||'—')+'.'):'';
+   showNotice(lang==='bn'?'ডেমো তৈরি হয়েছে। হায়ারারের নম্বর 01700000001 দিয়ে OTP লগইন করুন। লগইনের পর ডেমো কাজটি নিজে থেকেই খুলবে।'+extra:'Demo seeded. Log in with hirer number 01700000001 and OTP. The demo job opens automatically after login.'+extra);
    document.getElementById('app').scrollIntoView({behavior:'smooth'}); return; }
   if(id)openJob(id); else loadJobs(),showView('view-jobs');
  }catch(e){showErr((lang==='bn'?'ডেমো লোড হয়নি: ':'Demo did not load: ')+e.message);}
@@ -1236,6 +1470,7 @@ function initNavSpy(){
 /* ---------- boot ---------- */
 document.addEventListener('DOMContentLoaded',function(){
  initNavSpy();
+ loadConfig();
  applyI18n();
  /* Mobile hamburger menu */
  var mb=$('menu-btn');

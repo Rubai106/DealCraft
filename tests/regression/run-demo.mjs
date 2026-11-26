@@ -14,7 +14,7 @@ const WORKER = '01800000002';
 
 const server = spawn(process.execPath, ['server/server.js'], {
   cwd: path.resolve(import.meta.dirname, '..', '..'),
-  env: { ...process.env, PORT: String(PORT), APPLINK_MODE: 'sandbox', DEALCRAFT_DEMO_TOKEN: 'test-demo-token' },
+  env: { ...process.env, PORT: String(PORT), APPLINK_MODE: 'sandbox', DEALCRAFT_DEMO_TOKEN: 'test-demo-token', DEMO_MODE: 'true', FEATURE_BIDDING: 'true' },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
 server.stdout.on('data', (d) => process.stdout.write('[server] ' + d));
@@ -95,12 +95,64 @@ try {
   check(health.body?.ok === true && health.body?.db === 'sqlite', 'health OK (sqlite)');
   const mode = await req('/api/applink/mode');
   check(mode.body?.mode === 'sandbox', 'AppLink mode is sandbox');
+  const cfg = await req('/api/config');
+  check(cfg.body?.biddingEnabled === true, 'config reports biddingEnabled=true when FEATURE_BIDDING=true');
   const fsScope = await req('/api/fairscope');
   check(fsScope.body?.questions?.ELECTRICIAN?.length === 8, 'FairScope: 8 electrician questions');
   check(fsScope.body?.questions?.PAINTER?.length === 7, 'FairScope: 7 painter questions');
   check(fsScope.body?.questions?.PLUMBER?.length === 5, 'FairScope: 5 plumber questions');
-  const script = await req('/api/demo/script');
+  const script = await req('/api/demo/script', { headers: { 'x-demo-token': 'test-demo-token' } });
   check(Array.isArray(script.body?.script) && script.body.script.length >= 9, 'demo script present');
+
+  // Service worker shell: every SHELL entry must exist on disk (a missing
+  // file fails cache.addAll atomically and leaves the shell uncached), and
+  // no font paths may be listed (public/fonts/ is not shipped).
+  const swText = fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'public', 'sw.js'), 'utf8');
+  const shellMatch = swText.match(/var SHELL=\[([\s\S]*?)\];/);
+  const shellEntries = shellMatch[1].split(',').map((s) => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
+  check(shellEntries.length > 0 && !shellEntries.some((e) => e.includes('fonts/')), 'service worker SHELL lists no font files');
+  check(shellEntries.every((e) => fs.existsSync(path.resolve(import.meta.dirname, '..', '..', 'public', e))), 'every service worker SHELL entry exists on disk (shell can actually cache)');
+
+  // Demo endpoints need DEMO_MODE=true: with the flag off they are 404
+  // even with a valid demo token (the flag is an additional gate, not a
+  // replacement for the token). A second server on a scratch port, same
+  // token, flag unset; its 404s touch no tables.
+  console.log('== demo endpoints need DEMO_MODE (flag off -> 404) ==');
+  const PORT2 = 3457;
+  const BASE2 = `http://127.0.0.1:${PORT2}`;
+  const server2 = spawn(process.execPath, ['server/server.js'], {
+    cwd: path.resolve(import.meta.dirname, '..', '..'),
+    env: { ...process.env, PORT: String(PORT2), APPLINK_MODE: 'sandbox', DEALCRAFT_DEMO_TOKEN: 'test-demo-token' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  try {
+    let up2 = false;
+    for (let i = 0; i < 40; i++) {
+      try { const r = await fetch(BASE2 + '/api/health'); if (r.status === 200) { up2 = true; break; } } catch { /* not up yet */ }
+      await sleep(250);
+    }
+    check(up2, 'second server (DEMO_MODE off) boots');
+    const scriptOff = await fetch(BASE2 + '/api/demo/script');
+    check(scriptOff.status === 404, 'demo script is 404 when DEMO_MODE is off');
+    const djOff = { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-demo-token': 'test-demo-token' }, body: '{}' };
+    const resetOff = await fetch(BASE2 + '/api/demo/reset', djOff);
+    check(resetOff.status === 404, 'demo reset is 404 when DEMO_MODE is off (flag beats the token)');
+    const seedOff = await fetch(BASE2 + '/api/demo/seed', djOff);
+    check(seedOff.status === 404, 'demo seed is 404 when DEMO_MODE is off (flag beats the token)');
+    // Bidding flag off (default): /api/config says so, and every bidding
+    // route is 404 — the marketplace does not exist on this server.
+    const cfgOff = await fetch(BASE2 + '/api/config');
+    const cfgOffBody = await cfgOff.json();
+    check(cfgOff.status === 200 && cfgOffBody?.biddingEnabled === false, 'config reports biddingEnabled=false when FEATURE_BIDDING is unset');
+    const bidOpenOff = await fetch(BASE2 + '/api/bid-jobs/open');
+    check(bidOpenOff.status === 404, 'bidding flag off: GET /api/bid-jobs/open is 404');
+    const bidPostOff = await fetch(BASE2 + '/api/bid-jobs', djOff);
+    check(bidPostOff.status === 404, 'bidding flag off: POST /api/bid-jobs is 404');
+    const bidOneOff = await fetch(BASE2 + '/api/bid-jobs/some-id');
+    check(bidOneOff.status === 404, 'bidding flag off: GET /api/bid-jobs/:id is 404');
+  } finally {
+    server2.kill('SIGTERM');
+  }
 
   console.log('== reset + seed demo job (BDT 18,000 rewiring) ==');
   const resetNoToken = await req('/api/demo/reset', j({}));
@@ -255,6 +307,17 @@ try {
   const detail2 = await req(`/api/jobs/${job.id}?token=${workerToken}`);
   const types = detail2.body.events.map((e) => e.type);
   check(types.includes('CONFIRMED_BY_HIRER') && types.includes('CONFIRMED_BY_WORKER'), 'both confirmation events in the log');
+  // Agreement summary SMS: exactly once, to both parties, on activation.
+  const smsEvents = detail2.body.events.filter((e) => e.type === 'SUMMARY_SMS_SENT');
+  check(smsEvents.length === 1, 'agreement summary SMS logged exactly once when the job became ACTIVE');
+  const smsPayload = JSON.parse(smsEvents[0].payload_json || '{}');
+  check(smsPayload.fingerprint8 === v1.fingerprint.slice(0, 8), 'summary SMS carries the first 8 characters of the V1 fingerprint');
+  check(Array.isArray(smsPayload.to) && smsPayload.to.includes(HIRER) && smsPayload.to.includes(WORKER), 'summary SMS sent to both hirer and worker');
+  check(typeof smsPayload.text === 'string' && smsPayload.text.includes('৳18000') && smsPayload.text.includes('2026-12-05') && smsPayload.text.includes('3টি মাইলস্টোন') && smsPayload.text.endsWith(job.id), 'summary SMS text has price/deadline/milestone count and ends with the record reference');
+  const applogSms = await req('/api/applink/log', { headers: auth(token) });
+  const summaryEntry = (applogSms.body?.entries || []).find((e) => e.api === 'sms.send' && typeof e.request?.message === 'string' && e.request.message.includes('সক্রিয়'));
+  check(!!summaryEntry, 'summary SMS appears in the AppLink log (sandbox)');
+  console.log('  SUMMARY_SMS_SENT: ' + (summaryEntry ? summaryEntry.request.message : smsPayload.text));
 
   console.log('== ChangeLock: worker proposes +BDT 2,000, hirer accepts -> V2 BDT 20,000 ==');
   const change = await req(`/api/jobs/${job.id}/changes?token=${workerToken}`, j({ priceDelta: 2000, reason: 'Two extra points', details: { scope: 'Apartment electrical rewiring — 2 bedrooms + two extra points' } }));
@@ -269,6 +332,15 @@ try {
   check(v1after?.price === 18000 && v1after?.fingerprint === v1.fingerprint, 'V1 intact with original price + fingerprint');
   check(v2?.price === 20000 && v2?.fingerprint === fingerprint({ job_id: job.id, version_no: 2, scope: 'Apartment electrical rewiring — 2 bedrooms + two extra points', price: 20000, deadline: '2026-12-05', answers: SEED_ANSWERS, skippedTerms: [], milestones: SEED_MILESTONES }), 'V2 fingerprint recomputes (full agreement payload)');
   check(detail3.body.events.some((e) => e.type === 'CHANGE_PROPOSED') && detail3.body.events.some((e) => e.type === 'CHANGE_APPROVED'), 'change events in the log');
+  // Tamper-evident verify: V2 fingerprint matches, an unknown one does not.
+  const verifyMatch = await req('/api/verify?fp=' + encodeURIComponent(v2.fingerprint));
+  check(verifyMatch.status === 200 && verifyMatch.body?.match === true && verifyMatch.body?.versionNo === 2 && verifyMatch.body?.jobId === job.id, 'verify endpoint matches the V2 fingerprint (job + version)');
+  const verifyMiss = await req('/api/verify?fp=' + '0'.repeat(64));
+  check(verifyMiss.status === 200 && verifyMiss.body?.match === false, 'verify endpoint reports mismatch for an unknown fingerprint');
+  const verifyNoFp = await req('/api/verify');
+  check(verifyNoFp.status === 400, 'verify endpoint without fp is rejected (400)');
+  const verifyPage = await req('/verify?fp=' + encodeURIComponent(v2.fingerprint));
+  check(verifyPage.status === 200 && verifyPage.text.includes('id="verify-result"') && verifyPage.text.includes('/api/verify'), 'public verify page serves and asks /api/verify');
 
   console.log('== ChangeLock reject path ==');
   const change2 = await req(`/api/jobs/${job.id}/changes?token=${workerToken}`, j({ priceDelta: 500, reason: 'Extra socket' }));
@@ -323,6 +395,7 @@ try {
   check(photoGetAnon.status === 401, 'job photo without auth is refused (401, not a public directory)');
   const photoGetHirer = await req(photoJson.photo.url, { headers: auth(token) });
   check(photoGetHirer.status === 200, 'job photo serves to the job hirer');
+  check(photoGetHirer.headers.get('content-type') === 'image/png', 'job photo serves with an explicit image Content-Type from its magic bytes (not octet-stream)');
   const badKindForm = new FormData();
   badKindForm.append('photo', new Blob([png], { type: 'image/png' }), 'after.png');
   badKindForm.append('kind', 'WRONG');
@@ -450,6 +523,29 @@ try {
   const rejectDetail = await req(`/api/jobs/${painterId}?token=${painterToken}`);
   check(rejectDetail.body.events.some((e) => e.type === 'RESOLUTION_REJECTED'), 'RESOLUTION_REJECTED event recorded');
 
+  console.log('== deadline nudge: ACTIVE job past deadline fires once ==');
+  // The demo job is ACTIVE here — backdate its current version's deadline,
+  // then a job-detail read runs the sweep. (The painter job is DISPUTED
+  // at this point, so it cannot be the nudge subject.)
+  {
+    const { DatabaseSync } = await import('node:sqlite');
+    const dbPath = path.resolve(import.meta.dirname, '..', '..', 'server', 'data', 'dealcraft.db');
+    const db = new DatabaseSync(dbPath);
+    const pv = db.prepare('SELECT id FROM JobVersion WHERE job_id = ? ORDER BY version_no DESC LIMIT 1').get(job.id);
+    db.prepare('UPDATE JobVersion SET deadline = ? WHERE id = ?').run(new Date(Date.now() - 86400000).toISOString().slice(0, 10), pv.id);
+    db.close();
+  }
+  const dlDetail1 = await req(`/api/jobs/${job.id}?token=${workerToken}`);
+  const dlEvents1 = dlDetail1.body.events.filter((e) => e.type === 'DEADLINE_PASSED');
+  check(dlEvents1.length === 1, 'DEADLINE_PASSED recorded once when an ACTIVE job passes its deadline');
+  const dlPayload = JSON.parse(dlEvents1[0].payload_json || '{}');
+  check(typeof dlPayload.labelEn === 'string' && typeof dlPayload.labelBn === 'string', 'deadline event carries BN/EN labels in its payload');
+  const dlDetail2 = await req(`/api/jobs/${job.id}?token=${workerToken}`);
+  check(dlDetail2.body.events.filter((e) => e.type === 'DEADLINE_PASSED').length === 1, 'second read does not duplicate the deadline event');
+  check(dlDetail2.body?.job?.status === 'ACTIVE', 'deadline nudge does not change the job status (no punishment)');
+  const dlLog = await req('/api/applink/log', { headers: auth(token) });
+  check((dlLog.body?.entries || []).some((e) => e.api === 'sms.send' && typeof e.request?.message === 'string' && e.request.message.includes('শেষ তারিখ')), 'deadline nudge SMS sent via the existing SMS path (sandbox log)');
+
   console.log('== ResolvePack PDF + close + WorkPassport ==');
   const pdf = await req(`/api/jobs/${job.id}/resolvepack`, { headers: auth(token) });
   check(pdf.status === 200 && (pdf.headers.get('content-type') || '').includes('pdf'), 'ResolvePack PDF downloads');
@@ -493,8 +589,8 @@ try {
   check(passportByPhone.status === 404, 'old phone-based passport URL is gone (404 — random profile id only)');
   check(!JSON.stringify(passport.body).includes('*') || true, 'no star ratings in passport');
   const passHtml = await req(`/passport/${demoProfileId}`);
-  check(passHtml.status === 200 && passHtml.text.includes('DealCraft Passport'), 'public passport page serves');
-  check(passHtml.text.includes('Karim Mistri'), 'public passport page shows the worker name');
+  check(passHtml.status === 200 && passHtml.text.includes('pp-id-card'), 'public passport URL serves the rich passport page (ID card), not the minimal server page');
+  check(passHtml.text.includes('id="p-name"') && passHtml.text.includes('/api/passport/'), 'rich passport page loads the worker record from the public API');
   check(!passHtml.text.includes(WORKER), 'public passport page shows no phone number');
   // A second closed job, with client + photos enabled, proves the toggles
   // actually render (the API returns per-entry clientName/photoUrls).
@@ -510,7 +606,10 @@ try {
   check(passportPainter.body?.entries?.[0]?.clientName === 'Rahim Uddin', 'passport API returns the client name when enabled');
   check(!JSON.stringify(passportPainter.body).includes('01900000003'), 'painter passport API returns no phone number');
   const passPainterHtml = await req(`/passport/${painterProfileId}`);
-  check(passPainterHtml.status === 200 && passPainterHtml.text.includes('Painter Test') && passPainterHtml.text.includes('Rahim Uddin'), 'public passport page shows worker name + client name when enabled');
+  // The rich page is client-rendered: the worker/client names come from
+  // the API (asserted above), not from the static HTML. The page must
+  // read the profile id from the /passport/:id path it was served at.
+  check(passPainterHtml.status === 200 && passPainterHtml.text.includes('pp-id-card') && passPainterHtml.text.includes('/passport/'), 'rich passport page serves for the second profile and reads its id from the path');
   const qr = await req(`/api/passport/${demoProfileId}/qr.png`);
   check(qr.status === 200 && (qr.headers.get('content-type') || '').includes('png'), 'passport QR PNG serves');
 
@@ -671,7 +770,11 @@ try {
   check(appJs.text.includes('async function refreshJob') && appJs.text.includes('refreshJob();'), 'switching detail tabs re-fetches the job (timeline/dispute never go stale)');
   const passPage = await req(`/passport/${demoProfileId}`);
   check(passPage.status === 200 && passPage.text.includes('width=device-width'), 'server passport page has a viewport meta (no 980px layout on phones)');
+  check(passPage.text.includes('pp-id-card'), 'passport URL serves the rich passport page (ID card)');
   const css = await req('/style.css');
+  check(css.text.includes('--text-orange:#c73e0e'), 'darker text-orange token exists for text on light backgrounds (WCAG AA)');
+  check(css.text.includes('.light-page .small{color:#555}'), 'worker/passport light pages use dark .small text (WCAG AA)');
+  check(css.text.includes('.cl-ver{font-family:var(--display);font-size:24px;color:var(--text-orange)}') && css.text.includes('.cl-arrow{align-self:center;font-size:20px;color:var(--text-orange)}') && css.text.includes('.pp-job-lab{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-orange);margin:6px 0 12px}'), 'orange text on white uses the darker text-orange (ChangeLock + passport job labels)');
   check(css.text.includes('#worker-link-url') && css.text.includes('break-all'), 'worker-link token can break anywhere (no 707px-wide mobile page)');
   check(css.text.includes('@media(max-width:480px)') && css.text.includes('.menu-btn span[data-i18n]{display:none}'), 'phone header shrinks below 480px (brand never wraps to two lines)');
   // The close flow is reachable from the UI on both sides: the worker page

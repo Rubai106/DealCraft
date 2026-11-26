@@ -15,7 +15,7 @@ npm start          # http://localhost:3000
 ```
 
 ```bash
-npm test           # full regression: npm run regression (243 assertions)
+npm test           # full regression: npm run regression (254 assertions)
 npm run dev        # watch mode
 ```
 
@@ -37,7 +37,7 @@ Copy `.env.example` to `.env` and fill in the real values. Never commit
 | `APPLINK_OTP_MESSAGE` | Optional template text for a live OTP SMS |
 | `APPLINK_DELIVERY_REPORT_URL` | Optional delivery-report callback URL |
 | `DEALCRAFT_DEMO_TOKEN` | Token required by the demo endpoints when set (see below) |
-| `SESSION_SECRET` | Session signing secret |
+| `DEMO_MODE` | Set to `true` to enable the demo endpoints at all (default off; always off in production) |
 | `NODE_ENV` | Set to `production` on any deployed server (demo endpoints return 404) |
 
 ## Demo (under 2 minutes)
@@ -75,10 +75,11 @@ and asserts every step.
 ## Demo endpoints — dangerous by design
 
 `POST /api/demo/seed` and `POST /api/demo/reset` wipe every table,
-including sessions — re-login after seeding. They return 404 when
-`NODE_ENV=production`, and when `DEALCRAFT_DEMO_TOKEN` is set they need
-the same value as the `x-demo-token` header (or a `demoToken`
-body/query field). Set `NODE_ENV=production` on any public deployment.
+including sessions — re-login after seeding. They return 404 unless
+`DEMO_MODE=true`, and 404 always when `NODE_ENV=production`; when
+`DEALCRAFT_DEMO_TOKEN` is set they also need the same value as the
+`x-demo-token` header (or a `demoToken` body/query field). Set
+`NODE_ENV=production` and leave `DEMO_MODE` unset on any public deployment.
 
 ## Backups
 

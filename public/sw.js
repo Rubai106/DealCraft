@@ -1,11 +1,11 @@
 /* DealCraft service worker — cache the app shell + already-loaded job records for offline viewing. */
 var CACHE='dealcraft-v2';
-var SHELL=['./','index.html','style.css','fonts.css','app.js','worker.html','passport.html','manifest.json','icon.svg',
- 'fonts/ArchivoBlack-400-latin.woff2',
- 'fonts/NotoSansBengali-400-bengali.woff2','fonts/NotoSansBengali-400-latin.woff2',
- 'fonts/NotoSansBengali-600-bengali.woff2','fonts/NotoSansBengali-600-latin.woff2',
- 'fonts/NotoSansBengali-800-bengali.woff2','fonts/NotoSansBengali-800-latin.woff2',
- 'fonts/Oswald-500-latin.woff2','fonts/Oswald-600-latin.woff2','fonts/Oswald-700-latin.woff2'];
+/* Fonts are NOT in SHELL: public/fonts/ is not shipped with the app
+   (the self-hosted woff2 files are deployed separately), and
+   cache.addAll fails ATOMICALLY — one missing file left the whole shell
+   uncached and offline broken. Fonts runtime-cache through the fetch
+   handler below the first time the page loads them. */
+var SHELL=['./','index.html','style.css','fonts.css','app.js','worker.html','passport.html','manifest.json','icon.svg'];
 self.addEventListener('install',function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(SHELL);}).then(function(){return self.skipWaiting();}).catch(function(){}));
 });

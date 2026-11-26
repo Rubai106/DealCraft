@@ -1,6 +1,6 @@
 # Project status
 
-## Working (verified by the regression, 243 assertions, PASS)
+## Working (verified by the regression, 254 assertions, PASS)
 
 FairScope three-state gate, dual OTP confirmation, ChangeLock
 (transactional, positive-price-checked), PayProof balances, milestones +
@@ -25,8 +25,7 @@ screen are sandbox-only.
 
 ## Planned (not built, not claimed)
 
-USSD (DealCraft does not use it — the worker uses a web link, not a
-feature-phone menu), real GPS/map tiles (Leaflet CDN is blocked in the
+real GPS/map tiles (Leaflet CDN is blocked in the
 sandbox; the text fallback is verified), service-worker offline re-visit,
 photo retention/deletion pass, withdraw-bid endpoint, SMS-reply actions
 (`dealcraft YES/NO` by plain SMS).

@@ -42,8 +42,7 @@ and note what you picked — the exact dropdown labels vary.
 | Terms & Conditions | Agree |
 
 ### Step 2 — Services (Add API)
-Tick: **SMS, CaaS, Subscription**. Also tick **USSD** only if the wizard forces a
-choice — DealCraft does not use USSD. OTP is not a separate tickbox in the wizard;
+Tick: **SMS, CaaS, Subscription**. OTP is not a separate tickbox in the wizard;
 it comes with the app.
 
 ### SMS Sender Details

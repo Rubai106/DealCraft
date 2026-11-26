@@ -1,6 +1,6 @@
 # Security & privacy
 
-All items below are covered by the regression suite (`npm test`, 243
+All items below are covered by the regression suite (`npm test`, 254
 assertions, PASS).
 
 ## Billing
@@ -85,8 +85,9 @@ stored. It is an integrity check, not blockchain or legal proof.
 
 ## Demo endpoints & personal data
 
-- `POST /api/demo/seed` and `POST /api/demo/reset` return 404 in
-  production (`NODE_ENV=production`) and need the
+- `POST /api/demo/seed` and `POST /api/demo/reset` return 404 unless
+  `DEMO_MODE=true`, and 404 always in production
+  (`NODE_ENV=production`); they also need the
   `DEALCRAFT_DEMO_TOKEN` (`x-demo-token` header) when one is configured.
 - **Personal data is out of the public repo.**
   `APPLINK-APP-CREATION.md` and the docs carry redacted placeholders;

@@ -6,6 +6,10 @@
      .section-white override .grey back to a dark grey below. */
   --line:#1f1f1f; --line-light:#e6e6e6;
   --orange:#ff5a1f;
+  --text-orange:#c73e0e;
+  /* --text-orange is the DARKER orange for TEXT on light backgrounds
+     only (5.09:1 on white, WCAG AA). Brand orange fills, bars and text
+     on dark surfaces stay #ff5a1f. */
   /* Motion system — three shared curves, three durations. Entrances use
      --ease-out, stamps/chips/success --ease-spring, state changes
      --ease-inout. Durations: micro 160ms, standard 260ms, emphasis
@@ -366,9 +370,9 @@ footer{border-top:1px solid var(--line);padding:56px 0 32px;min-height:100svh}
 /* ---- ChangeLock journey strip (detail tab) ---- */
 .cl-journey{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin:12px 0 16px}
 .cl-step{flex:1 1 120px;border:1px solid #ddd;padding:12px;background:#fff}
-.cl-ver{font-family:var(--display);font-size:24px;color:#FF5A1F}
+.cl-ver{font-family:var(--display);font-size:24px;color:var(--text-orange)}
 .cl-price{font-size:20px;font-weight:700;margin-top:4px}
-.cl-arrow{align-self:center;font-size:20px;color:#FF5A1F}
+.cl-arrow{align-self:center;font-size:20px;color:var(--text-orange)}
 @media(max-width:700px){.cl-journey{flex-direction:column}.cl-arrow{transform:rotate(90deg)}}
 
 /* ============================================================
@@ -582,7 +586,7 @@ h1.hero-title .hl-2{--ld:.22s}
 .balance .tile-dark .lbl{color:#bbb}
 .balance .tile-paid .amt{color:#0a7d3b}
 .balance .tile-paid .lbl::before{content:"✓ ";color:#0a7d3b;font-weight:700}
-.balance .tile-rem .amt{color:#FF5A1F}
+.balance .tile-rem .amt{color:var(--text-orange)}
 .bar{height:12px;border-radius:999px;overflow:hidden}
 .bar i{background:var(--orange);border-radius:999px;transition:width .6s var(--ease-inout)}
 /* Timeline as individual cards on a solid neutral spine */
@@ -644,7 +648,7 @@ h1.hero-title .hl-2{--ld:.22s}
 .pp-job{background:#fff;color:#111;border:1px solid #e6e6e6;border-radius:16px;padding:20px 18px 16px;box-shadow:6px 6px 0 #111;transition:transform var(--dur-std) var(--ease-out),box-shadow var(--dur-std) var(--ease-out);animation:ppJobIn var(--dur-em) var(--ease-out) both;animation-delay:calc(var(--i,0)*70ms)}
 .pp-job:hover{transform:translateY(-4px);box-shadow:8px 10px 0 #111}
 .pp-job-num{display:block;font-family:var(--display);font-size:34px;line-height:1}
-.pp-job-lab{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#FF5A1F;margin:6px 0 12px}
+.pp-job-lab{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-orange);margin:6px 0 12px}
 .pp-job-trade{display:block;font-family:var(--condensed);font-size:20px;line-height:1.1;text-transform:uppercase}
 .pp-job-meta{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:#666;margin-top:6px}
 @keyframes ppJobIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
@@ -703,6 +707,7 @@ h1.hero-title .hl-2{--ld:.22s}
 .section-white .hero-demo-link:hover{color:#c23c00}
 /* .small is pale grey for black sections; on white it needs dark ink. */
 .section-white .small{color:#555}
+.light-page .small{color:#555}
 .bid-demo{border:1px solid var(--line-light);background:#fff;color:#111;box-shadow:0 12px 32px rgba(0,0,0,.08);margin:24px 0 8px}
 .bid-job{display:flex;gap:16px;padding:20px;align-items:flex-start}
 .bid-photo{flex:none;width:96px;height:96px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase}

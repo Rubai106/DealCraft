@@ -27,7 +27,7 @@ Built for **AppQuest 2.0** (AppLink / Banglalink) — theme: Human Potential
 ```bash
 npm install
 npm start          # http://localhost:3000
-npm test           # full regression — 243 assertions, PASS
+npm test           # full regression — 254 assertions, PASS
 ```
 
 Requires Node.js 24+. No other services. The database is a SQLite file
@@ -72,9 +72,9 @@ so no live call has been made. See
 ## Status
 
 - **Working:** everything in the table above, verified by the regression
-  (243 assertions, PASS) and CI on every push to main.
+  (254 assertions, PASS) and CI on every push to main.
 - **Sandbox-only:** all AppLink calls, until live credentials exist.
-- **Planned:** USSD, real GPS/map tiles, offline PWA re-visit, photo
+- **Planned:** real GPS/map tiles, offline PWA re-visit, photo
   retention pass, withdraw-bid endpoint.
 
 An independent review of this repo (26 Nov 2026) scored it **~80/100**;

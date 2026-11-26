@@ -38,8 +38,9 @@ POST /api/demo/seed | POST /api/demo/reset | GET /api/demo/script
 
 Notes:
 
-- Demo endpoints return 404 in production and need `DEALCRAFT_DEMO_TOKEN`
-  when one is configured (see [setup.md](setup.md)).
+- Demo endpoints return 404 unless `DEMO_MODE=true`, and 404 always in
+  production; they also need `DEALCRAFT_DEMO_TOKEN` when one is
+  configured (see [setup.md](setup.md)).
 - OTP verify is rate limited: 5 failed attempts per phone+purpose per 15
   minutes, then 429.
 - Photo uploads: multipart, image only, 5 MB max, magic-byte validated.

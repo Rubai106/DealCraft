@@ -26,14 +26,13 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="nav"><a class="skip-link" href="#top">Skip to content</a><div class="wrap nav-in">
+<header class="nav"><a class="skip-link" href="#top" data-i18n="nav.skip">Skip to content</a><div class="wrap nav-in">
   <a class="brand" href="#top">DEALCRAFT<i>.</i></a>
   <button class="menu-btn" type="button" id="menu-btn" aria-expanded="false" aria-controls="main-nav"><span aria-hidden="true">☰</span> <span data-i18n="nav.menu">Menu</span></button>
   <nav class="nav-links" id="main-nav" aria-label="Main">
     <a href="#journey" data-i18n="nav.how">How it works</a>
     <a href="#price" data-i18n="nav.price">Price</a>
     <a href="#why" data-i18n="nav.why">Why</a>
-    <a href="#live" data-i18n="nav.live">Live</a>
     <a href="#faq" data-i18n="nav.faq">FAQ</a>
     <a href="#app" data-i18n="nav.app">App</a>
     <a href="#find" data-i18n="nav.bid">Find a repairer</a>
@@ -61,27 +60,27 @@
     <div class="rcard-scene" id="hero-scene">
       <div class="rcard-tilt" id="hero-tilt">
         <div class="rcard rcard-ghost" aria-hidden="true">
-          <div class="rcard-top"><span>V1 · SUPERSEDED</span><span>SHA-256 FINGERPRINT</span></div>
-          <h3 class="rcard-trade">ELECTRICIAN</h3>
-          <p class="rcard-scope">পুরো ফ্ল্যাটের রিওয়্যারিং · ১২ পয়েন্ট</p>
-          <div class="rcard-rows"><div><span>মোট</span><b>৳18,000</b></div></div>
+          <div class="rcard-top"><span data-i18n="card.ghostVer">V1 · SUPERSEDED</span><span data-i18n="card.fp">SHA-256 FINGERPRINT</span></div>
+          <h3 class="rcard-trade" data-i18n="trade.electrician">ELECTRICIAN</h3>
+          <p class="rcard-scope" data-i18n="demo.scope">পুরো ফ্ল্যাটের রিওয়্যারিং · ১২ পয়েন্ট</p>
+          <div class="rcard-rows"><div><span data-i18n="bal.agreed">মোট</span><b>৳18,000</b></div></div>
         </div>
         <article class="rcard rcard-main" aria-label="Active work record, version 2">
-          <div class="rcard-top"><span class="rcard-ver">V2 · ACTIVE</span><span>SHA-256 FINGERPRINT</span></div>
-          <h3 class="rcard-trade">ELECTRICIAN</h3>
-          <p class="rcard-scope">পুরো ফ্ল্যাটের রিওয়্যারিং · ১২ পয়েন্ট</p>
+          <div class="rcard-top"><span class="rcard-ver" data-i18n="card.mainVer">V2 · ACTIVE</span><span data-i18n="card.fp">SHA-256 FINGERPRINT</span></div>
+          <h3 class="rcard-trade" data-i18n="trade.electrician">ELECTRICIAN</h3>
+          <p class="rcard-scope" data-i18n="demo.scope">পুরো ফ্ল্যাটের রিওয়্যারিং · ১২ পয়েন্ট</p>
           <div class="rcard-rows">
-            <div><span>মোট</span><b>৳20,000</b></div>
-            <div><span>স্বীকৃত</span><b>৳5,000</b></div>
-            <div><span>বাকি</span><b>৳15,000</b></div>
+            <div><span data-i18n="bal.agreed">মোট</span><b>৳20,000</b></div>
+            <div><span data-i18n="bal.paid">স্বীকৃত</span><b>৳5,000</b></div>
+            <div><span data-i18n="bal.rem">বাকি</span><b>৳15,000</b></div>
           </div>
           <div class="rcard-bar"><i></i></div>
-          <p class="rcard-foot mono">V1 KEPT INTACT · OTP-CONFIRMED</p>
+          <p class="rcard-foot mono" data-i18n="card.foot">V1 KEPT INTACT · OTP-CONFIRMED</p>
         </article>
       </div>
       <div class="chip-row">
-        <div class="rchip rchip-pay">৳5,000 পেয়েছি — Worker · PayProof</div>
-        <div class="rchip rchip-otp">✓ দুজনেই OTP নিশ্চিত করেছেন</div>
+        <div class="rchip rchip-pay" data-i18n="chip.pay">৳5,000 পেয়েছি — Worker · PayProof</div>
+        <div class="rchip rchip-otp" data-i18n="chip.otp">✓ দুজনেই OTP নিশ্চিত করেছেন</div>
         <div class="rchip rchip-change">⇄ +৳2,000 · ChangeLock</div>
       </div>
     </div>
@@ -106,20 +105,20 @@
     </div>
     <div class="journey-visual">
   <div class="jcard" id="journey-card" data-state="0" aria-label="Work record, version 1 to version 2">
-    <div class="jcard-top"><span class="jcard-ver" id="jc-ver">V1 · AGREED</span><span>SHA-256 FINGERPRINT</span></div>
-    <div class="jcard-trade">ELECTRICIAN</div>
-    <div class="jcard-scope">পুরো ফ্ল্যাটের রিওয়্যারিং · ১২ পয়েন্ট</div>
+    <div class="jcard-top"><span class="jcard-ver" id="jc-ver">V1 · AGREED</span><span data-i18n="card.fp">SHA-256 FINGERPRINT</span></div>
+    <div class="jcard-trade" data-i18n="trade.electrician">ELECTRICIAN</div>
+    <div class="jcard-scope" data-i18n="demo.scope">পুরো ফ্ল্যাটের রিওয়্যারিং · ১২ পয়েন্ট</div>
     <div class="jcard-rows">
-      <div><span>মোট / AGREED</span><b id="jc-agreed">৳18,000</b></div>
-      <div><span>স্বীকৃত / PAID</span><b id="jc-paid">৳0</b></div>
-      <div><span>বাকি / REMAINING</span><b id="jc-rem">৳18,000</b></div>
+      <div><span data-i18n="bal.agreed">মোট / AGREED</span><b id="jc-agreed">৳18,000</b></div>
+      <div><span data-i18n="bal.paid">স্বীকৃত / PAID</span><b id="jc-paid">৳0</b></div>
+      <div><span data-i18n="bal.rem">বাকি / REMAINING</span><b id="jc-rem">৳18,000</b></div>
     </div>
     <div class="jcard-bar"><i id="jc-bar"></i></div>
-    <div class="jcard-chip jc-otp" id="jc-otp" hidden>✓ OTP — দুজনেই নিশ্চিত করেছেন</div>
-    <div class="jcard-photo" id="jc-photo" hidden><span class="thumb" aria-hidden="true"></span><span><span class="pill pill-orange">AFTER</span> <span class="mono grey">PHOTO · MILESTONE COMPLETE</span></span></div>
-    <div class="jcard-change" id="jc-change" hidden>⇄ +৳2,000 · ChangeLock — TWO EXTRA POINTS · PROPOSED, NOT FORCED</div>
-    <div class="jcard-pack" id="jc-pack" hidden><span class="pill pill-orange">RESOLVEPACK PDF</span> <span class="mono grey">FULL RECORD · TIMELINE + PHOTOS</span></div>
-    <div class="jcard-ghost" id="jc-ghost" hidden>V1 · ৳18,000 · KEPT INTACT</div>
+    <div class="jcard-chip jc-otp" id="jc-otp" hidden data-i18n="chip.otp">✓ OTP — দুজনেই নিশ্চিত করেছেন</div>
+    <div class="jcard-photo" id="jc-photo" hidden><span class="thumb" aria-hidden="true"></span><span><span class="pill pill-orange" data-i18n="kind.after">AFTER</span> <span class="mono grey" data-i18n="card.photoNote">PHOTO · MILESTONE COMPLETE</span></span></div>
+    <div class="jcard-change" id="jc-change" hidden data-i18n="card.changeNote">⇄ +৳2,000 · ChangeLock — TWO EXTRA POINTS · PROPOSED, NOT FORCED</div>
+    <div class="jcard-pack" id="jc-pack" hidden><span class="pill pill-orange">RESOLVEPACK PDF</span> <span class="mono grey" data-i18n="card.packNote">FULL RECORD · TIMELINE + PHOTOS</span></div>
+    <div class="jcard-ghost" id="jc-ghost" hidden data-i18n="card.ghostNote">V1 · ৳18,000 · KEPT INTACT</div>
   </div>
       </div>
   </div>
@@ -134,15 +133,18 @@
     <div class="stat"><div class="stat-num" data-count="0"><small>৳</small>0</div><p class="mono" data-i18n="price.p3">Workers — free, always</p></div>
   </div>
   <div class="visual-card">
-    <div class="vrows"><div><span>12 × ৳10 PAY-AS-YOU-GO</span><b>৳120</b></div><div><span>12 RECORDS AT ৳70 / MONTH</span><b>৳70</b></div><div><span>YOU SAVE</span><b>৳50</b></div></div>
+    <div class="vrows"><div><span data-i18n="price.v1">12 × ৳10 PAY-AS-YOU-GO</span><b>৳120</b></div><div><span data-i18n="price.v2">12 RECORDS AT ৳70 / MONTH</span><b>৳70</b></div><div><span data-i18n="price.v3">YOU SAVE</span><b>৳50</b></div></div>
     <div class="price-bars" id="price-bars">
       <div class="pb-row"><span>12 × ৳10</span><div class="pb-bar"><i class="pb-fill" data-w="100"></i></div><b>৳120</b></div>
-      <div class="pb-row"><span>৳70 / MONTH</span><div class="pb-bar"><i class="pb-fill" data-w="58"></i></div><b>৳70</b></div>
+      <div class="pb-row"><span data-i18n="price.pb2">৳70 / MONTH</span><div class="pb-bar"><i class="pb-fill" data-w="58"></i></div><b>৳70</b></div>
     </div>
   </div>
 </div></section>
 
-<!-- WHY -->
+<!-- LIVE LOCATION -->
+<!-- Deliberately NOT promoted: no nav link, no hero placement. Live
+     location stays in the job detail only (worker shares, hirer watches);
+     the landing page keeps just this one line, lower down. -->
 <section class="section section-white" id="why" data-statement><div class="wrap">
   <div class="sec-head"><h2 class="sec-title" data-i18n="why.title">Why a written record?</h2></div>
     <div data-stagger>
@@ -150,25 +152,8 @@
     <div class="why-row"><div><h3 data-i18n="w2t">Undecided terms show up early</h3><p data-i18n="w2p">FairScope shows what is undecided, up front.</p></div></div>
     <div class="why-row"><div><h3 data-i18n="w3t">The money is always clear</h3><p data-i18n="w3p">Total, paid, remaining — three numbers, always together.</p></div></div>
     <div class="why-row"><div><h3 data-i18n="w4t">Changes need a written proposal</h3><p data-i18n="w4p">Changing price or time needs a ChangeLock proposal.</p></div></div>
+    <p class="small" data-i18n="why.live">Live location — while a job is active, the worker can share their location, visible only to that job's hirer.</p>
     <div class="btn-row"><a class="btn btn-dark" href="#app" data-i18n="hero.cta1">Start a record</a></div>
-  </div>
-</div></section>
-
-<!-- LIVE LOCATION -->
-<section class="section section-black" id="live"><div class="wrap">
-  <div class="sec-head"><h2 class="sec-title" data-i18n="live.title">See your repairer on the way.</h2></div>
-  <p class="lede" data-i18n="live.sub">Once work starts, your repairer shares live location — you watch it on the map.</p>
-  <div data-stagger>
-    <div class="live-map-wrap">
-      <div id="live-map" role="img" aria-label="Live map — repairer travelling to the demo job site in Dhaka"></div>
-      <p class="small live-nomap" id="live-nomap" hidden>Map did not load — showing text only. / ম্যাপ লোড হয়নি — শুধু লেখা দেখানো হচ্ছে।</p>
-      <div class="live-pills" id="live-pills">
-        <span class="pill" id="live-status-pill">En route</span>
-        <span class="pill" id="live-dist">—</span>
-      </div>
-    </div>
-    <p class="small" data-i18n="live.privacy">Only while sharing, and only for that job’s hirer.</p>
-    <div class="btn-row"><a class="hero-demo-link" href="#app" data-i18n="live.cta">See live location in the app →</a></div>
   </div>
 </div></section>
 
@@ -240,7 +225,7 @@
       <div class="btn-row"><button class="btn btn-dark" type="submit" data-i18n="login.send">Send OTP</button></div>
     </form>
     <form id="form-otp" hidden>
-      <div class="notice" id="otp-note" hidden><b>Your code</b><br><span id="otp-note-text"></span></div>
+      <div class="notice" id="otp-note" hidden><b data-i18n="otp.code">Your code</b><br><span id="otp-note-text"></span></div>
       <label for="otp-code" data-i18n="login.otp">OTP code</label>
       <input id="otp-code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code" required>
       <div class="btn-row"><button class="btn btn-dark" type="submit" data-i18n="login.verify">Verify &amp; log in</button>
@@ -271,9 +256,9 @@
     <form id="form-bid-post">
       <label data-i18n="bid.trade">Trade — কাজের ধরন</label>
       <div class="opt-row" id="bid-trade-picker">
-        <button type="button" data-trade="ELECTRICIAN" aria-pressed="true">ELECTRICIAN · ইলেকট্রিশিয়ান</button>
-        <button type="button" data-trade="PAINTER" aria-pressed="false">PAINTER · পেইন্টার</button>
-        <button type="button" data-trade="PLUMBER" aria-pressed="false">PLUMBER · প্লাম্বার</button>
+        <button type="button" data-trade="ELECTRICIAN" aria-pressed="true" data-i18n="trade.electrician">ELECTRICIAN</button>
+        <button type="button" data-trade="PAINTER" aria-pressed="false" data-i18n="trade.painter">PAINTER</button>
+        <button type="button" data-trade="PLUMBER" aria-pressed="false" data-i18n="trade.plumber">PLUMBER</button>
       </div>
       <label for="bid-desc" data-i18n="bid.desc">What is wrong? — সমস্যাটা কী (সর্বোচ্চ ৫০০ অক্ষর)</label>
       <textarea id="bid-desc" rows="3" maxlength="500" placeholder="যেমন: বাথরুমের পাইপ ফেটে পানি পড়ছে"></textarea>
@@ -315,13 +300,13 @@
   <!-- NEW JOB -->
   <div class="app-card view" id="view-new" hidden>
     <h2 data-i18n="new.title">নতুন কাজ — FairScope</h2>
-    <div class="steps" id="new-steps"><span class="on" data-step="1">1 · Trade</span><span data-step="2">2 · FairScope</span><span data-step="3">3 · Price &amp; dates</span><span data-step="4">4 · Review</span></div>
+    <div class="steps" id="new-steps"><span class="on" data-step="1" data-i18n="new.s1">1 · Trade</span><span data-step="2" data-i18n="new.s2">2 · FairScope</span><span data-step="3" data-i18n="new.s3">3 · Price &amp; dates</span><span data-step="4" data-i18n="new.s4">4 · Review</span></div>
     <div id="new-step-1">
       <label data-i18n="new.trade">Trade — কাজের ধরন</label>
       <div class="opt-row" id="trade-picker">
-        <button type="button" data-trade="ELECTRICIAN" aria-pressed="true">ELECTRICIAN · ইলেকট্রিশিয়ান</button>
-        <button type="button" data-trade="PAINTER" aria-pressed="false">PAINTER · পেইন্টার</button>
-        <button type="button" data-trade="PLUMBER" aria-pressed="false">PLUMBER · প্লাম্বার</button>
+        <button type="button" data-trade="ELECTRICIAN" aria-pressed="true" data-i18n="trade.electrician">ELECTRICIAN</button>
+        <button type="button" data-trade="PAINTER" aria-pressed="false" data-i18n="trade.painter">PAINTER</button>
+        <button type="button" data-trade="PLUMBER" aria-pressed="false" data-i18n="trade.plumber">PLUMBER</button>
       </div>
       <label for="worker-phone" data-i18n="new.workerPhone">Worker phone</label>
       <input id="worker-phone" type="tel" inputmode="tel" placeholder="01XXXXXXXXX">
@@ -357,7 +342,7 @@
       <p class="small mono" id="site-picked" hidden></p>
       <h3 data-i18n="new.milestones">Milestones — ধাপ (optional)</h3>
       <div id="milestone-rows">
-        <div class="field-grid"><div><input type="text" class="ms-title" placeholder="Milestone title — যেমন: Wiring complete"></div><div><input type="number" class="ms-amount" min="0" inputmode="numeric" placeholder="Amount ৳"></div></div>
+        <div class="field-grid"><div><input type="text" class="ms-title" placeholder="Milestone title"></div><div><input type="number" class="ms-amount" min="0" inputmode="numeric" placeholder="Amount ৳"></div></div>
       </div>
       <div class="btn-row"><button class="btn btn-dark-ghost btn-sm" type="button" id="add-milestone" data-i18n="new.addMs">+ Add milestone</button></div>
       <div class="btn-row"><button class="btn btn-dark-ghost" type="button" id="back-step-2" data-i18n="new.back">Back</button>
@@ -388,14 +373,14 @@
       <b data-i18n="loc.title">Live location — লাইভ লোকেশন</b>
       <p><span class="pill" id="loc-status-pill">—</span> <span id="loc-text">—</span></p>
       <div id="loc-map" hidden></div>
-      <p class="small" id="loc-nomap" hidden>Map did not load — showing text only. / ম্যাপ লোড হয়নি — শুধু লেখা দেখানো হচ্ছে।</p>
+      <p class="small" id="loc-nomap" hidden data-i18n="loc.nomap">Map did not load — showing text only.</p>
       <p class="small" data-i18n="loc.privacy">Worker shares only if they tap Share — only you can see it, only while the job is active. It stops when the job closes.</p>
     </div>
     <div id="detail-warn" class="warn" hidden><h4 data-i18n="warn.title">Missing terms — ঠিক হয়নি</h4><ul id="detail-missing"></ul></div>
     <div id="detail-confirm" class="notice" hidden>
       <b data-i18n="detail.confirmTitle">Hirer confirmation needed</b>
       <p data-i18n="detail.confirmText">Worker নিশ্চিত করেছেন। আপনার OTP দিয়ে রেকর্ডটি চূড়ান্ত করুন।</p>
-      <div class="notice" id="confirm-note" hidden><b>Your code</b><br><span id="confirm-note-text"></span></div>
+      <div class="notice" id="confirm-note" hidden><b data-i18n="otp.code">Your code</b><br><span id="confirm-note-text"></span></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="confirm-otp" type="text" inputmode="numeric" placeholder="OTP" style="max-width:180px"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-confirm-send-otp" data-i18n="detail.sendOtp">Send confirm OTP</button><button class="btn btn-dark btn-sm" type="button" id="btn-hirer-confirm" data-i18n="detail.confirmBtn">Confirm with OTP</button></div>
     </div>
     <div id="detail-wait" class="notice" hidden>
@@ -441,7 +426,7 @@
       <form id="form-pay">
         <label for="pay-amount" data-i18n="pay.amount">Amount (৳)</label><input id="pay-amount" type="number" min="1" inputmode="numeric" placeholder="5000" required>
         <label for="pay-method" data-i18n="pay.method">Method</label>
-        <select id="pay-method"><option>Cash</option><option>bKash</option><option>Nagad</option></select>
+        <select id="pay-method"><option value="Cash" data-i18n="pay.mCash">Cash</option><option value="bKash">bKash</option><option value="Nagad">Nagad</option></select>
         <label for="pay-date" data-i18n="pay.date">Date</label><input id="pay-date" type="date">
         <div class="btn-row"><button class="btn btn-dark" type="submit" data-i18n="pay.record">Record payment</button></div>
       </form>
@@ -455,7 +440,7 @@
       <h3 data-i18n="dispute.title">Dispute</h3>
       <form id="form-dispute">
         <label for="dis-category" data-i18n="dispute.cat">Category</label>
-        <select id="dis-category"><option value="work not completed">Work not completed / কাজ শেষ হয়নি</option><option value="quality">Quality / কাজের মান</option><option value="payment">Payment / টাকা</option><option value="scope or extra work">Scope or extra work / কাজের পরিধি</option><option value="property damage">Property damage / সম্পত্তির ক্ষতি</option></select>
+        <select id="dis-category"><option value="work not completed" data-i18n="dis.cat1">Work not completed</option><option value="quality" data-i18n="dis.cat2">Quality</option><option value="payment" data-i18n="dis.cat3">Payment</option><option value="scope or extra work" data-i18n="dis.cat4">Scope or extra work</option><option value="property damage" data-i18n="dis.cat5">Property damage</option></select>
         <label for="dis-text" data-i18n="dispute.text">Your statement</label>
         <textarea id="dis-text" rows="3" placeholder="কী হয়েছে, সংক্ষেপে লিখুন"></textarea>
         <div class="btn-row"><button class="btn btn-dark" type="submit" data-i18n="dispute.open">Open dispute</button></div>
@@ -474,9 +459,9 @@
       <hr class="hr">
       <h3 data-i18n="detail.passport">WorkPassport</h3>
       <p data-i18n="detail.passportText">কাজ বন্ধ হওয়ার পর worker-এর WorkPassport-এ যোগ করুন। কী দেখানো হবে, তা বেছে নিন।</p>
-      <p><label style="display:flex;gap:10px;align-items:center;font-family:var(--sans);font-size:15px;text-transform:none;letter-spacing:0;color:#111"><input type="checkbox" id="pp-amounts" style="width:auto"> <span>Show amounts / টাকার অঙ্ক দেখান</span></label></p>
-      <p><label style="display:flex;gap:10px;align-items:center;font-family:var(--sans);font-size:15px;text-transform:none;letter-spacing:0;color:#111"><input type="checkbox" id="pp-client" style="width:auto"> <span>Show client / ক্লায়েন্ট দেখান</span></label></p>
-      <p><label style="display:flex;gap:10px;align-items:center;font-family:var(--sans);font-size:15px;text-transform:none;letter-spacing:0;color:#111"><input type="checkbox" id="pp-photos" style="width:auto"> <span>Show photos / ছবি দেখান</span></label></p>
+      <p><label style="display:flex;gap:10px;align-items:center;font-family:var(--sans);font-size:15px;text-transform:none;letter-spacing:0;color:#111"><input type="checkbox" id="pp-amounts" style="width:auto"> <span data-i18n="pp.showAmounts">Show amounts</span></label></p>
+      <p><label style="display:flex;gap:10px;align-items:center;font-family:var(--sans);font-size:15px;text-transform:none;letter-spacing:0;color:#111"><input type="checkbox" id="pp-client" style="width:auto"> <span data-i18n="pp.showClient">Show client</span></label></p>
+      <p><label style="display:flex;gap:10px;align-items:center;font-family:var(--sans);font-size:15px;text-transform:none;letter-spacing:0;color:#111"><input type="checkbox" id="pp-photos" style="width:auto"> <span data-i18n="pp.showPhotos">Show photos</span></label></p>
       <div class="btn-row"><button class="btn btn-dark" type="button" id="btn-passport-add" data-i18n="detail.passportBtn">Add to WorkPassport</button></div>
       <div id="passport-box"></div>
     </div>

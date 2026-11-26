@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DealCraft — Verify a record</title>
+<meta name="description" content="Check whether a ResolvePack fingerprint matches the stored work record.">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif}
+  .wrap{max-width:640px;margin:0 auto;padding:24px 16px 64px}
+  .brand{font-weight:900;font-size:22px;letter-spacing:.04em}
+  .brand i{color:#FF5A1F;font-style:normal}
+  h1{font-size:28px;line-height:1.15;margin:28px 0 8px}
+  p{font-size:16px;line-height:1.55;color:#333}
+  .card{border:2px solid #111;padding:20px;margin-top:20px}
+  .card.match{border-color:#111}
+  .card.mismatch{border-color:#c73e0e}
+  .verdict{font-size:20px;font-weight:700;margin:0 0 8px}
+  .verdict.ok{color:#111}
+  .verdict.bad{color:#c73e0e}
+  .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;word-break:break-all;color:#333}
+  .rows{margin:16px 0 0;padding:0;list-style:none}
+  .rows li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #ddd;font-size:15px}
+  .rows li span:first-child{color:#666}
+  .rows li b{font-weight:700}
+  .pill{display:inline-block;background:#FF5A1F;color:#fff;font-size:12px;font-weight:700;letter-spacing:.08em;padding:4px 10px;text-transform:uppercase}
+  .pill.grey{background:#eee;color:#333}
+  form{margin-top:20px;display:flex;gap:8px;flex-wrap:wrap}
+  input[type=text]{flex:1;min-width:220px;padding:10px 12px;border:2px solid #111;font-size:15px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  button{padding:10px 18px;border:2px solid #111;background:#111;color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+  .small{font-size:13px;color:#666}
+  a{color:#111}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">DEALCRAFT<i>.</i></div>
+  <h1>Verify a record</h1>
+  <p>Every ResolvePack carries a QR code with the job id, the version, and a SHA-256 fingerprint. This page checks that fingerprint against the stored record — a lookup, nothing more.</p>
+  <div class="card" id="verify-card">
+    <p class="verdict" id="verify-result">Checking…</p>
+    <p id="verify-detail" class="small">Reading the fingerprint from the link.</p>
+    <ul class="rows" id="verify-rows" hidden></ul>
+  </div>
+  <form id="verify-form">
+    <input type="text" id="verify-fp" placeholder="Paste a fingerprint (SHA-256)" aria-label="Fingerprint">
+    <button type="submit">Check</button>
+  </form>
+  <p class="small">DealCraft holds no money. This record is not a legal document. A match means the fingerprint is the one stored for that version; it does not prove who scanned it.</p>
+  <p class="small"><a href="/">← Back to DealCraft</a></p>
+</div>
+<script>
+(function(){
+  var card=document.getElementById('verify-card');
+  var result=document.getElementById('verify-result');
+  var detail=document.getElementById('verify-detail');
+  var rows=document.getElementById('verify-rows');
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function render(fp,data){
+    rows.hidden=true; rows.innerHTML='';
+    if(!fp){result.textContent='No fingerprint in the link.';result.className='verdict bad';card.className='card mismatch';detail.textContent='Paste a fingerprint below, or scan a ResolvePack QR code.';return;}
+    if(data&&data.match){
+      card.className='card match';
+      result.textContent='✓ This record matches version V'+data.versionNo+' — confirmed by both sides';
+      result.className='verdict ok';
+      detail.textContent='The fingerprint in the QR code is the one stored for this version.';
+      rows.hidden=false;
+      rows.innerHTML='<li><span>Trade</span><b>'+esc(data.trade||'—')+'</b></li>'
+        +'<li><span>Agreed price</span><b>৳'+esc(data.price)+'</b></li>'
+        +'<li><span>Deadline</span><b>'+esc(data.deadline||'—')+'</b></li>'
+        +'<li><span>Status</span><b>'+esc(data.status||'—')+'</b></li>'
+        +'<li><span>Job</span><b class="mono">'+esc(data.jobId)+'</b></li>'
+        +'<li><span>Fingerprint</span><b class="mono">'+esc(data.fingerprint)+'</b></li>';
+    }else{
+      card.className='card mismatch';
+      result.textContent='✕ No record matches this fingerprint';
+      result.className='verdict bad';
+      detail.textContent='This fingerprint is not stored for any version. The ResolvePack may be from an older version, or the code may have been changed.';
+      rows.hidden=false;
+      rows.innerHTML='<li><span>Fingerprint</span><b class="mono">'+esc(fp)+'</b></li>';
+    }
+  }
+  async function check(fp){
+    result.textContent='Checking…';result.className='verdict';detail.textContent='Asking the server whether this fingerprint matches a stored version.';
+    try{
+      var r=await fetch('/api/verify?fp='+encodeURIComponent(fp));
+      var d=await r.json();
+      render(fp,d);
+    }catch(e){
+      card.className='card mismatch';result.textContent='✕ Could not check right now';result.className='verdict bad';detail.textContent='The server did not answer. Try again later.';
+    }
+  }
+  var params=new URLSearchParams(window.location.search);
+  var fp=params.get('fp')||'';
+  var input=document.getElementById('verify-fp');
+  if(fp){input.value=fp;check(fp);}else{render('','');}
+  document.getElementById('verify-form').addEventListener('submit',function(ev){
+    ev.preventDefault();
+    var v=input.value.trim();
+    if(!v)return;
+    history.replaceState(null,'','/verify?fp='+encodeURIComponent(v));
+    check(v);
+  });
+})();
+</script>
+</body>
+</html>

@@ -10,8 +10,8 @@
 - **Before the demo / deployment:** back the file up
   (`cp server/data/dealcraft.db backups/dealcraft-YYYY-MM-DD.db`) — the
   demo seed/reset wipes it, and there is no undo. Keep
-  `DEALCRAFT_DEMO_TOKEN` set and `NODE_ENV=production` on any deployed
-  server so the demo endpoints return 404.
+  `DEALCRAFT_DEMO_TOKEN` set, `DEMO_MODE` unset and `NODE_ENV=production`
+  on any deployed server so the demo endpoints return 404.
 - **After deployment:** back the file up on a schedule (daily copy is
   enough at this scale); uploads live on local disk in `uploads/`, so
   back that folder up with the database or the photos will dangle.

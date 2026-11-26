@@ -22,6 +22,16 @@ const { readLog, LOG_PATH } = require('./src/applink/log');
 
 init();
 
+// Feature flag: the bidding marketplace ("Find a repairer") is OFF by
+// default. When off, its API routes do not exist (404) and the client
+// hides every trace of it. The code stays in the repo, only gated —
+// nothing is deleted. Set FEATURE_BIDDING=true to turn it back on.
+const BIDDING_ENABLED = process.env.FEATURE_BIDDING === 'true';
+function requireBidding(req, res, next) {
+  if (!BIDDING_ENABLED) return err(res, 404, 'not found');
+  next();
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
@@ -46,13 +56,15 @@ app.get('/uploads/:file', (req, res) => {
     const user = authedUser(req);
     const wt = workerTokenForJob(req, job.id);
     if (!(user && user.id === job.hirer_id) && !wt) return err(res, 401, 'authentication required');
-    return res.sendFile(path.join(UPLOADS_DIR, file));
+    return servePhoto(res, file);
   }
   const bidPhoto = db.prepare('SELECT * FROM BidJobPhoto WHERE url = ?').get(url);
   if (bidPhoto) {
+    // With bidding off, bid-job photos do not exist either.
+    if (!BIDDING_ENABLED) return err(res, 404, 'photo not found');
     // Problem photos are listing photos: any signed-in user may see them.
     if (!authedUser(req)) return err(res, 401, 'authentication required');
-    return res.sendFile(path.join(UPLOADS_DIR, file));
+    return servePhoto(res, file);
   }
   return err(res, 404, 'photo not found');
 });
@@ -230,12 +242,13 @@ function billingSatisfied(job) {
 
 // Demo endpoints (seed/reset wipe the whole database) must never be
 // reachable on a public server: in production they do not exist (404).
-// Outside production they are allowed only when the caller proves it is
-// local — either the request really comes from the loopback interface, or
-// it carries the configured DEALCRAFT_DEMO_TOKEN (x-demo-token header or
-// demoToken body/query field). A missing token is NOT an open door: a
-// non-loopback request without the token is refused. Deployments must set
-// NODE_ENV=production.
+// They are also gated behind DEMO_MODE=true — the flag is OFF unless
+// explicitly set, and OFF in production, so a missing flag is a 404
+// (loopback alone no longer opens them). On top of the flag, when
+// DEALCRAFT_DEMO_TOKEN is configured the caller must also carry it
+// (x-demo-token header or demoToken body/query field); without a
+// configured token only loopback requests are allowed. Deployments must
+// set NODE_ENV=production and leave DEMO_MODE unset.
 function isLoopback(req) {
   const a = req.socket && req.socket.remoteAddress;
   return a === '127.0.0.1' || a === '::1' || a === '::ffff:127.0.0.1';
@@ -243,6 +256,11 @@ function isLoopback(req) {
 
 function demoAllowed(req, res) {
   if ((process.env.NODE_ENV || '').toLowerCase() === 'production') {
+    err(res, 404, 'not found');
+    return false;
+  }
+  // Env flag first: DEMO_MODE=true is required, and the flag defaults OFF.
+  if (process.env.DEMO_MODE !== 'true') {
     err(res, 404, 'not found');
     return false;
   }
@@ -384,9 +402,88 @@ function upsertUser(phone, name, role) {
   return db.prepare('SELECT * FROM User WHERE id = ?').get(id);
 }
 
+// ---------------------------------------------------------------- agreement summary SMS + deadline nudge
+// Event-label strings for the two new event types. The raw BN/EN strings
+// live here in server code (Section 2 owns the client i18n dictionary);
+// they travel in the event payload as labelEn/labelBn for that agent to
+// wire into the dictionary. The timeline renders the type until then.
+const SUMMARY_SMS_LABELS = { en: 'Agreement summary sent by SMS', bn: 'চুক্তির সারাংশ SMS-এ পাঠানো হয়েছে' };
+const DEADLINE_PASSED_LABELS = { en: 'Deadline passed — a new deadline can be proposed', bn: 'শেষ তারিখ পার হয়েছে — নতুন তারিখ প্রস্তাব করা যাবে' };
+const TRADE_BN = { ELECTRICIAN: 'ইলেকট্রিশিয়ান', PAINTER: 'পেইন্টার', PLUMBER: 'প্লাম্বার' };
+
+// When a job becomes ACTIVE (both OTPs confirmed), send ONE Bangla SMS to
+// BOTH parties via the existing SMS send path (the AppLink adapter —
+// sandbox logs it, live sends it; the adapter itself is untouched):
+// trade, agreed price, deadline, milestone count, the first 8 characters
+// of the version fingerprint, ending with the record reference. Once
+// only: the ACTIVE transition happens in two confirm handlers, so the
+// SUMMARY_SMS_SENT event is the guard. An SMS failure never un-activates
+// the job. Returns the exact text sent, or null when already sent.
+async function sendAgreementSummarySms(job) {
+  const already = db.prepare(
+    "SELECT 1 FROM Event WHERE job_id = ? AND type = 'SUMMARY_SMS_SENT' LIMIT 1"
+  ).get(job.id);
+  if (already) return null;
+  const version = getCurrentVersion(job);
+  if (!version) return null;
+  const fp8 = (version.fingerprint || '').slice(0, 8);
+  const milestoneCount = milestonesOf(version).length;
+  const tradeBn = TRADE_BN[job.trade] || job.trade;
+  const text = 'DealCraft: আপনার কাজের রেকর্ড সক্রিয় হয়েছে — ' + tradeBn + ', ৳' + version.price
+    + ', শেষ তারিখ ' + (version.deadline || '—') + ', ' + milestoneCount + 'টি মাইলস্টোন। ফিঙ্গারপ্রিন্ট: ' + fp8
+    + '। রেকর্ড: ' + job.id;
+  const hirer = db.prepare('SELECT phone FROM User WHERE id = ?').get(job.hirer_id);
+  const adapter = getAdapter();
+  const to = [...new Set([hirer && hirer.phone, job.worker_phone].filter(Boolean))];
+  for (const phone of to) {
+    try { await adapter.sendSms(phone, text); } catch (_e) { /* SMS failure must not un-activate the job */ }
+  }
+  addEvent(job.id, 'SUMMARY_SMS_SENT', 'system', {
+    to, version: version.version_no, fingerprint8: fp8, text,
+    labelEn: SUMMARY_SMS_LABELS.en, labelBn: SUMMARY_SMS_LABELS.bn,
+  });
+  return text;
+}
+
+// Deadline nudge — never enforcement: no penalties, no auto-charges, no
+// status change. When an ACTIVE job passes its deadline with no close,
+// record DEADLINE_PASSED once and notify both parties (in-app via the
+// event on the timeline, plus one SMS each via the existing send path).
+// Runs on server start, every 15 minutes, and on every job-detail read
+// (cheap: one ACTIVE-jobs scan; the event-exists guard makes it idempotent).
+async function checkDeadlines() {
+  const today = new Date().toISOString().slice(0, 10);
+  const jobs = db.prepare("SELECT * FROM Job WHERE status = 'ACTIVE'").all();
+  for (const job of jobs) {
+    const version = getCurrentVersion(job);
+    if (!version || !version.deadline || version.deadline >= today) continue;
+    const already = db.prepare(
+      "SELECT 1 FROM Event WHERE job_id = ? AND type = 'DEADLINE_PASSED' LIMIT 1"
+    ).get(job.id);
+    if (already) continue;
+    addEvent(job.id, 'DEADLINE_PASSED', 'system', {
+      deadline: version.deadline, version: version.version_no,
+      labelEn: DEADLINE_PASSED_LABELS.en, labelBn: DEADLINE_PASSED_LABELS.bn,
+    });
+    const tradeBn = TRADE_BN[job.trade] || job.trade;
+    const text = 'DealCraft: ' + tradeBn + ' কাজের শেষ তারিখ (' + version.deadline + ') পার হয়ে গেছে। কোনো জরিমানা বা চার্জ নেই — অ্যাপে ChangeLock থেকে নতুন তারিখ প্রস্তাব করুন। রেকর্ড: ' + job.id;
+    const hirer = db.prepare('SELECT phone FROM User WHERE id = ?').get(job.hirer_id);
+    const adapter = getAdapter();
+    for (const phone of [...new Set([hirer && hirer.phone, job.worker_phone].filter(Boolean))]) {
+      try { await adapter.sendSms(phone, text); } catch (_e) { /* nudge SMS failure is not fatal */ }
+    }
+  }
+}
+
 // ---------------------------------------------------------------- health
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, mode: getMode(), db: 'sqlite' });
+});
+
+// Public client config: the single source of truth for feature flags the
+// client must honour (bidding on/off). No secrets here — just flags.
+app.get('/api/config', (req, res) => {
+  res.json({ biddingEnabled: BIDDING_ENABLED });
 });
 
 app.get('/api/fairscope', (req, res) => {
@@ -579,6 +676,10 @@ app.get('/api/jobs', requireAuth, (req, res) => {
 });
 
 app.get('/api/jobs/:id', requireJobAccess, (req, res) => {
+  // A job-detail read is also the deadline sweep's trigger (see
+  // checkDeadlines): cheap, idempotent, and testable without waiting
+  // for the 15-minute interval.
+  checkDeadlines().catch(() => {});
   res.json(jobDetail(req.job));
 });
 
@@ -605,6 +706,7 @@ app.post('/api/jobs/:id/hirer-confirm', requireAuth, async (req, res) => {
   addEvent(job.id, 'CONFIRMED_BY_HIRER', 'hirer:' + req.user.phone, {});
   const status = workerConfirmed ? 'ACTIVE' : 'PENDING';
   db.prepare('UPDATE Job SET status = ? WHERE id = ?').run(status, job.id);
+  if (status === 'ACTIVE') await sendAgreementSummarySms(getJob(job.id));
   res.json({ job: getJob(job.id) });
 });
 
@@ -657,6 +759,7 @@ app.post('/api/worker/:token/confirm', async (req, res) => {
   addEvent(job.id, 'CONFIRMED_BY_WORKER', 'worker:' + job.worker_phone, {});
   const status = hirerConfirmed ? 'ACTIVE' : 'PENDING';
   db.prepare('UPDATE Job SET status = ? WHERE id = ?').run(status, job.id);
+  if (status === 'ACTIVE') await sendAgreementSummarySms(getJob(job.id));
   res.json({ job: getJob(job.id) });
 });
 
@@ -1013,16 +1116,36 @@ app.post('/api/jobs/:id/milestones/:index/approve', requireAuth, (req, res) => {
 // ---------------------------------------------------------------- photos
 // Magic bytes, not the client-supplied MIME type: a text file renamed
 // .png (or sent with image/png) is rejected. PNG / JPEG / GIF / WebP only.
-function isRealImage(filePath) {
+// Returns the image MIME type derived from the magic bytes, or null.
+function imageMime(filePath) {
   try {
-    const buf = fs.readFileSync(filePath);
-    if (buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return true; // PNG
-    if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return true; // JPEG
-    if (buf.length >= 6 && buf.slice(0, 6).toString('ascii') === 'GIF89a') return true; // GIF89a
-    if (buf.length >= 6 && buf.slice(0, 6).toString('ascii') === 'GIF87a') return true; // GIF87a
-    if (buf.length >= 12 && buf.slice(0, 4).toString('ascii') === 'RIFF' && buf.slice(8, 12).toString('ascii') === 'WEBP') return true; // WebP
-    return false;
-  } catch (_e) { return false; }
+    const fd = fs.openSync(filePath, 'r');
+    const buf = Buffer.alloc(12);
+    const n = fs.readSync(fd, buf, 0, 12, 0);
+    fs.closeSync(fd);
+    if (n >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return 'image/png'; // PNG
+    if (n >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg'; // JPEG
+    if (n >= 6 && buf.slice(0, 6).toString('ascii') === 'GIF89a') return 'image/gif'; // GIF89a
+    if (n >= 6 && buf.slice(0, 6).toString('ascii') === 'GIF87a') return 'image/gif'; // GIF87a
+    if (n >= 12 && buf.slice(0, 4).toString('ascii') === 'RIFF' && buf.slice(8, 12).toString('ascii') === 'WEBP') return 'image/webp'; // WebP
+    return null;
+  } catch (_e) { return null; }
+}
+function isRealImage(filePath) {
+  return imageMime(filePath) !== null;
+}
+// Serve a photo with an explicit Content-Type derived from its validated
+// magic bytes — never application/octet-stream (the stored files have no
+// extension, so sendFile would guess octet-stream), and never the
+// client-supplied MIME type.
+function servePhoto(res, file) {
+  const filePath = path.join(UPLOADS_DIR, file);
+  const mime = imageMime(filePath);
+  if (!mime) return err(res, 404, 'photo not found');
+  const buf = fs.readFileSync(filePath);
+  res.setHeader('Content-Type', mime);
+  res.setHeader('Content-Length', buf.length);
+  res.send(buf);
 }
 // Multer's dest storage already generates random filenames (32 hex chars);
 // nothing here ever trusts a client-supplied filename.
@@ -1153,7 +1276,7 @@ function parseBidCoords(req) {
 // Hirer posts a job for bids: 1–3 problem photos, trade, short Bangla
 // description, job site (map pin / current location / address). No price
 // is set by the hirer — workers bid the price.
-app.post('/api/bid-jobs', requireAuth, (req, res) => {
+app.post('/api/bid-jobs', requireBidding, requireAuth, (req, res) => {
   const { trade, description, site } = req.body || {};
   if (!trade || !questionsFor(trade).length) return err(res, 400, 'trade must be one of ELECTRICIAN, PAINTER, PLUMBER');
   if (typeof description !== 'string' || !description.trim() || description.trim().length > 500) {
@@ -1180,7 +1303,7 @@ app.post('/api/bid-jobs', requireAuth, (req, res) => {
 
 // Problem photos on a bid job: same 5 MB image-only upload as milestones,
 // at most 3 per job. Hirer only.
-app.post('/api/bid-jobs/:id/photos', requireAuth, (req, res) => {
+app.post('/api/bid-jobs/:id/photos', requireBidding, requireAuth, (req, res) => {
   const bidJob = getBidJob(req.params.id);
   if (!bidJob) return err(res, 404, 'bid job not found');
   if (bidJob.hirer_id !== req.user.id) return err(res, 403, 'only the hirer adds photos to this bid job');
@@ -1206,7 +1329,7 @@ app.post('/api/bid-jobs/:id/photos', requireAuth, (req, res) => {
 
 // Open bid jobs, nearest first when the viewer shares a location;
 // newest first otherwise (distance is then unavailable, and the UI says so).
-app.get('/api/bid-jobs/open', requireAuth, (req, res) => {
+app.get('/api/bid-jobs/open', requireBidding, requireAuth, (req, res) => {
   const coords = parseBidCoords(req);
   if (coords.error) return err(res, 400, coords.error);
   const rows = db.prepare("SELECT * FROM BidJob WHERE status = 'OPEN' ORDER BY created_at DESC").all();
@@ -1222,7 +1345,7 @@ app.get('/api/bid-jobs/open', requireAuth, (req, res) => {
   res.json({ bidJobs: out });
 });
 
-app.get('/api/bid-jobs/mine', requireAuth, (req, res) => {
+app.get('/api/bid-jobs/mine', requireBidding, requireAuth, (req, res) => {
   const rows = db.prepare('SELECT * FROM BidJob WHERE hirer_id = ? ORDER BY created_at DESC').all(req.user.id);
   res.json({
     bidJobs: rows.map((b) => {
@@ -1234,7 +1357,7 @@ app.get('/api/bid-jobs/mine', requireAuth, (req, res) => {
 });
 
 // One bid job: the hirer sees the bids; anyone else sees the public shape.
-app.get('/api/bid-jobs/:id', requireAuth, (req, res) => {
+app.get('/api/bid-jobs/:id', requireBidding, requireAuth, (req, res) => {
   const bidJob = getBidJob(req.params.id);
   if (!bidJob) return err(res, 404, 'bid job not found');
   expireBids(bidJob.id);
@@ -1251,7 +1374,7 @@ app.get('/api/bid-jobs/:id', requireAuth, (req, res) => {
 
 // Bids on a job, cheapest first, with distance + WorkPassport facts.
 // Hirer only — another hirer (or any other user) gets 403, not the list.
-app.get('/api/bid-jobs/:id/bids', requireAuth, (req, res) => {
+app.get('/api/bid-jobs/:id/bids', requireBidding, requireAuth, (req, res) => {
   const bidJob = getBidJob(req.params.id);
   if (!bidJob) return err(res, 404, 'bid job not found');
   if (bidJob.hirer_id !== req.user.id) return err(res, 403, 'only the hirer sees bids on this job');
@@ -1265,7 +1388,7 @@ app.get('/api/bid-jobs/:id/bids', requireAuth, (req, res) => {
 // A worker places a bid: OTP-verified session only (no new account — the
 // worker logs in with phone + OTP first). One live bid per worker per job,
 // at most 10 live bids per job, bids expire after 24 hours.
-app.post('/api/bid-jobs/:id/bids', requireAuth, (req, res) => {
+app.post('/api/bid-jobs/:id/bids', requireBidding, requireAuth, (req, res) => {
   const bidJob = getBidJob(req.params.id);
   if (!bidJob) return err(res, 404, 'bid job not found');
   if (bidJob.status !== 'OPEN') return err(res, 400, 'this bid job is no longer open for bids');
@@ -1309,7 +1432,7 @@ app.post('/api/bid-jobs/:id/bids', requireAuth, (req, res) => {
 // site + problem photos carried over) and the existing flow takes over —
 // FairScope, then DUAL OTP confirmation. Only after both OTPs is the job
 // ACTIVE. Losing bids are marked NOT SELECTED and the job leaves the open list.
-app.post('/api/bid-jobs/:id/bids/:bidId/accept', requireAuth, async (req, res) => {
+app.post('/api/bid-jobs/:id/bids/:bidId/accept', requireBidding, requireAuth, async (req, res) => {
   const bidJob = getBidJob(req.params.id);
   if (!bidJob) return err(res, 404, 'bid job not found');
   if (bidJob.hirer_id !== req.user.id) return err(res, 403, 'only the hirer accepts a bid');
@@ -1386,7 +1509,7 @@ app.post('/api/bid-jobs/:id/bids/:bidId/accept', requireAuth, async (req, res) =
 
 // Hirer closes bidding without picking anyone. Live bids are marked
 // NOT_SELECTED (no pick was made) and the close is an event.
-app.post('/api/bid-jobs/:id/close', requireAuth, (req, res) => {
+app.post('/api/bid-jobs/:id/close', requireBidding, requireAuth, (req, res) => {
   const bidJob = getBidJob(req.params.id);
   if (!bidJob) return err(res, 404, 'bid job not found');
   if (bidJob.hirer_id !== req.user.id) return err(res, 403, 'only the hirer closes bidding');
@@ -1562,9 +1685,20 @@ app.get('/api/jobs/:id/resolvepack.json', requireJobAccess, (req, res) => {
   res.json(resolvePackData(req.job));
 });
 
-app.get('/api/jobs/:id/resolvepack', requireJobAccess, (req, res) => {
+app.get('/api/jobs/:id/resolvepack', requireJobAccess, async (req, res) => {
   const d = resolvePackData(req.job);
   const job = d.job;
+  // Tamper-evident QR: encodes the job id, current version, the version's
+  // SHA-256 fingerprint and the generation time. The QR library is the
+  // one already in the repo (used for the passport QR) — no new dependency.
+  const current = getCurrentVersion(job);
+  const generatedAt = now();
+  const verifyPayload = JSON.stringify({
+    jobId: job.id, currentVersion: job.current_version,
+    fingerprint: current ? current.fingerprint : null, generatedAt,
+  });
+  let qrPng = null;
+  try { qrPng = await QRCode.toBuffer(verifyPayload, { type: 'png', width: 256 }); } catch (_e) { /* PDF still generates without the QR */ }
   // compress: false — the text stays searchable in the file, so a judge (or
   // a test) can verify the labelled FairScope lines are really in the PDF
   // instead of trusting a debug dump. File size is a non-issue here.
@@ -1650,9 +1784,45 @@ app.get('/api/jobs/:id/resolvepack', requireJobAccess, (req, res) => {
     doc.fontSize(10).text(e.created_at + ' — ' + e.type + ' — ' + (e.actor || ''));
   }
   doc.moveDown();
+  doc.fontSize(13).text('Verify this record');
+  if (qrPng) {
+    doc.image(qrPng, { width: 140 });
+    doc.moveDown(0.25);
+  }
+  doc.fontSize(10).fillColor('#333333')
+    .text('Scan the QR code, or open: ' + baseUrl(req) + '/verify?fp=' + (current ? current.fingerprint : ''))
+    .text('Fingerprint (SHA-256): ' + (current ? current.fingerprint : '—'))
+    .text('Generated: ' + generatedAt)
+    .text('The QR encodes the job id, version, fingerprint and generation time. Verification is a lookup against the stored record.');
+  doc.fillColor('#111111');
+  doc.moveDown();
   doc.fontSize(8).fillColor('#666666')
     .text('DealCraft holds no money. This record is not a legal document.', { align: 'center' });
   doc.end();
+});
+
+// ---------------------------------------------------------------- verify
+// Tamper-evident lookup: does this fingerprint match a stored version?
+// A lookup, not a signature and not a chain — it only answers whether
+// the fingerprint in a ResolvePack QR is the one stored for that version.
+app.get('/api/verify', (req, res) => {
+  const fp = req.query.fp;
+  if (!fp || typeof fp !== 'string') return err(res, 400, 'fp (fingerprint) is required');
+  const row = db.prepare('SELECT * FROM JobVersion WHERE fingerprint = ?').get(fp);
+  if (!row) return res.json({ match: false, fingerprint: fp });
+  const job = getJob(row.job_id);
+  res.json({
+    match: true, fingerprint: fp, jobId: row.job_id, versionNo: row.version_no,
+    trade: job ? job.trade : null, price: row.price, deadline: row.deadline,
+    status: job ? job.status : null,
+  });
+});
+
+// Small public verify page (same flat design system). Reads ?fp= from the
+// URL and asks /api/verify — the match/mismatch verdict is rendered
+// client-side from that lookup.
+app.get('/verify', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'verify.html'));
 });
 
 // ---------------------------------------------------------------- passport
@@ -1750,22 +1920,11 @@ app.get('/api/passport/:profileId/qr.png', async (req, res) => {
 app.get('/passport/:profileId', (req, res) => {
   const phone = profilePhone(req.params.profileId);
   if (!phone) return res.status(404).send('WorkPassport not found.');
-  const data = passportData(phone);
-  const rows = data.entries.map((e) => {
-    const amount = e.showAmounts && e.amount !== undefined ? ' — BDT ' + e.amount : '';
-    const client = e.showClient && e.clientName ? ' — client: ' + escapeHtml(e.clientName) : '';
-    const photos = e.showPhotos && e.photoUrls && e.photoUrls.length
-      ? ' — photos: ' + e.photoUrls.map((u) => escapeHtml(u)).join(', ') : '';
-    return '<li>' + escapeHtml(e.trade) + ' — completed ' + escapeHtml(e.completedAt.slice(0, 10)) + escapeHtml(amount) + client + photos + '</li>';
-  }).join('') || '<li>No completed jobs listed yet.</li>';
-  const displayName = data.workerName || 'DealCraft worker';
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send('<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>DealCraft Passport — ' + escapeHtml(displayName) + '</title>'
-    + '<style>body{font-family:system-ui,sans-serif;background:#000;color:#fff;max-width:640px;margin:0 auto;padding:24px 16px}h1{font-size:40px;text-transform:uppercase;margin:8px 0}.orange{color:#FF5A1F}a{color:#FF5A1F}li{margin:8px 0;line-height:1.5}.mono{font-family:monospace;color:#bbb;font-size:12px}.card{border:1px solid #333;padding:12px;margin:12px 0}</style></head>'
-    + '<body><p class="mono">WORKPASSPORT · <span class="orange">DEALCRAFT</span></p><h1>' + escapeHtml(displayName) + '</h1>'
-    + '<p>Completed jobs: ' + data.completedJobs + ' | Trades: ' + escapeHtml(data.trades.join(', ') || '—') + '</p>'
-    + '<div class="card"><ul>' + rows + '</ul></div>'
-    + '<p class="mono">Amounts, client names and photos are shown only if the worker enabled them. DealCraft holds no money. This record is not a legal document.</p></body></html>');
+  // The QR code encodes this URL, so it serves the rich passport page
+  // (public/passport.html), which reads the profile id from the path and
+  // loads the worker's record from the public API. The old minimal
+  // server-rendered page is gone; the API endpoints are unchanged.
+  res.sendFile(path.join(PUBLIC_DIR, 'passport.html'));
 });
 
 // ---------------------------------------------------------------- billing
@@ -1960,6 +2119,7 @@ const DEMO_SCRIPT = [
 ];
 
 app.get('/api/demo/script', (req, res) => {
+  if (!demoAllowed(req, res)) return;
   res.json({ script: DEMO_SCRIPT });
 });
 
@@ -2014,6 +2174,14 @@ app.post('/api/demo/seed', async (req, res) => {
   });
   const workerToken = createWorkerToken(jobId, 'view');
   const workerLink = '/worker.html?token=' + workerToken;
+  // Guided demo, one click: the seed also mints a real 7-day hirer
+  // session, so "See the demo" lands the evaluator inside the seeded job
+  // with no OTP copying and no manual login. Demo endpoints stay gated
+  // (DEMO_MODE + demo token), and the sandbox OTP display on the normal
+  // login flow is untouched — this token exists only in the seed response.
+  const hirerToken = randomToken();
+  db.prepare('INSERT INTO Session (id, token, phone, created_at, expires_at) VALUES (?, ?, ?, ?, ?)')
+    .run(newId(), hirerToken, hirerPhone, now(), expiryDate(7));
   const adapter = getAdapter();
   let hirerOtp = null;
   let workerOtp = null;
@@ -2031,6 +2199,8 @@ app.post('/api/demo/seed', async (req, res) => {
     workerLink,
     hirerPhone,
     workerPhone,
+    hirerToken,
+    hirer: { phone: hirerPhone, name: 'Rahim Uddin' },
     sandboxOtps: { hirerConfirm: hirerOtp, workerConfirm: workerOtp },
   });
 });
@@ -2051,6 +2221,10 @@ if (require.main === module) {
     // eslint-disable-next-line no-console
     console.log('DealCraft backend listening on port ' + PORT + ' (mode: ' + getMode() + ')');
   });
+  // Deadline sweep: once at start, then every 15 minutes (unref'd so it
+  // never holds the process open on its own).
+  checkDeadlines().catch(() => {});
+  setInterval(() => { checkDeadlines().catch(() => {}); }, 15 * 60 * 1000).unref();
 }
 
 module.exports = app;
