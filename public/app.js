@@ -224,10 +224,16 @@ function showView(id){['view-login','view-jobs','view-new','view-detail','view-b
  /* P4: 200ms fade + 8px slide on view switch (CSS .view-enter). */
  var show=$(id); if(show){show.classList.remove('view-enter');void show.offsetWidth;show.classList.add('view-enter');}
  /* P2: detail sheet sits on a very light grey section background. */
- var appSec=$('app'); if(appSec)appSec.classList.toggle('app-grey',id==='view-detail');}
+ var appSec=$('app'); if(appSec)appSec.classList.toggle('app-grey',id==='view-detail');
+ /* Motion gaps 4: the tab indicator can only be measured once the detail
+    view is visible — reposition it when the view appears. */
+ if(id==='view-detail'){requestAnimationFrame(function(){moveTabInd();});setTimeout(moveTabInd,60);}}
 
 /* ---------- motion helpers (P0–P4; transform/opacity only) ---------- */
 var RM=(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)||false;
+/* Gate for motion that hides content until it reveals (FAQ collapse,
+   scroll-reveal stagger): without JS, everything stays visible. */
+document.documentElement.classList.add('js');
 function tweenNum(el,from,to,dur,fmt){
  if(!el)return;
  /* innerHTML, not textContent: the price count-up's fmt returns the
@@ -247,8 +253,72 @@ function showSuccessCheck(){
  box.hidden=false;
  setTimeout(function(){box.hidden=true;box.innerHTML='';},1500);
 }
-/* P0: hero card tilt — pointer follows with lagged tilt (max ±6° extra),
-   transform only, rAF-throttled. Touch devices get the slow idle float. */
+/* Motion gaps 2: FAQ accordion — one row open at a time, first open by
+   default. Button semantics + aria-expanded; the i18n toggle keeps
+   working because the question/answer text still carries data-i18n. */
+function initFaq(){
+ var rows=document.querySelectorAll('.faq-row'); if(!rows.length)return;
+ function openRow(row){
+  rows.forEach(function(r){
+   var open=r===row; r.classList.toggle('open',open);
+   var b=r.querySelector('.faq-q'); if(b)b.setAttribute('aria-expanded',open?'true':'false');
+  });
+ }
+ rows.forEach(function(row){
+  var b=row.querySelector('.faq-q'); if(!b)return;
+  b.addEventListener('click',function(){openRow(row.classList.contains('open')?null:row);});
+ });
+ if(!document.querySelector('.faq-row.open'))openRow(rows[0]);
+}
+/* Motion gaps 4: sliding tab indicator — the black block MOVES between
+   tabs (transform, 260ms ease-inout) instead of the active style jumping.
+   Repositioned on click, on resize, and whenever the tab bar becomes
+   visible (it is hidden while the login view shows). */
+function moveTabInd(){
+ var tabs=document.querySelector('.tabs'), ind=document.querySelector('.tab-ind');
+ if(!tabs||!ind)return;
+ var active=tabs.querySelector('button[aria-selected="true"]'); if(!active)return;
+ var r=active.getBoundingClientRect(), tr=tabs.getBoundingClientRect();
+ if(!r.width)return;
+ ind.style.width=r.width+'px'; ind.style.height=r.height+'px';
+ ind.style.transform='translate('+(r.left-tr.left)+'px,'+(r.top-tr.top)+'px)';
+}
+function initTabInd(){
+ if(!document.querySelector('.tabs'))return;
+ moveTabInd();
+ var raf=null;
+ window.addEventListener('resize',function(){if(raf)return;raf=requestAnimationFrame(function(){raf=null;moveTabInd();});});
+ if('IntersectionObserver' in window){
+  var o=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)moveTabInd();});},{threshold:0.1});
+  o.observe(document.querySelector('.tabs'));
+ }
+}
+/* Motion gaps 5: hero entrance — cancelled by the first scroll or pointer
+   interaction, everything settling to its final state at once. */
+function initHeroEntrance(){
+ if(RM)return;
+ var hero=document.querySelector('.hero'); if(!hero)return;
+ var done=false;
+ function cancel(){if(done)return;done=true;hero.classList.add('hero-done');}
+ window.addEventListener('scroll',cancel,{once:true,passive:true});
+ hero.addEventListener('pointerdown',cancel,{once:true});
+}
+/* Motion gaps 6: scroll-reveal stagger — extends the existing
+   IntersectionObserver pattern: siblings of a [data-stagger] group reveal
+   70ms apart instead of all at once. */
+function initStagger(){
+ var groups=document.querySelectorAll('[data-stagger]'); if(!groups.length)return;
+ if(RM||!('IntersectionObserver' in window)){groups.forEach(function(g){g.classList.add('in');});return;}
+ var obs=new IntersectionObserver(function(entries){
+  entries.forEach(function(en){
+   if(!en.isIntersecting)return;
+   var g=en.target; obs.unobserve(g);
+   Array.prototype.forEach.call(g.children,function(ch,i){ch.style.transitionDelay=(i*70)+'ms';});
+   g.classList.add('in');
+  });
+ },{threshold:0.15});
+ groups.forEach(function(g){obs.observe(g);});
+}
 function initHeroTilt(){
  var scene=$('hero-scene'), tilt=$('hero-tilt'); if(!scene||!tilt)return;
  if(RM)return;
@@ -860,6 +930,7 @@ function initDetail(){
  document.querySelectorAll('.tabs button').forEach(function(b){b.addEventListener('click',function(){
   document.querySelectorAll('.tabs button').forEach(function(x){x.setAttribute('aria-selected',x===b?'true':'false');});
   document.querySelectorAll('.tabpanel').forEach(function(p){p.hidden=(p.id!=='tab-'+b.getAttribute('data-tab'));});
+  moveTabInd();
   if(b.getAttribute('data-tab')==='billing')loadBillingStatus();
   refreshJob(); });});
  $('btn-hirer-confirm').addEventListener('click',async function(){clearErr();
@@ -1109,6 +1180,9 @@ document.addEventListener('DOMContentLoaded',function(){
  initJourney(); initAuth(); initNewJob(); initDetail(); initBidding(); renderFairScope();
  /* P0/P2/P4 motion: hero tilt, price count-ups, photo lightbox. */
  initHeroTilt(); initPriceMotion(); initLightbox();
+ /* Motion gaps: FAQ accordion, sliding tab indicator, hero-entrance
+    cancel, scroll-reveal stagger. */
+ initFaq(); initTabInd(); initHeroEntrance(); initStagger();
  $('cta-demo').addEventListener('click',loadDemo);
  $('cta-start').addEventListener('click',function(){ if(token){showView('view-jobs');loadJobs();} });
  if(token){
