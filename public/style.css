@@ -116,15 +116,25 @@ label{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform
 @media(min-width:900px){.hero-grid{padding:104px 0 72px}}
 /* Jeton hero — flat orange panel, text top-left; the record card
    overlaps the panel's bottom edge (hero-visual pulls up over it).
-   Headline is near-black on orange; the second line keeps its flat
-   orange type on a solid black bar so the colour stays readable. */
-.hero-panel{width:100%;max-width:900px;margin:0 auto;text-align:left;background:var(--orange);padding:40px 28px 120px}
+   Headline is flat near-black on orange, no bars, no effects. Each
+   headline line is sized in container units so it spans ~92% of the
+   panel's inner width at any viewport (panel is the container); the
+   two lines need different sizes because "CLEAR PRICE." is longer
+   than "CLEAR WORK." — per-language sizes via html[lang]. */
+.hero-panel{position:relative;container-type:inline-size;width:100%;max-width:900px;margin:0 auto;text-align:left;background:var(--orange);padding:40px 28px 120px}
 @media(min-width:900px){.hero-panel{padding:48px 40px 128px}}
-h1.hero-title{font-family:var(--display);font-size:44px;line-height:.94;letter-spacing:-.01em;text-transform:uppercase;margin:0 0 18px;color:#111}
-.hero-title .hl-line{display:block;font-family:'Noto Sans Bengali',var(--display)}
-.hero-title .hl-2{color:var(--orange);background:#000;padding:0 14px;display:inline-block}
-@media(min-width:700px){h1.hero-title{font-size:64px}}
-@media(min-width:1100px){h1.hero-title{font-size:72px}}
+h1.hero-title{font-family:var(--display);line-height:.94;letter-spacing:-.01em;text-transform:uppercase;margin:0 0 18px;color:#141414}
+.hero-title .hl-line{display:block;font-family:'Noto Sans Bengali',var(--display);white-space:nowrap;color:#141414}
+.hero-title .hl-1{font-size:clamp(26px,14cqi,118px)}
+.hero-title .hl-2{font-size:clamp(20px,13.5cqi,118px)}
+html[lang="bn"] .hero-title .hl-1{font-size:clamp(24px,17.1cqi,142px)}
+html[lang="bn"] .hero-title .hl-2{font-size:clamp(24px,15.6cqi,130px)}
+/* Panel corner labels — mono, flat near-black on orange. Bottom-left
+   caption wraps to two lines inside 220px so it never runs under the
+   centred record card (the card starts ~250px from the panel edge). */
+.hero-corner{position:absolute;z-index:1;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#141414}
+.hero-corner-tr{top:20px;right:40px}
+.hero-corner-bl{bottom:24px;left:40px;max-width:200px;line-height:1.6}
 .hero-sub{color:#1a1a1a;font-size:15px;max-width:52ch;margin:0 0 20px}
 .hero-panel .btn-row{justify-content:flex-start}
 /* Secondary CTA — a quiet text link with an arrow, not a second button.
@@ -144,6 +154,11 @@ h1.hero-title{font-family:var(--display);font-size:44px;line-height:.94;letter-s
 @media(max-width:899px){
   .section{min-height:0}
   .journey{min-height:0}
+  /* Mobile: the card sits fully below the panel, so the panel no longer
+     needs its deep 120px bottom padding for the overlap. */
+  .hero-panel{padding-bottom:48px}
+  .hero-corner-tr{top:16px;right:20px}
+  .hero-corner-bl{bottom:16px;left:20px}
 }
 #why{padding:48px 0}
 #why .sec-head{margin-bottom:16px}
@@ -159,6 +174,9 @@ h2.sec-title{font-family:var(--display);font-size:40px;line-height:.95;text-tran
 
 /* Journey / scroll */
 .journey{position:relative}
+/* The hero card hangs ~60% below the orange panel onto the black page;
+   give the journey extra top padding on desktop so nothing collides. */
+@media(min-width:900px){.journey{padding-top:112px}}
 .journey-grid{display:grid;gap:32px}
 @media(min-width:980px){.journey-grid{grid-template-columns:628px 1fr;gap:0 24px;align-items:start}.journey-visual{position:sticky;top:88px}}
 .journey-steps-col .btn-row{margin-top:24px}
@@ -329,7 +347,6 @@ footer{border-top:1px solid var(--line);padding:56px 0 32px;min-height:100svh}
 .qr-box img{margin:0 auto;max-width:220px}
 @media(max-width:700px){.stat{padding:48px 28px}}
 @media(max-width:390px){
-  h1.hero-title{font-size:40px}
   h2.sec-title{font-size:34px}
   .stat-num{font-size:34px}
   .visual-card .vnum{font-size:34px}
@@ -442,8 +459,13 @@ h1.hero-title .hl-2{--ld:.22s}
 @keyframes chipPop{from{opacity:0;transform:translateZ(var(--tz,0px)) scale(.55)}to{opacity:1;transform:translateZ(var(--tz,0px)) scale(1)}}
 .hero-done [data-henter],.hero-done .hero-visual,.hero-done .rchip,.hero-done h1.hero-title .hl-line{animation:none!important;opacity:1!important;transform:none!important}
 
-/* ---- P0: hero 3D record card stack — centred centrepiece ---- */
-.hero-visual{position:relative;width:100%;max-width:640px;margin:-72px auto 0;min-height:0}
+/* ---- P0: hero 3D record card stack — centred centrepiece.
+   The stack overlaps the panel: its top ~40% sits inside the panel
+   and ~60% hangs below the panel's bottom edge onto the black page
+   (margin-top -188px pulls the visual up over the panel; the card
+   sits above the panel by DOM order + z-index). Mobile: the card
+   sits fully below the panel, centred. ---- */
+.hero-visual{position:relative;width:100%;max-width:640px;margin:-188px auto 0;min-height:0}
 .rcard-scene{position:relative;perspective:1200px;padding:64px 0 170px;z-index:2}
 .rcard-tilt{position:relative;z-index:1;transform-style:preserve-3d;transform:rotateY(-8deg) rotateX(4deg);transition:transform var(--dur-micro) var(--ease-out);will-change:transform}
 /* Premium restraint: the idle float is half as fast and half as deep. */
@@ -477,26 +499,41 @@ h1.hero-title .hl-2{--ld:.22s}
 .rcard-bar i{display:block;height:100%;width:25%;border-radius:999px;background:var(--orange)}
 .rcard-foot{color:#999;margin:0}
 /* De-glass: floating chips are SOLID black pills — 1px #333 border, white
-   or orange text. No translucency, no blur. */
-.rchip{position:absolute;z-index:3;max-width:250px;background:#000;border:1px solid #333;border-radius:999px;padding:10px 14px;font-size:13px;color:#fff;box-shadow:0 12px 28px rgba(0,0,0,.45)}
+   or orange text. No translucency, no blur. All three sit in ONE baseline
+   row under the card (same bottom offset, same fixed height, single-line
+   text) — no scattered rows, no wrapping. Depth lives in --tz (chipPop
+   reads it). */
+.rchip{flex:none;max-width:250px;height:44px;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#000;border:1px solid #333;border-radius:999px;padding:10px 12px;font-size:12px;color:#fff;box-shadow:0 12px 28px rgba(0,0,0,.45)}
+/* One flex row, space-between: the gaps between the three chips are
+   exactly equal whatever their widths are. */
+.chip-row{position:absolute;z-index:3;left:0;right:0;bottom:58px;display:flex;justify-content:space-between;align-items:center}
 /* Chips sit BELOW the card, in the scene's bottom padding — the OTP chip
    moved down from the top corner so it can never crowd, touch or overlap
-   the V2 header row at any width. Depth lives in --tz (chipPop reads it). */
-.rchip-otp{top:auto;bottom:-64px;left:50%;translate:-50% 0;--tz:70px}
-.rchip-pay{bottom:-112px;left:0;--tz:50px}
-.rchip-change{bottom:-112px;right:0;--tz:90px}
+   the V2 header row at any width. Chips are direct children of the scene
+   (not the tilted card) so the 3D tilt cannot put them on a staircase:
+   one flat baseline row, one height, one scale. The row sits 58px above
+   the scene bottom: the card bottom sits 170px above it on desktop
+   (210px on mobile), so the row is 68px below the card. */
+.rchip-otp{--tz:70px}
+.rchip-pay{--tz:70px}
+.rchip-change{--tz:70px}
 @media(max-width:979px){
-  .hero-visual{margin-top:-56px}
+  /* Mobile: the card sits fully below the panel, centred — no overlap. */
+  .hero-visual{margin-top:24px}
   .rcard-scene{padding:40px 4px 210px}
-  /* On narrow screens the three bottom chips stack, left-aligned. */
-  .rchip-pay{left:0;bottom:-58px}
-  .rchip-change{left:0;right:auto;bottom:-112px}
-  .rchip-otp{left:0;bottom:-166px;translate:0 0}
+  /* On narrow screens the chip row becomes a left-aligned stack, but
+     keeps one fixed height and single-line text like the desktop row.
+     left:8px (not 0) — the tilted card plane shifts chips a few px
+     past the viewport edge at left:0. The stack sits 44px above the
+     scene bottom (card bottom sits 210px above it): rows 18px below
+     the card, then 14px apart. */
+  .chip-row{flex-direction:column;align-items:flex-start;gap:14px;bottom:44px;left:8px;right:auto}
+  .rchip{height:40px;max-width:240px}
 }
 @media(max-width:480px){
   .rcard{padding:20px 16px}
   .rcard-trade{font-size:25px}
-  .rchip{font-size:12px;padding:8px 11px;max-width:210px}
+  .rchip{font-size:12px;padding:8px 11px;max-width:240px}
   /* Narrower ghost offset on phones so the ghost never clips the viewport. */
   .rcard-ghost{top:-68px;transform:translateX(-50%) translateZ(-140px)}
   /* On narrow screens the ghost's top row would wrap and its label would

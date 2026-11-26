@@ -10,9 +10,10 @@ var currentJob=null, currentJobId=null, draft={trade:'ELECTRICIAN',answers:{},sk
 /* ---------- i18n ---------- */
 var I18N={
 'nav.how':{bn:'কীভাবে কাজ করে',en:'How it works'},'nav.price':{bn:'খরচ',en:'Price'},'nav.why':{bn:'কেন',en:'Why'},'nav.faq':{bn:'প্রশ্ন',en:'FAQ'},'nav.app':{bn:'অ্যাপ',en:'App'},
-'hero.title1':{bn:'মুখের কথা নয়।',en:'Not words.'},'hero.title2':{bn:'লিখিত রেকর্ড।',en:'A written record.'},
+'hero.title1':{bn:'দাম পরিষ্কার।',en:'Clear price.'},'hero.title2':{bn:'কাজ পরিষ্কার।',en:'Clear work.'},
 'hero.sub':{bn:'ইলেকট্রিশিয়ান, পেইন্টার, প্লাম্বার — শর্ত, দাম, পেমেন্ট। দুই পক্ষের সম্মতিতে লেখা।',en:'Electrician, painter, plumber — scope, price, payments. Agreed by both sides.'},
 'hero.cta1':{bn:'রেকর্ড শুরু করুন',en:'Start a record'},'hero.cta2':{bn:'ডেমো দেখুন →',en:'See the demo →'},
+'hero.corner1':{bn:'ঢাকা · বাংলাদেশ',en:'DHAKA · BANGLADESH'},'hero.corner2':{bn:'স্ক্রল করুন — রেকর্ড কীভাবে তৈরি হয় দেখুন ↓',en:'SCROLL — SEE HOW A RECORD IS MADE ↓'},
 'journey.title':{bn:'রেকর্ডের প্রতিটি ধাপ।',en:'Every step of the record.'},
 'j1t':{bn:'FairScope — আগে প্রশ্ন, পরে কাজ',en:'FairScope — questions first, work after'},'j1p':{bn:'মাল, কোট, পয়েন্ট — সব প্রশ্নের উত্তর কাজের আগেই ঠিক করুন।',en:'Materials, coats, points — settle every question before work starts.'},
 'j2t':{bn:'দুজনেই নিশ্চিত করুন — OTP',en:'Both sides confirm — OTP'},'j2p':{bn:'দুজনেই OTP দিয়ে রেকর্ড নিশ্চিত করেন — একজনের কথায় হয় না।',en:'Both sides confirm the record by OTP — one side alone cannot.'},
