@@ -116,8 +116,11 @@ function jobDetail(job) {
   const acknowledgedPaid = payments
     .filter((p) => p.ack_status === 'ACKNOWLEDGED')
     .reduce((sum, p) => sum + p.amount, 0);
+  // The hirer needs the worker link for the detail view (and for the
+  // ResolvePack download, which opens in a new tab without an auth header).
+  const wt = db.prepare('SELECT * FROM WorkerToken WHERE job_id = ? ORDER BY expires_at DESC LIMIT 1').get(job.id);
   return {
-    job,
+    job: { ...job, workerLink: wt ? '/worker.html?token=' + wt.token : null },
     versions: versions.map((v) => ({ ...v, scope: parseScopeJson(v) })),
     events,
     payments,

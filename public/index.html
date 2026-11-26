@@ -9,14 +9,19 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Oswald:wght@500;600;700&family=Noto+Sans+Bengali:wght@400;600;800&display=swap" rel="stylesheet">
+<meta property="og:title" content="DealCraft — Bangla-first work record">
+<meta property="og:description" content="A phone call can start a job. It shouldn't be the only record of what was promised. Mutually confirmed digital work record for informal jobs.">
+<meta property="og:image" content="icon.svg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="DealCraft — Bangla-first work record">
+<meta name="twitter:description" content="A phone call can start a job. It shouldn't be the only record of what was promised.">
+<link rel="stylesheet" href="fonts.css">
 <script>document.documentElement.classList.add('m-enter')</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="nav"><div class="wrap nav-in">
+<header class="nav"><a class="skip-link" href="#top">Skip to content</a><div class="wrap nav-in">
   <a class="brand" href="#top">DEALCRAFT<i>.</i></a>
   <nav class="nav-links" aria-label="Main">
     <a href="#journey" data-i18n="nav.how">কীভাবে কাজ করে</a>
@@ -34,7 +39,7 @@
 <main id="top">
 <!-- HERO -->
 <section class="hero" data-enter><div class="wrap hero-grid">
-  <div>
+  <div class="hero-text">
     <p class="kicker" data-i18n="hero.kicker">01 — Bangla-first work record · AppLink · AppQuest 2.0</p>
     <h1 class="hero-title"><span class="bn" data-i18n="hero.title">ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থাকুক।</span></h1>
     <p class="hero-sub" data-i18n="hero.sub">Electrician, painter, plumber — কাজের আগে দুই পক্ষ একসাথে লিখে নিন: কী কাজ, কত টাকা, কবে শেষ। দুজনেই OTP দিয়ে নিশ্চিত করলে রেকর্ড তৈরি হয়। DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।</p>
@@ -48,24 +53,17 @@
       <span class="live-pill" data-i18n="hero.meta3">Live — AppLink SMS</span>
     </div>
   </div>
-  <div class="map-box" aria-label="Dotted map of Bangladesh">
-    <div id="map-hero"></div>
-    <p class="map-tag"><b>●</b> <span data-i18n="hero.map">Dhaka — Chattogram · dotted map, live route</span></p>
-  </div>
 </div>
-<div class="ticker" aria-hidden="true"><span>DEALCRAFT <span class="dot">●</span> BANGLA-FIRST WORK RECORD <span class="dot">●</span> WORKERS FREE <span class="dot">●</span> ৳10 PER RECORD <span class="dot">●</span> ৳70 / MONTH <span class="dot">●</span> NO MONEY HELD <span class="dot">●</span> APPLINK — BANGLALINK SUBSCRIBERS ONLY <span class="dot">●</span>&nbsp;</span><span>DEALCRAFT <span class="dot">●</span> BANGLA-FIRST WORK RECORD <span class="dot">●</span> WORKERS FREE <span class="dot">●</span> ৳10 PER RECORD <span class="dot">●</span> ৳70 / MONTH <span class="dot">●</span> NO MONEY HELD <span class="dot">●</span> APPLINK — BANGLALINK SUBSCRIBERS ONLY <span class="dot">●</span>&nbsp;</span></div>
+<div class="map-box hero-map-bg" aria-label="Dotted map of Bangladesh">
+  <div id="map-hero"></div>
+</div>
 </section>
 
 <!-- JOURNEY V1 -> V2 -->
-<section class="section section-black journey" id="journey"><div class="wrap">
+<section class="section section-black journey" id="journey" data-scroll-moment><div class="wrap">
   <div class="sec-head"><span class="sec-num">02 / HOW IT WORKS</span><h2 class="sec-title" data-i18n="journey.title">ফোন থেকে লিখিত রেকর্ড</h2></div>
-  <div class="frag" aria-label="Work record fragment, version 1 to version 2"><b>V1</b> <span class="dim">· ELECTRICIAN · ৳18,000 · 2026-12-05 · SHA-256 FINGERPRINT</span><br><b>V2</b> <span class="dim">· +৳2,000 TWO EXTRA POINTS · ৳20,000 · BOTH SIDES CONFIRMED</span><br><span class="dim">PAID ACKNOWLEDGED ৳5,000 / REMAINING ৳15,000</span></div>
-  <svg class="dotstrip" viewBox="0 0 240 24" aria-hidden="true"><defs><pattern id="dots1" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="2" fill="currentColor"/></pattern></defs><rect width="240" height="24" fill="url(#dots1)"/></svg>
-  <div class="journey-track">
-    <span class="mono" id="journey-label">V1 — ৳18,000 · AGREED</span>
-    <svg class="ring" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="26" fill="none" stroke="#222" stroke-width="5"/><circle id="ring-fg" cx="32" cy="32" r="26" fill="none" stroke="#FF5A1F" stroke-width="5" stroke-linecap="butt" stroke-dasharray="163.4" stroke-dashoffset="163.4" transform="rotate(-90 32 32)"/><text id="ring-pct" x="32" y="37" text-anchor="middle" fill="#fff" font-size="13" font-family="monospace">0%</text></svg>
-    <span class="mono orange" id="journey-pct-label">SCROLL — 0%</span>
-  </div>
+  <div class="journey-grid">
+    <div class="journey-steps-col">
   <div class="journey-steps" id="journey-steps">
     <article class="jstep" data-step="0"><div class="jstep-num">01</div><div><h3 data-i18n="j1t">FairScope — আগে প্রশ্ন, পরে কাজ</h3><p data-i18n="j1p">কে মাল কিনবে, কয় কোট, কয় পয়েন্ট — প্রতিটি প্রশ্নের উত্তর ঠিক করুন। যা ঠিক হয়নি, তা লুকানো যাবে না।</p><span class="tag"><b>V1</b> · <span data-i18n="j1tag">7 questions · electrician</span></span></div></article>
     <article class="jstep" data-step="1"><div class="jstep-num">02</div><div><h3 data-i18n="j2t">দুজনেই নিশ্চিত করুন — OTP</h3><p data-i18n="j2p">Hirer আর worker — দুজনেই ফোনে OTP দিয়ে রেকর্ডটি নিশ্চিত করেন। একজনের কথায় রেকর্ড হয় না।</p><span class="tag"><b>V1</b> · <span data-i18n="j2tag">Mutual confirmation</span></span></div></article>
@@ -74,7 +72,26 @@
     <article class="jstep" data-step="4"><div class="jstep-num">05</div><div><h3 data-i18n="j5t">দাম বা সময় বদলাতে হলে — ChangeLock</h3><p data-i18n="j5p">কাজ বেড়ে গেলে মুখে নয়, লিখিত প্রস্তাব। পুরনো দাম <span class="price-old">৳18,000</span> → নতুন দাম <span class="price-new">৳20,000</span>। Worker মানলে তবেই V2 হয়।</p><span class="tag"><b>V2</b> · <span data-i18n="j5tag">+৳2,000 · proposed, not forced</span></span></div></article>
     <article class="jstep" data-step="5"><div class="jstep-num">06</div><div><h3 data-i18n="j6t">মত না মিললে — Dispute + ResolvePack</h3><p data-i18n="j6p">দুই পক্ষের বক্তব্য এক জায়গায়। সব রেকর্ড, ছবি, OTP — এক PDF-এ ডাউনলোড করুন।</p><span class="tag"><b>V2</b> · <span data-i18n="j6tag">ResolvePack PDF</span></span></div></article>
   </div>
-  <p class="small" style="margin-top:20px" data-i18n="journey.note">Plain fact: DealCraft holds no money and gives no payment guarantee. It records payment acknowledgements only. AppLink reaches Banglalink subscribers only.</p>
+  <p class="small" data-i18n="journey.note">Plain fact: DealCraft holds no money and gives no payment guarantee. It records payment acknowledgements only. AppLink reaches Banglalink subscribers only.</p>
+      <div class="btn-row"><a class="btn" href="#app">Start a record</a></div>
+    </div>
+    <div class="journey-visual">
+  <div class="frag" aria-label="Work record fragment, version 1 to version 2"><b>V1</b> <span class="dim">· ELECTRICIAN · ৳18,000 · 2026-12-05 · SHA-256 FINGERPRINT</span><br><b>V2</b> <span class="dim">· +৳2,000 TWO EXTRA POINTS · ৳20,000 · BOTH SIDES CONFIRMED</span><br><span class="dim">PAID ACKNOWLEDGED ৳5,000 / REMAINING ৳15,000</span></div>
+  <svg class="dotstrip" viewBox="0 0 240 24" aria-hidden="true"><defs><pattern id="dots1" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="2" fill="currentColor"/></pattern></defs><rect width="240" height="24" fill="url(#dots1)"/></svg>
+  <div class="journey-track">
+    <span class="mono" id="journey-label">V1 — ৳18,000 · AGREED</span>
+    <svg class="ring" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="26" fill="none" stroke="#222" stroke-width="5"/><circle id="ring-fg" cx="32" cy="32" r="26" fill="none" stroke="#FF5A1F" stroke-width="5" stroke-linecap="butt" stroke-dasharray="163.4" stroke-dashoffset="163.4" transform="rotate(-90 32 32)"/><text id="ring-pct" x="32" y="37" text-anchor="middle" fill="#fff" font-size="13" font-family="monospace">0%</text></svg>
+    <span class="mono orange" id="journey-pct-label">SCROLL — 0%</span>
+  </div>
+  <div id="map-journey"></div>
+  <div class="visual-card">
+    <p class="mono orange">PAYPROOF — টাকার হিসাব</p>
+    <div class="vnum">৳20,000</div>
+    <p class="mono grey">AGREED · V2</p>
+    <div class="vrows"><div><span>ACKNOWLEDGED PAID</span><b>৳5,000</b></div><div><span>REMAINING</span><b>৳15,000</b></div></div>
+  </div>
+    </div>
+  </div>
 </div></section>
 
 <!-- PRICE -->
@@ -86,25 +103,29 @@
     <div class="stat"><div class="stat-num"><small>৳</small>70</div><p class="mono" data-i18n="price.p2">Per month — unlimited records</p><p data-i18n="price.p2b">মাসে যত খুশি রেকর্ড। যাঁরা নিয়মিত কাজ করান, তাঁদের জন্য।</p></div>
     <div class="stat"><div class="stat-num"><small>৳</small>0</div><p class="mono" data-i18n="price.p3">Workers — free, always</p><p data-i18n="price.p3b">Worker-এর জন্য DealCraft সবসময় ফ্রি। তাঁদের কোনো চার্জ নেই।</p></div>
   </div>
+  <div class="visual-card">
+    <p class="mono">12 RECORDS — তুলনা</p>
+    <div class="vrows"><div><span>12 × ৳10 PAY-AS-YOU-GO</span><b>৳120</b></div><div><span>12 RECORDS AT ৳70 / MONTH</span><b>৳70</b></div><div><span>YOU SAVE</span><b>৳50</b></div></div>
+  </div>
 </div></section>
 
 <!-- WHY -->
-<section class="section section-white" id="why"><div class="wrap">
+<section class="section section-white" id="why" data-statement><div class="wrap">
   <div class="sec-head"><span class="sec-num">04 / WHY</span><h2 class="sec-title" data-i18n="why.title">কেন লিখিত রেকর্ড?</h2></div>
-  <div class="frag" aria-label="Work record fragment"><b>RECORD</b> <span class="dim">· SCOPE: APARTMENT REWIRING · PRICE ৳20,000 · DEADLINE 2026-12-05</span><br><span class="dim">HIRER CONFIRMED ✓ · WORKER CONFIRMED ✓ · STATUS ACTIVE</span></div>
   <svg class="dotstrip" viewBox="0 0 240 24" aria-hidden="true"><defs><pattern id="dots3" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="2" fill="currentColor"/></pattern></defs><rect width="240" height="24" fill="url(#dots3)"/></svg>
   <div>
     <div class="why-row"><div class="n">01</div><div><h3 data-i18n="w1t">মুখের কথা ভুলে যায়, লেখা থাকে</h3><p data-i18n="w1p">“বলেছিলাম” আর “বলিনি” — এই তর্কে কাজ আটকে যায়। লিখিত রেকর্ডে দুই পক্ষের সম্মতি একসাথে থাকে।</p></div></div>
     <div class="why-row"><div class="n">02</div><div><h3 data-i18n="w2t">ঠিক না হওয়া কথা আগেই চোখে পড়ে</h3><p data-i18n="w2p">FairScope যা ঠিক হয়নি, তা বড় করে দেখায়। কাজ শুরুর আগেই সিদ্ধান্ত নিন — মাঝপথে নয়।</p></div></div>
     <div class="why-row"><div class="n">03</div><div><h3 data-i18n="w3t">টাকার হিসাব সবসময় পরিষ্কার</h3><p data-i18n="w3p">মোট কত, কত দেওয়া হয়েছে, কত বাকি — তিনটি সংখ্যা সবসময় একসাথে।</p></div></div>
     <div class="why-row"><div class="n">04</div><div><h3 data-i18n="w4t">বদল হলে লিখিত প্রস্তাব</h3><p data-i18n="w4p">দাম বা সময় বদলাতে হলে ChangeLock প্রস্তাব লাগে। এক পক্ষ একা বদলাতে পারে না।</p></div></div>
+    <div class="btn-row"><a class="btn btn-dark" href="#app">Start a record</a></div>
   </div>
 </div></section>
 
 <!-- FAQ -->
 <section class="section section-black" id="faq"><div class="wrap">
   <div class="sec-head"><span class="sec-num">05 / FAQ</span><h2 class="sec-title" data-i18n="faq.title">প্রশ্ন ও উত্তর</h2></div>
-  <div id="faq-list">
+  <div id="faq-list" class="faq-grid">
     <div class="faq-row"><div class="n">01</div><div><h3 data-i18n="f1q">DealCraft কি টাকা রাখে?</h3><p data-i18n="f1a">না। DealCraft কোনো টাকা রাখে না, escrow করে না, পেমেন্টের নিশ্চয়তা দেয় না। শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।</p></div></div>
     <div class="faq-row"><div class="n">02</div><div><h3 data-i18n="f2q">Worker-এর কি টাকা দিতে হয়?</h3><p data-i18n="f2a">না। Worker-এর জন্য DealCraft সবসময় ফ্রি।</p></div></div>
     <div class="faq-row"><div class="n">03</div><div><h3 data-i18n="f3q">OTP না দিলে কী হবে?</h3><p data-i18n="f3a">রেকর্ড তৈরি হবে না। দুই পক্ষের OTP নিশ্চিতকরণ ছাড়া কোনো রেকর্ড কার্যকর হয় না।</p></div></div>
@@ -117,14 +138,13 @@
 </div></section>
 
 <!-- APP -->
-<section class="section section-black app" id="app"><div class="wrap">
+<section class="section section-white app" id="app"><div class="wrap">
   <div class="sec-head"><span class="sec-num">06 / APP</span><h2 class="sec-title" data-i18n="app.title">অ্যাপ — রেকর্ড শুরু করুন</h2></div>
   <p class="lede" data-i18n="app.lede">ফোন নম্বর দিয়ে লগইন করুন। OTP আসবে SMS-এ। ডেমোতে OTP স্ক্রিনেই দেখানো হয় — এটি লাইভ AppLink কল নয়।</p>
-  <svg class="dotstrip" viewBox="0 0 240 24" aria-hidden="true"><defs><pattern id="dots4" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="2" fill="currentColor"/></pattern></defs><rect width="240" height="24" fill="url(#dots4)"/></svg>
   <div id="app-error" class="error" role="alert" hidden></div>
 
   <!-- LOGIN -->
-  <div class="app-card view" id="view-login">
+  <div class="app-card view" id="view-login" data-ui="dealcraft-app">
     <h3 class="app-title" data-i18n="login.title">লগইন — ফোন + OTP</h3>
     <p data-i18n="login.sub">Hirer হিসেবে লগইন করুন। Worker-দের জন্য আলাদা সহজ পাতা আছে — worker লিংক দিয়ে।</p>
     <form id="form-login">
@@ -132,6 +152,7 @@
       <input id="login-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="01XXXXXXXXX" required>
       <label for="login-name" data-i18n="login.name">Your name (optional)</label>
       <input id="login-name" type="text" autocomplete="name" placeholder="নাম">
+      <div class="status" role="status" id="login-status" aria-live="polite"></div>
       <div class="btn-row"><button class="btn btn-dark" type="submit" data-i18n="login.send">Send OTP</button></div>
     </form>
     <form id="form-otp" hidden>
@@ -144,7 +165,6 @@
     <div class="demo-card">
       <p class="mono">DEMO — ৳18,000 REWIRING · V1 → V2 ৳20,000</p>
       <p data-i18n="demo.text">ডেমো কাজটি লোড করুন — হিরার ৳18,000 রিওয়্যারিং, ৳5,000 অগ্রিম স্বীকৃত, ChangeLock-এ +৳2,000 প্রস্তাব।</p>
-      <p class="mono">HIRER 01700000001 · WORKER 01800000002</p>
       <div class="btn-row"><button class="btn" type="button" id="btn-demo" data-i18n="demo.load">Load demo job</button></div>
     </div>
   </div>
@@ -313,14 +333,23 @@
 </div></section>
 </main>
 
-<footer><div class="wrap foot-grid">
+<footer class="closing">
+<div class="wrap">
+<div class="foot-close">
+  <p class="mono orange">07 / START</p>
+  <h2 class="foot-title">ফোনে কাজ শুরু হয়।</h2>
+  <p class="lede">কাজের আগে লিখে নিন — কী কাজ, কত টাকা, কবে শেষ। দুজনেই OTP দিয়ে নিশ্চিত করুন।</p>
+  <div class="btn-row"><a class="btn" href="#app">Start a record</a></div>
+</div>
+<div class="foot-grid">
   <div>
-    <p class="brand" style="margin:0 0 12px">DEALCRAFT<i style="color:var(--orange);font-style:normal">.</i></p>
+    <p class="brand">DEALCRAFT</p>
     <p class="small" data-i18n="foot.text">Bangla-first work record for informal jobs. DealCraft holds no money, records payment acknowledgements only. AppLink reaches Banglalink subscribers only.</p>
     <p class="mono grey" style="margin-top:20px">APPLINK · APPQUEST 2.0 · DHAKA — CHATTOGRAM</p>
-    <p class="mono grey">HIRER 01700000001 · WORKER 01800000002 (DEMO)</p>
+    <p class="mono grey">DEMO — ৳18,000 REWIRING · V1 → V2 ৳20,000</p>
   </div>
   <div class="foot-map"><div id="map-footer"></div></div>
+</div>
 </div></footer>
 <script src="app.js"></script>
 </body>

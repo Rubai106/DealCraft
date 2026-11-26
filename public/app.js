@@ -464,7 +464,12 @@ function initDetail(){
    $('passport-box').innerHTML='<p class="mono">ADDED TO WORKPASSPORT — '+esc(jobPhone(currentJob))+' · <a href="passport.html?phone='+encodeURIComponent(jobPhone(currentJob))+'" target="_blank" rel="noopener">View passport</a></p>';
   }catch(e){showErr(e.message);}});
  $('btn-resolvepack').addEventListener('click',function(){
-  window.open(API+'/api/jobs/'+encodeURIComponent(currentJobId)+'/resolvepack','_blank'); });
+  /* window.open carries no Authorization header, so the PDF route (which
+     needs hirer or worker auth) would 401. The job-scoped worker token from
+     the worker link authorises this one download, as it does worker.html. */
+  var link=(currentJob&&(currentJob.workerLink||currentJob.worker_link))||'';
+  var tok=''; try{tok=new URL(link,location.href).searchParams.get('token')||'';}catch(e){}
+  window.open(API+'/api/jobs/'+encodeURIComponent(currentJobId)+'/resolvepack'+(tok?('?token='+encodeURIComponent(tok)):''),'_blank'); });
  $('btn-caas').addEventListener('click',async function(){clearErr();
   try{var r=await api('/api/billing/caas',{method:'POST',body:JSON.stringify({jobId:currentJobId})});
    var box=$('billing-box'); var id=r.chargeId||r.id||(r.caas&&r.caas.id);
@@ -495,13 +500,25 @@ async function loadDemo(){
  }catch(e){showErr((lang==='bn'?'ডেমো লোড হয়নি: ':'Demo did not load: ')+e.message);}
 }
 
+/* ---------- nav: mark the section on screen ---------- */
+function initNavSpy(){
+ var links=document.querySelectorAll('.nav-links a[href^="#"]'); if(!links.length||!('IntersectionObserver' in window))return;
+ var map={}; links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a;});
+ var obs=new IntersectionObserver(function(entries){
+  entries.forEach(function(en){ if(en.isIntersecting){ var a=map[en.target.id]; if(a){ links.forEach(function(x){x.removeAttribute('aria-current');}); a.setAttribute('aria-current','true'); } } });
+ },{rootMargin:'-40% 0px -55% 0px'});
+ ['journey','price','why','faq','app'].forEach(function(id){var el=document.getElementById(id);if(el)obs.observe(el);});
+}
+
 /* ---------- boot ---------- */
 document.addEventListener('DOMContentLoaded',function(){
+ initNavSpy();
  applyI18n();
  $('lang-bn').addEventListener('click',function(){setLang('bn');});
  $('lang-en').addEventListener('click',function(){setLang('en');});
  renderDotMap($('map-hero'),{w:560,h:480});
  renderDotMap($('map-footer'),{w:560,h:300,step:15});
+ renderDotMap($('map-journey'),{w:520,h:360,step:16});
  initJourney(); initAuth(); initNewJob(); initDetail(); renderFairScope();
  $('cta-demo').addEventListener('click',loadDemo);
  $('btn-demo').addEventListener('click',loadDemo);

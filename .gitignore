@@ -12,3 +12,4 @@ uploads/*
 # taste-skill gate screenshots (evidence stays in gate.json + waivers.json)
 .taste-skill/gate/
 .taste-skill/build.done.json
+.taste-skill/shots/

@@ -1,33 +1,33 @@
 {
- "start": "2026-11-26T06:22:04.642Z",
+ "start": "2026-11-26T06:54:13.868Z",
  "round": 3,
  "idle": 0,
  "errors": 0,
  "status": "open",
  "history": [
   {
-   "at": "2026-11-26T06:24:50.012Z",
+   "at": "2026-11-26T06:57:01.485Z",
    "mode": "manual",
    "status": "fail",
-   "fails": 106,
+   "fails": 34,
    "round": 1,
    "reused": false,
    "stopHookActive": false
   },
   {
-   "at": "2026-11-26T06:30:24.980Z",
+   "at": "2026-11-26T07:04:59.862Z",
    "mode": "manual",
    "status": "fail",
-   "fails": 54,
+   "fails": 23,
    "round": 2,
    "reused": false,
    "stopHookActive": false
   },
   {
-   "at": "2026-11-26T06:34:50.356Z",
+   "at": "2026-11-26T07:11:41.627Z",
    "mode": "manual",
    "status": "open",
-   "fails": 43,
+   "fails": 12,
    "round": 3,
    "reused": false,
    "stopHookActive": false
@@ -42,121 +42,38 @@
   "category": "mutually confirmed digital work record for informal jobs",
   "primary": "Start a record",
   "rounds": 3,
-  "start": "2026-11-26T06:22:04.642Z",
+  "start": "2026-11-26T06:54:13.868Z",
   "by": "gate.mjs --start"
  },
  "manual": true,
- "roundKey": "902bfecfb439b37a:48471bd0",
+ "roundKey": "8cb84605ef92bf66:df33e973",
  "roundFree": false,
  "idleFree": false,
  "blockKey": null,
- "fp": "902bfecfb439b37a",
+ "fp": "8cb84605ef92bf66",
  "page": "public/index.html",
  "found": {
   "fails": [
    {
-    "check": "assets",
-    "where": "(the page)",
-    "msg": "the stylesheet https://fonts.googleapis.com/css2?family=Archivo+Black&family=Oswald:wght@500;600;700&family=Noto+Sans+Bengali:wght@400;600;800&display=swap did not load (ERR_TUNNEL_CONNECTION_FAILED): everything here was measured without it",
-    "fix": "fix the path, or remove the reference",
-    "widths": [
-     1440
-    ],
-    "from": "consistency",
-    "ids": [
-     "assets"
-    ],
-    "wheres": [
-     "(the page)"
-    ]
-   },
-   {
-    "check": "placeholder",
-    "where": "div#view-login > div.demo-card > p.mono:nth-of-type(3) \"HIRER 01700000001 · WORKER 01800000002\"",
-    "msg": "a stand-in contact printed on the page (\"01700000001\"): no visitor can use it (and 1 more like it: \"HIRER 01700000001 · WORK\")",
-    "fix": "print the real address and number, or a form or a button that names the action: never an example.com address or a number of zeros",
-    "widths": [
-     1440
-    ],
-    "from": "consistency",
-    "ids": [
-     "placeholder"
-    ],
-    "wheres": [
-     "div#view-login > div.demo-card > p.mono:nth-of-type(3) \"HIRER 01700000001 · WORKER 01800000002\""
-    ]
-   },
-   {
-    "check": "marquee",
-    "where": "main#top > section.hero > div.ticker > span:nth-of-type(1) \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\"",
-    "msg": "a running line of text, cut mid-word at the edge of the screen in every still",
-    "fix": "drop the running line, or set it as full words that fit the screen",
-    "widths": [
-     1440
-    ],
-    "from": "consistency",
-    "ids": [
-     "marquee"
-    ],
-    "wheres": [
-     "main#top > section.hero > div.ticker > span:nth-of-type(1) \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\""
-    ]
-   },
-   {
     "check": "no-visual",
-    "where": "section#journey \"ফোন থেকে লিখিত রেকর্ড\"",
-    "msg": "no picture, effect or mock in this section; a feature section needs a visual",
+    "where": "main#top > section.hero \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থা\"",
+    "msg": "pictures, effects and mocks cover 9% of this section; a feature section needs a visual (about 25% or more)",
     "fix": "give the section a visual: a UI fragment on a ground, real icons, or a photograph that fits",
     "widths": [
-     1440,
-     390
+     1440
     ],
     "from": "consistency",
     "ids": [
      "no-visual"
     ],
     "wheres": [
-     "section#journey \"ফোন থেকে লিখিত রেকর্ড\""
-    ]
-   },
-   {
-    "check": "no-visual",
-    "where": "section#why \"কেন লিখিত রেকর্ড?\"",
-    "msg": "no picture, effect or mock in this section; a feature section needs a visual",
-    "fix": "give the section a visual: a UI fragment on a ground, real icons, or a photograph that fits",
-    "widths": [
-     1440,
-     390
-    ],
-    "from": "consistency",
-    "ids": [
-     "no-visual"
-    ],
-    "wheres": [
-     "section#why \"কেন লিখিত রেকর্ড?\""
-    ]
-   },
-   {
-    "check": "no-visual",
-    "where": "section#app \"অ্যাপ — রেকর্ড শুরু করুন\"",
-    "msg": "no picture, effect or mock in this section; a feature section needs a visual",
-    "fix": "give the section a visual: a UI fragment on a ground, real icons, or a photograph that fits",
-    "widths": [
-     1440,
-     390
-    ],
-    "from": "consistency",
-    "ids": [
-     "no-visual"
-    ],
-    "wheres": [
-     "section#app \"অ্যাপ — রেকর্ড শুরু করুন\""
+     "main#top > section.hero \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থা\""
     ]
    },
    {
     "check": "button-styles",
     "where": "(the page)",
-    "msg": "3 button styles on the page: pill, fill #ffffff, outline #ffffff x2 (\"রেকর্ড শুরু করুন\"); pill, outline #ffffff x1 (\"ডেমো কাজ দেখুন\"); pill, fill #000000, outline #000000 x1 (\"OTP পাঠান\")",
+    "msg": "3 button styles on the page: pill, fill #ffffff, outline #ffffff x3 (\"রেকর্ড শুরু করুন\"); pill, outline #ffffff x1 (\"ডেমো কাজ দেখুন\"); pill, fill #000000, outline #000000 x1 (\"START A RECORD\")",
     "fix": "one primary and one secondary button: one shape, one height per size, one label size",
     "widths": [
      1440,
@@ -172,7 +89,7 @@
    },
    {
     "check": "copy-headline",
-    "where": "section.hero > div.wrap.hero-grid > div:nth-of-type(1) > h1.hero-title \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থা\"",
+    "where": "section.hero > div.wrap.hero-grid > div.hero-text > h1.hero-title \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থা\"",
     "msg": "\"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থাকুক।\" does not name what is sold (mutually confirmed digital work record for informal jobs, mutually, confirmed, digital, from flags)",
     "fix": "put the category noun in the h1 (and who it is for, or where), in 2 to 8 words",
     "widths": [
@@ -183,13 +100,13 @@
      "copy-headline"
     ],
     "wheres": [
-     "section.hero > div.wrap.hero-grid > div:nth-of-type(1) > h1.hero-title \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থা\""
+     "section.hero > div.wrap.hero-grid > div.hero-text > h1.hero-title \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থা\""
     ]
    },
    {
     "check": "copy-headings",
     "where": "div#journey-steps > article.jstep:nth-of-type(1) > div:nth-of-type(2) > h3 \"FAIRSCOPE — আগে প্রশ্ন, পরে কাজ\"",
-    "msg": "\"FAIRSCOPE — আগে প্রশ্ন, পরে কাজ\" names no product, part, place or section (6 headings like it; at most one brand line per page) (and 5 more like it: \"দুজনেই নিশ্চিত করুন — OT\", \"টাকা দিলে — PAYPROOF\", \"মত না মিললে — DISPUTE + \", \"OTP না দিলে কী হবে?\", ...)",
+    "msg": "\"FAIRSCOPE — আগে প্রশ্ন, পরে কাজ\" names no product, part, place or section (5 headings like it; at most one brand line per page) (and 4 more like it: \"দুজনেই নিশ্চিত করুন — OT\", \"টাকা দিলে — PAYPROOF\", \"মত না মিললে — DISPUTE + \", \"OTP না দিলে কী হবে?\")",
     "fix": "name the thing in every heading: the product, a part, the place or a section noun",
     "widths": [
      1440
@@ -203,146 +120,28 @@
     ]
    },
    {
-    "check": "heading-scale",
-    "where": "div#view-login > h3.app-title \"লগইন — ফোন + OTP\"",
-    "msg": "h3 headings in 4 sizes, 22px (\"DEALCRAFT কি টাকা রাখে?\") to 32px (x1.45)",
-    "fix": "size headings by level: the h1 largest, one size per level, each level below the one above",
-    "widths": [
-     1440,
-     390
-    ],
-    "from": "consistency",
-    "ids": [
-     "heading-scale"
-    ],
-    "wheres": [
-     "div#view-login > h3.app-title \"লগইন — ফোন + OTP\""
-    ]
-   },
-   {
-    "check": "heading-scale",
-    "where": "div.wrap > div.stats > div.stat:nth-of-type(1) > div.stat-num \"৳10\"",
-    "msg": "the figure \"৳10\" is set at 88px, larger than the section headings (h2 72px); 2 more like it",
-    "fix": "set figures at the h2 size or under: a stat reads as data, not as the heading",
-    "widths": [
-     1440,
-     390
-    ],
-    "from": "consistency",
-    "ids": [
-     "heading-scale"
-    ],
-    "wheres": [
-     "div.wrap > div.stats > div.stat:nth-of-type(1) > div.stat-num \"৳10\""
-    ]
-   },
-   {
-    "check": "empty-area",
-    "where": "section#journey \"ফোন থেকে লিখিত রেকর্ড\"",
-    "msg": "56% of the section is empty: 208px of empty rows between its content, 46% beside content that covers under half the container, in its 1952px of rows (WARN over 35%, FAIL over 50%)",
-    "fix": "fill the section: a picture or a second column beside the words, or more of its own content; the section stays one or two screens tall (T-height)",
+    "check": "section-gaps",
+    "where": "section#journey / section#price",
+    "msg": "259px between these sections, +90% against the median 136px of gaps at a change of ground",
+    "fix": "use one gap between sections (all within 25% of each other)",
     "widths": [
      1440
     ],
     "from": "consistency",
     "ids": [
-     "empty-area"
+     "section-gaps"
     ],
     "wheres": [
-     "section#journey \"ফোন থেকে লিখিত রেকর্ড\""
-    ]
-   },
-   {
-    "check": "focus-visible",
-    "where": "input#login-phone",
-    "msg": "Tab stop 11, input \"\": the focus lands on something you cannot see",
-    "fix": "keep the kit's ring (system.css :focus-visible, 2px in --action, there at once); a control that hides itself shows on focus",
-    "widths": [
-     1440
-    ],
-    "from": "consistency",
-    "ids": [
-     "focus-visible"
-    ],
-    "wheres": [
-     "input#login-phone"
-    ]
-   },
-   {
-    "check": "moment-none",
-    "where": "(the page)",
-    "msg": "a software page (--type) deals no moment: every kind carries one, two on a long page (moments.md)",
-    "fix": "deal one (moments.mjs pick --page software) and mount it in its own section",
-    "widths": [
-     1440
-    ],
-    "from": "consistency",
-    "ids": [
-     "moment-none"
-    ],
-    "wheres": [
-     "(the page)"
-    ]
-   },
-   {
-    "check": "hero-screen",
-    "where": "main#top > section.hero \"০১ — বাংলা-প্রথম কাজের রেকর্ড · AppLink \"",
-    "msg": "the hero ends at 1058px on a 900px screen, 158px below the fold: it ends at the fold, 1px either way (SR-1)",
-    "fix": "make the hero exactly one screen (height: 100svh, its content fitted inside), never taller or shorter",
-    "widths": [
-     1440
-    ],
-    "from": "consistency",
-    "ids": [
-     "hero-screen"
-    ],
-    "wheres": [
-     "main#top > section.hero \"০১ — বাংলা-প্রথম কাজের রেকর্ড · AppLink \""
+     "section#journey / section#price"
     ]
    },
    {
     "check": "section-height",
-    "where": "footer \"DEALCRAFT. অনানুষ্ঠানিক কাজের জন্য বাংলা\"",
-    "msg": "the section is 389px tall (0.4 screens), 511px short of one screen (900px): every section after the hero is one screen or two, 2px either way (SR-2)",
-    "fix": "set the section to one screen or two (height: calc(var(--h,1) * 100vh), --h 1 or 2) and cut or split its content to fit",
+    "where": "section#why \"04 / WHYকেন লিখিত রেকর্ড? 01মুখের কথা ভু\"",
+    "msg": "the section's content does not fit it: its lowest content ends 858px below its top, past 834px (the section less 72px of bottom padding) (SR-2)",
+    "fix": "fit the content above the section's bottom padding (--padb), or make it two screens (.g2) in two groups",
     "widths": [
      1440
-    ],
-    "from": "consistency",
-    "ids": [
-     "section-height"
-    ],
-    "wheres": [
-     "footer \"DEALCRAFT. অনানুষ্ঠানিক কাজের জন্য বাংলা\""
-    ]
-   },
-   {
-    "check": "section-height",
-    "where": "section#price \"03 / PRICEসহজ খরচ। লুকানো কিছু নেই। ৳10প\"",
-    "msg": "the section is 585px tall (0.6 screens), 315px short of one screen (900px): every section after the hero is one screen or two, 2px either way (SR-2)",
-    "fix": "set the section to one screen or two (height: calc(var(--h,1) * 100vh), --h 1 or 2) and cut or split its content to fit",
-    "widths": [
-     1440
-    ],
-    "from": "consistency",
-    "ids": [
-     "section-height",
-     "screen-short",
-     "screen-height"
-    ],
-    "wheres": [
-     "section#price \"03 / PRICEসহজ খরচ। লুকানো কিছু নেই। ৳10প\"",
-     "#price section.section.section-white \"03 / PRICEসহজ খরচ। লুকানো কিছু ন\""
-    ]
-   },
-   {
-    "check": "section-height",
-    "where": "section#journey \"02 / HOW IT WORKSফোন থেকে লিখিত রেকর্ড V\"",
-    "msg": "the section is 2096px tall (2.3 screens), 296px over two screens (1800px): every section after the hero is one screen or two, 2px either way (and 3 more like it: \"04 / WHYকেন লিখিত রেকর্ড\", \"06 / APPঅ্যাপ — রেকর্ড শ\", \"05 / FAQপ্রশ্ন ও উত্তর 0\") (SR-2)",
-    "fix": "set the section to one screen or two (height: calc(var(--h,1) * 100vh), --h 1 or 2) and cut or split its content to fit",
-    "widths": [
-     1440,
-     390
     ],
     "from": "consistency",
     "ids": [
@@ -350,85 +149,14 @@
      "screen-height"
     ],
     "wheres": [
-     "section#journey \"02 / HOW IT WORKSফোন থেকে লিখিত রেকর্ড V\"",
-     "#journey section.section.section-black \"02 / HOW IT WORKSফোন থেকে লিখিত \""
-    ]
-   },
-   {
-    "check": "section-height",
-    "where": "section#faq \"05 / FAQপ্রশ্ন ও উত্তর 01DealCraft কি টা\"",
-    "msg": "the section starts at 4887px, 387px below the screen grid (5 x 900px): sections start on whole screens (and 3 more like it: \"06 / APPঅ্যাপ — রেকর্ড শ\", \"02 / HOW IT WORKSফোন থেক\", \"04 / WHYকেন লিখিত রেকর্ড\") (SR-2)",
-    "fix": "make every section above it exactly one or two screens tall, so this one starts on a whole screen",
-    "widths": [
-     1440,
-     390
-    ],
-    "from": "consistency",
-    "ids": [
-     "section-height",
-     "screen-height"
-    ],
-    "wheres": [
-     "section#faq \"05 / FAQপ্রশ্ন ও উত্তর 01DealCraft কি টা\"",
-     "#faq section.section.section-black \"05 / FAQপ্রশ্ন ও উত্তর 01DealCra\""
+     "section#why \"04 / WHYকেন লিখিত রেকর্ড? 01মুখের কথা ভু\"",
+     "#why section.section.section-white \"04 / WHYকেন লিখিত রেকর্ড? 01মুখে\""
     ]
    },
    {
     "check": "one-section",
-    "where": "section#journey \"02 / HOW IT WORKSফোন থেকে লিখিত রেকর্ড V\"",
-    "msg": "the screen at scroll 2700px (stride 3) shows 389px of section 2 and the content of 2 sections, over 24px each beside section 3: a screen shows one section (another may peek 8px, 24px WARN) (SR-4)",
-    "fix": "make each section exactly one screen or two, so a screen shows one section and no neighbour peeks",
-    "widths": [
-     1440
-    ],
-    "from": "consistency",
-    "ids": [
-     "one-section"
-    ],
-    "wheres": [
-     "section#journey \"02 / HOW IT WORKSফোন থেকে লিখিত রেকর্ড V\"",
-     "section#journey > div.wrap > div.frag \"V1 · ELECTRICIAN · ৳18,000 · 2026-12-05 \""
-    ]
-   },
-   {
-    "check": "one-section",
-    "where": "footer \"DEALCRAFT. অনানুষ্ঠানিক কাজের জন্য বাংলা\"",
-    "msg": "the screen at scroll 7094px (the top of section 7) shows 389px of section 7 and the content of 2 sections, over 24px each beside section 6: a screen shows one section (another may peek 8px, 24px WARN) (SR-4)",
-    "fix": "make each section exactly one screen or two, so a screen shows one section and no neighbour peeks",
-    "widths": [
-     1440
-    ],
-    "from": "consistency",
-    "ids": [
-     "one-section"
-    ],
-    "wheres": [
-     "footer \"DEALCRAFT. অনানুষ্ঠানিক কাজের জন্য বাংলা\""
-    ]
-   },
-   {
-    "check": "one-section",
-    "where": "section#why \"04 / WHYকেন লিখিত রেকর্ড? RECORD · SCOPE\"",
-    "msg": "the screen at scroll 4500px (stride 5) shows 322px of section 4 and the content of 2 sections, over 24px each beside section 5: a screen shows one section (another may peek 8px, 24px WARN) (and 4 more like it: scroll 3154px, scroll 6300px, scroll 900px) (SR-4)",
-    "fix": "make each section exactly one screen or two, so a screen shows one section and no neighbour peeks",
-    "widths": [
-     1440,
-     390
-    ],
-    "from": "consistency",
-    "ids": [
-     "one-section",
-     "neighbour"
-    ],
-    "wheres": [
-     "section#why \"04 / WHYকেন লিখিত রেকর্ড? RECORD · SCOPE\"",
-     "#why section.section.section-white \"04 / WHYকেন লিখিত রেকর্ড? RECORD\""
-    ]
-   },
-   {
-    "check": "one-section",
-    "where": "main#top > section.hero > div.ticker \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\"",
-    "msg": "a band: a box 100% of the section wide on a ground of its own that holds only text: the section's own ground is the band (SR-4)",
+    "where": "div#view-login > div.demo-card \"DEMO — ৳18,000 REWIRING · V1 → V2 ৳20,00\"",
+    "msg": "a band: a box 89% of the section wide on a ground of its own that holds only text: the section's own ground is the band (SR-4)",
     "fix": "put every block of <main> in a <section>, and give a band its own section instead of a ground inside one",
     "widths": [
      1440
@@ -438,31 +166,13 @@
      "one-section"
     ],
     "wheres": [
-     "main#top > section.hero > div.ticker \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\""
-    ]
-   },
-   {
-    "check": "one-section",
-    "where": "section#price > div.wrap > div.stats \"৳10প্রতি রেকর্ড — যতটুকু ব্যবহারএকটি কাজ\"",
-    "msg": "a band: a box 89% of the section wide on a ground of its own that holds only text: the section's own ground is the band (and 3 more like it: \"RECORD · SCOPE: APARTMEN\", \"লগইন — ফোন + OTP Hirer হ\", \"DEMO — ৳18,000 REWIRING \") (SR-4)",
-    "fix": "put every block of <main> in a <section>, and give a band its own section instead of a ground inside one",
-    "widths": [
-     1440
-    ],
-    "from": "consistency",
-    "ids": [
-     "one-section",
-     "neighbour"
-    ],
-    "wheres": [
-     "section#price > div.wrap > div.stats \"৳10প্রতি রেকর্ড — যতটুকু ব্যবহারএকটি কাজ\"",
-     "#price section.section.section-white \"03 / PRICEসহজ খরচ। লুকানো কিছু ন\""
+     "div#view-login > div.demo-card \"DEMO — ৳18,000 REWIRING · V1 → V2 ৳20,00\""
     ]
    },
    {
     "check": "container-edges",
-    "where": "footer \"DEALCRAFT. অনানুষ্ঠানিক কাজের জন্য বাংলা\"",
-    "msg": "a <footer> at the top of the page, outside header.nav, main, footer.closing and nav.actionbar (SR-6)",
+    "where": "main#top > section.hero > div.map-box.hero-map-bg \"++++DHAKACHATTOGRAM\"",
+    "msg": "a child of section 1 beside its .wrap is no valid background layer: not img, picture, video or canvas; does not span the screen from 0 to 1440px; z-index auto, not 0; a hero layer with neither alt nor aria-hidden=\"true\" (SR-6)",
     "fix": "build the page as header.nav, a main of sections (each one in-flow .wrap plus background layers) and footer.closing",
     "widths": [
      1440
@@ -472,29 +182,13 @@
      "container-edges"
     ],
     "wheres": [
-     "footer \"DEALCRAFT. অনানুষ্ঠানিক কাজের জন্য বাংলা\""
-    ]
-   },
-   {
-    "check": "container-edges",
-    "where": "main#top > section.hero > div.ticker \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\"",
-    "msg": "a child of section 1 beside its .wrap is no valid background layer: not img, picture, video or canvas; z-index 2, not 0 (SR-6)",
-    "fix": "build the page as header.nav, a main of sections (each one in-flow .wrap plus background layers) and footer.closing",
-    "widths": [
-     1440
-    ],
-    "from": "consistency",
-    "ids": [
-     "container-edges"
-    ],
-    "wheres": [
-     "main#top > section.hero > div.ticker \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\""
+     "main#top > section.hero > div.map-box.hero-map-bg \"++++DHAKACHATTOGRAM\""
     ]
    },
    {
     "check": "container-edges",
     "where": "main#top > section.hero > div.wrap.hero-grid \"০১ — বাংলা-প্রথম কাজের রেকর্ড · AppLink \"",
-    "msg": "the .wrap has z-index auto beside a layer: 1 or more (and 1 more like it: \"০১ — বাংলা-প্রথম কাজের র\") (SR-6)",
+    "msg": "the .wrap has z-index auto beside a layer: 1 or more (SR-6)",
     "fix": "build the page as header.nav, a main of sections (each one in-flow .wrap plus background layers) and footer.closing",
     "widths": [
      1440
@@ -508,224 +202,76 @@
     ]
    },
    {
-    "check": "container-edges",
-    "where": "main#top > section.hero > div.ticker > span:nth-of-type(1) \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\"",
-    "msg": "\"DEALCRAFT ● BANGLA-FIRST WORK RE\" runs 0-84px, outside the container lines of section 1 at 80-1360px: full width is for background layers and grounds only (SR-6)",
-    "fix": "keep it inside the container lines (.wrap): full width is for background layers and grounds only",
-    "widths": [
-     1440
-    ],
-    "from": "consistency",
-    "ids": [
-     "container-edges"
-    ],
-    "wheres": [
-     "main#top > section.hero > div.ticker > span:nth-of-type(1) \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\""
-    ]
-   },
-   {
-    "check": "container-edges",
-    "where": "div#view-login > div.demo-card > p.mono:nth-of-type(1) \"DEMO — ৳18,000 REWIRING · V1 → V2 ৳20,00\"",
-    "msg": "3 text blocks start on a left line at x 142, 62px from the container's left: text starts on the container's left, or on one split line (x 623, 732, 841) (also \"ডেমো কাজটি লোড করুন — হিরার ৳১৮,\", \"HIRER 01700000001 · WORKER 01800\") (SR-6)",
-    "fix": "start the text on the container's left, or on the one split line every split shares",
-    "widths": [
-     1440
-    ],
-    "from": "consistency",
-    "ids": [
-     "container-edges"
-    ],
-    "wheres": [
-     "div#view-login > div.demo-card > p.mono:nth-of-type(1) \"DEMO — ৳18,000 REWIRING · V1 → V2 ৳20,00\""
-    ]
-   },
-   {
-    "check": "container-edges",
-    "where": "div#view-login > h3.app-title \"লগইন — ফোন + OTP\"",
-    "msg": "4 text blocks start on a left line at x 117, 37px from the container's left: text starts on the container's left, or on one split line (x 623, 732, 841) (also \"Hirer হিসেবে লগইন করুন। Worker-দ\", \"ফোন নম্বর\", \"আপনার নাম (ঐচ্ছিক)\") (SR-6)",
-    "fix": "start the text on the container's left, or on the one split line every split shares",
-    "widths": [
-     1440
-    ],
-    "from": "consistency",
-    "ids": [
-     "container-edges"
-    ],
-    "wheres": [
-     "div#view-login > h3.app-title \"লগইন — ফোন + OTP\""
-    ]
-   },
-   {
-    "check": "row-lines",
-    "where": "main#top > section.hero > div.ticker \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\"",
-    "msg": "a clipped carousel: its window runs 0-1440px, not on the container at 80-1360px; 1 item cut at rest (SR-7)",
-    "fix": "show every item inside the container, or stack them: no sideways scroller, no half-cut carousel",
-    "widths": [
-     1440
-    ],
-    "from": "consistency",
-    "ids": [
-     "row-lines"
-    ],
-    "wheres": [
-     "main#top > section.hero > div.ticker \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\""
-    ]
-   },
-   {
-    "check": "row-lines",
-    "where": "main#top > section.hero > div.ticker > span:nth-of-type(1) \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\"",
-    "msg": "\"DEALCRAFT ● BANGLA-FIRST WORK RE\" ends at 1440px, past the container's right line at 1360px (SR-7)",
-    "fix": "end it at the container's right line",
-    "widths": [
-     1440
-    ],
-    "from": "consistency",
-    "ids": [
-     "row-lines"
-    ],
-    "wheres": [
-     "main#top > section.hero > div.ticker > span:nth-of-type(1) \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\""
-    ]
-   },
-   {
-    "check": "split-pair",
-    "where": "footer > div.wrap.foot-grid \"DEALCRAFT. অনানুষ্ঠানিক কাজের জন্য বাংলা\"",
-    "msg": "the split's columns are off the page's one pair of lines: its right column starts at x 736, the first split's at 623; its right column starts at x 736, on none of the split lines 623 (k=5), 732 (k=6), 841 (k=7) (SR-8)",
-    "fix": "start every split's right column on one shared line (wrap.left + k x (width + 24) / 12, k 5, 6 or 7; 6 on a place page) and end the left one 24px before it",
-    "widths": [
-     1440
-    ],
-    "from": "consistency",
-    "ids": [
-     "split-pair"
-    ],
-    "wheres": [
-     "footer > div.wrap.foot-grid \"DEALCRAFT. অনানুষ্ঠানিক কাজের জন্য বাংলা\""
-    ]
-   },
-   {
-    "check": "cut-text",
-    "where": "main#top > section.hero > div.ticker > span:nth-of-type(1) \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\"",
-    "msg": "5 of 7 lines hidden by the overflow of main#top > section.hero > div.ticker",
-    "fix": "give the text room: no overflow clipping a line, no line past its box",
+    "check": "flush",
+    "where": "div#map-hero > svg \"++++DHAKACHATTOGRAM\"",
+    "msg": "its last line sits 10px above the rule on top of section#journey",
+    "fix": "give the section its padding at the edge where the ground changes (the closing call keeps a clear gap above the footer)",
     "widths": [
      390
     ],
     "from": "consistency",
     "ids": [
-     "cut-text"
+     "flush"
     ],
     "wheres": [
-     "main#top > section.hero > div.ticker > span:nth-of-type(1) \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\""
+     "div#map-hero > svg \"++++DHAKACHATTOGRAM\""
     ]
    },
    {
-    "check": "edge-right",
-    "where": "#journey svg",
-    "msg": "ends at x 320; the right line is 1360",
-    "fix": "end it on the .wrap right line",
+    "check": "section-gaps",
+    "where": "section#price / section#why",
+    "msg": "180px between these sections, +71% against the median 105px",
+    "fix": "use one gap between sections (all within 25% of each other)",
     "widths": [
-     1440,
      390
     ],
-    "from": "layout",
+    "from": "consistency",
     "ids": [
-     "edge-right"
+     "section-gaps"
     ],
     "wheres": [
-     "#journey svg"
-    ]
-   },
-   {
-    "check": "edge-right",
-    "where": "#price svg",
-    "msg": "ends at x 320; the right line is 1360",
-    "fix": "end it on the .wrap right line",
-    "widths": [
-     1440,
-     390
-    ],
-    "from": "layout",
-    "ids": [
-     "edge-right"
-    ],
-    "wheres": [
-     "#price svg"
-    ]
-   },
-   {
-    "check": "edge-right",
-    "where": "#why svg",
-    "msg": "ends at x 320; the right line is 1360",
-    "fix": "end it on the .wrap right line",
-    "widths": [
-     1440,
-     390
-    ],
-    "from": "layout",
-    "ids": [
-     "edge-right"
-    ],
-    "wheres": [
-     "#why svg"
-    ]
-   },
-   {
-    "check": "edge-right",
-    "where": "#app svg",
-    "msg": "ends at x 320; the right line is 1360",
-    "fix": "end it on the .wrap right line",
-    "widths": [
-     1440,
-     390
-    ],
-    "from": "layout",
-    "ids": [
-     "edge-right"
-    ],
-    "wheres": [
-     "#app svg"
-    ]
-   },
-   {
-    "check": "edge-left",
-    "where": "footer div.foot-map \"++++DHAKACHATTOGRAM\"",
-    "msg": "starts at x 736; the lines are 80 and the column starts",
-    "fix": "start it on the .wrap left line",
-    "widths": [
-     1440
-    ],
-    "from": "layout",
-    "ids": [
-     "edge-left"
-    ],
-    "wheres": [
-     "footer div.foot-map \"++++DHAKACHATTOGRAM\""
+     "section#price / section#why"
     ]
    },
    {
     "check": "screen-height",
-    "where": "#why section.section.section-white \"04 / WHYকেন লিখিত রেকর্ড? RECORD\"",
-    "msg": "1148px, 1.28 screens; a section is exactly one or two (--h)",
+    "where": "#journey section.section.section-black \"02 / HOW IT WORKSফোন থেকে লিখিত \"",
+    "msg": "2832px, 3.36 screens; a section is exactly one or two (--h), or on a phone at least one that its content fills",
     "fix": "make the section exactly one or two screens (--h: 1 or 2)",
     "widths": [
-     1440
+     390
     ],
     "from": "layout",
     "ids": [
      "screen-height"
     ],
     "wheres": [
-     "#why section.section.section-white \"04 / WHYকেন লিখিত রেকর্ড? RECORD\""
+     "#journey section.section.section-black \"02 / HOW IT WORKSফোন থেকে লিখিত \""
+    ]
+   },
+   {
+    "check": "neighbour",
+    "where": "#price section.section.section-white \"03 / PRICEসহজ খরচ। লুকানো কিছু ন\"",
+    "msg": "framed, 82px of #why section.section.section-white \"04 / WHYকেন লিখিত রেকর্ড? 01মুখে\" shows",
+    "fix": "keep the next section's heading and picture out of this screen",
+    "widths": [
+     390
+    ],
+    "from": "layout",
+    "ids": [
+     "neighbour"
+    ],
+    "wheres": [
+     "#price section.section.section-white \"03 / PRICEসহজ খরচ। লুকানো কিছু ন\""
     ]
    },
    {
     "check": "neighbour",
     "where": "#faq section.section.section-black \"05 / FAQপ্রশ্ন ও উত্তর 01DealCra\"",
-    "msg": "framed, 68px of #app section.section.section-black \"06 / APPঅ্যাপ — রেকর্ড শুরু করুন\" shows",
+    "msg": "framed, 19px of #app section.section.section-white \"06 / APPঅ্যাপ — রেকর্ড শুরু করুন\" shows",
     "fix": "keep the next section's heading and picture out of this screen",
     "widths": [
-     1440
+     390
     ],
     "from": "layout",
     "ids": [
@@ -734,130 +280,27 @@
     "wheres": [
      "#faq section.section.section-black \"05 / FAQপ্রশ্ন ও উত্তর 01DealCra\""
     ]
-   },
-   {
-    "check": "screen-height",
-    "where": "#app section.section.section-black \"06 / APPঅ্যাপ — রেকর্ড শুরু করুন\"",
-    "msg": "1102px, 1.22 screens; a section is exactly one or two (--h)",
-    "fix": "make the section exactly one or two screens (--h: 1 or 2)",
-    "widths": [
-     1440
-    ],
-    "from": "layout",
-    "ids": [
-     "screen-height"
-    ],
-    "wheres": [
-     "#app section.section.section-black \"06 / APPঅ্যাপ — রেকর্ড শুরু করুন\""
-    ]
-   },
-   {
-    "check": "hero-fold",
-    "where": "section.hero section.hero \"০১ — বাংলা-প্রথম কাজের রেকর্ড · \"",
-    "msg": "ends at y 1058, past the fold (900): 1.18 screens tall",
-    "fix": "the hero fills the first screen alone, its button inside it",
-    "widths": [
-     1440,
-     390
-    ],
-    "from": "layout",
-    "ids": [
-     "hero-fold"
-    ],
-    "wheres": [
-     "section.hero section.hero \"০১ — বাংলা-প্রথম কাজের রেকর্ড · \""
-    ]
-   },
-   {
-    "check": "edge-left",
-    "where": "#journey svg",
-    "msg": "starts at x 20; the lines are 0 and the column starts",
-    "fix": "start it on the .wrap left line",
-    "widths": [
-     390
-    ],
-    "from": "layout",
-    "ids": [
-     "edge-left"
-    ],
-    "wheres": [
-     "#journey svg"
-    ]
-   },
-   {
-    "check": "edge-left",
-    "where": "#price svg",
-    "msg": "starts at x 20; the lines are 0 and the column starts",
-    "fix": "start it on the .wrap left line",
-    "widths": [
-     390
-    ],
-    "from": "layout",
-    "ids": [
-     "edge-left"
-    ],
-    "wheres": [
-     "#price svg"
-    ]
-   },
-   {
-    "check": "edge-left",
-    "where": "#why svg",
-    "msg": "starts at x 20; the lines are 0 and the column starts",
-    "fix": "start it on the .wrap left line",
-    "widths": [
-     390
-    ],
-    "from": "layout",
-    "ids": [
-     "edge-left"
-    ],
-    "wheres": [
-     "#why svg"
-    ]
-   },
-   {
-    "check": "edge-left",
-    "where": "#app svg",
-    "msg": "starts at x 20; the lines are 0 and the column starts",
-    "fix": "start it on the .wrap left line",
-    "widths": [
-     390
-    ],
-    "from": "layout",
-    "ids": [
-     "edge-left"
-    ],
-    "wheres": [
-     "#app svg"
-    ]
-   },
-   {
-    "check": "neighbour",
-    "where": "#app section.section.section-black \"06 / APPঅ্যাপ — রেকর্ড শুরু করুন\"",
-    "msg": "framed, 374px of the footer shows",
-    "fix": "keep the next section's heading and picture out of this screen",
-    "widths": [
-     390
-    ],
-    "from": "layout",
-    "ids": [
-     "neighbour"
-    ],
-    "wheres": [
-     "#app section.section.section-black \"06 / APPঅ্যাপ — রেকর্ড শুরু করুন\""
-    ]
    }
   ],
   "warns": [
    {
     "check": "flush",
-    "where": "section.hero > div.ticker > span:nth-of-type(1) > span.dot:nth-of-type(1) \"●\"",
-    "msg": "its last line sits 14px above the rule on top of section#journey",
+    "where": "section#app > div.wrap > div.sec-head > span.sec-num \"06 / APP\"",
+    "msg": "its first line sits 18px under the top edge of section#app, where the ground changes",
     "fix": "give the section its padding at the edge where the ground changes (the closing call keeps a clear gap above the footer)",
     "widths": [
      1440,
      390
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "pinned",
+    "where": "section#journey > div.wrap > div.journey-grid > div.journey-visual \"V1 · ELECTRICIAN · ৳18,000 · 2026-12-05 \"",
+    "msg": "held on screen for 0.5 screens of scroll (position: sticky) while the page moves on (a narrow sticky column) (inside a dealt moment's section, [data-moment]: expected on every kind, two moments at most, house rule; its still is judged under reduced motion)",
+    "fix": "let the section scroll with the page",
+    "widths": [
+     1440
     ],
     "from": "consistency"
    },
@@ -884,19 +327,8 @@
     "from": "consistency"
    },
    {
-    "check": "cta",
-    "where": "section#journey \"ফোন থেকে লিখিত রেকর্ড\"",
-    "msg": "a section over 1.5 screens long with no link or button in it",
-    "fix": "add the action: a button in the hero, one on every priced item, one in the closing section",
-    "widths": [
-     1440,
-     390
-    ],
-    "from": "consistency"
-   },
-   {
     "check": "copy-headline",
-    "where": "section.hero > div.wrap.hero-grid > div:nth-of-type(1) > h1.hero-title \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থা\"",
+    "where": "section.hero > div.wrap.hero-grid > div.hero-text > h1.hero-title \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থা\"",
     "msg": "the h1 has 0 words (2 to 8 read at a glance)",
     "fix": "put the category noun in the h1 (and who it is for, or where), in 2 to 8 words",
     "widths": [
@@ -905,10 +337,10 @@
     "from": "consistency"
    },
    {
-    "check": "copy-buttons",
-    "where": "form#form-login > div.btn-row > button.btn.btn-dark \"OTP পাঠান\"",
-    "msg": "\"OTP পাঠান\" does not start with a verb (book, buy, try, start, get, see...)",
-    "fix": "label buttons with a verb and what the visitor gets (\"Book a room\", \"Start free trial\")",
+    "check": "copy-actions",
+    "where": "a#cta-start \"রেকর্ড শুরু করুন\"",
+    "msg": "2 labels for one target /index.html#app: \"রেকর্ড শুরু করুন\", \"START A RECORD\"",
+    "fix": "few actions, one wording: at most 2 in the hero, the main action word for word in nav, hero and close",
     "widths": [
      1440
     ],
@@ -917,7 +349,7 @@
    {
     "check": "copy-actions",
     "where": "(the page)",
-    "msg": "the main action \"Start a record\" does not read word for word the same in the nav or hero and the closing section",
+    "msg": "the main action \"Start a record\" does not read word for word the same in the nav or hero",
     "fix": "few actions, one wording: at most 2 in the hero, the main action word for word in nav, hero and close",
     "widths": [
      1440
@@ -925,9 +357,39 @@
     "from": "consistency"
    },
    {
+    "check": "heading-scale",
+    "where": "div.wrap > div.stats > div.stat:nth-of-type(1) > div.stat-num \"৳10\"",
+    "msg": "figures in 2 sizes, 40, 64px (\"৳20,000\" at 40px, \"৳10\" at 64px)",
+    "fix": "set the page's figures (stats, measures, prices) in one or two sizes",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
     "check": "section-gaps",
-    "where": "main#top > section.hero / section#journey",
-    "msg": "89px between these sections, -37% against the median 142px",
+    "where": "section#price / section#why",
+    "msg": "311px between these sections, +55% against the median 201px",
+    "fix": "use one gap between sections (all within 25% of each other)",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "section-gaps",
+    "where": "section#why / section#faq",
+    "msg": "98px between these sections, -28% against the median 136px of gaps at a change of ground",
+    "fix": "use one gap between sections (all within 25% of each other)",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "section-gaps",
+    "where": "section#journey / section#price",
+    "msg": "uneven space at the edge of a band: 193px outside its edge, 66px inside it (the space on either side of a change of ground reads as one gap only when the two match)",
     "fix": "use one gap between sections (all within 25% of each other)",
     "widths": [
      1440,
@@ -936,9 +398,50 @@
     "from": "consistency"
    },
    {
+    "check": "section-gaps",
+    "where": "section#faq / section#app",
+    "msg": "uneven space at the edge of a band: 87px outside its edge, 18px inside it (the space on either side of a change of ground reads as one gap only when the two match)",
+    "fix": "use one gap between sections (all within 25% of each other)",
+    "widths": [
+     1440,
+     390
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "section-gaps",
+    "where": "section#app / footer.closing",
+    "msg": "uneven space at the edge of a band: 59px outside its edge, 108px inside it (the space on either side of a change of ground reads as one gap only when the two match)",
+    "fix": "use one gap between sections (all within 25% of each other)",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "hole",
+    "where": "section#why \"কেন লিখিত রেকর্ড?\"",
+    "msg": "an empty hole 858x247px inside the section (27% of the screen's height), with content above and below it",
+    "fix": "close the empty space: move the content together, or give the space the visual it lacks",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "nav-labels",
+    "where": "header.nav > div.wrap.nav-in > a.brand \"DEALCRAFT .\"",
+    "msg": "\"DEALCRAFT .\" opens a section headed \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থাকুক।\"",
+    "fix": "name each nav link after the heading of the section it opens",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
     "check": "copy-length",
-    "where": "section.hero > div.wrap.hero-grid > div:nth-of-type(1) > h1.hero-title \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থা\"",
-    "msg": "a headline of 8 words on 6 lines at 96px: a paragraph set in display type",
+    "where": "section.hero > div.wrap.hero-grid > div.hero-text > h1.hero-title \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থা\"",
+    "msg": "a headline of 8 words on 4 lines at 72px: a paragraph set in display type",
     "fix": "cut the heading to one short line (2 to 12 words) and move the rest into the text under it",
     "widths": [
      1440
@@ -948,7 +451,7 @@
    {
     "check": "copy-length",
     "where": "section#faq \"প্রশ্ন ও উত্তর\"",
-    "msg": "6 sections over 90 words a screen outside the UI mocks (\"প্রশ্ন ও উত্তর\" 168, \"ফোন থেকে লিখিত রেকর্ড\" 167, \"কেন লিখিত রেকর্ড?\" 133); 141 words a screen across the page (1239 words in 8.8 screens): a tech page says it in about 80 or fewer",
+    "msg": "5 sections over 90 words a screen outside the UI mocks (\"প্রশ্ন ও উত্তর\" 303, \"ফোন থেকে লিখিত রেকর্ড\" 201, \"কেন লিখিত রেকর্ড?\" 162); 166 words a screen across the page (1159 words in 7 screens): a tech page says it in about 80 or fewer",
     "fix": "cut every section to its heading, one line and the product UI: the UI says the rest; no second paragraph, no list of feature sentences",
     "widths": [
      1440
@@ -956,92 +459,100 @@
     "from": "consistency"
    },
    {
-    "check": "nav-current",
-    "where": "header.nav",
-    "msg": "the nav stays on screen with 5 links to the page's sections, but never marks the one you are in (no link changes as the page scrolls)",
-    "fix": "mark the link of the section on screen (a colour, a weight or a line under it) as the visitor scrolls",
+    "check": "empty-area",
+    "where": "main#top > section.hero \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থা\"",
+    "msg": "48% of the section is empty: 64px above its first content, 144px under its last (div.hero-meta), 25% beside content that covers under half the container, in its 900px of rows (WARN over 35%, FAIL over 50%)",
+    "fix": "fill the section: a picture or a second column beside the words, or more of its own content; the section stays one or two screens tall (T-height)",
     "widths": [
      1440
     ],
     "from": "consistency"
    },
    {
-    "check": "one-screen",
-    "where": "section#price \"সহজ খরচ। লুকানো কিছু নেই।\"",
-    "msg": "1 section is shorter than the screen, so the next one's heading or picture shows with it: \"সহজ খরচ। লুকানো কিছু নেই।\" is 585px of the 835px under the nav, and \"কেন লিখিত রেকর্ড?\" shows below it",
-    "fix": "give each section the screen (min-height: 100svh less the nav, its content centred), or join two short ones into one",
+    "check": "empty-area",
+    "where": "footer.closing \"ফোনে কাজ শুরু হয়।\"",
+    "msg": "42% of the section is empty: 176px under its last (svg), 21% beside content that covers under half the container, in its 812px of rows (WARN over 35%, FAIL over 50%)",
+    "fix": "fill the section: a picture or a second column beside the words, or more of its own content; the section stays one or two screens tall (T-height)",
     "widths": [
      1440
     ],
     "from": "consistency"
    },
    {
-    "check": "font-load",
-    "where": "section.hero > div.wrap.hero-grid > div:nth-of-type(1) > h1.hero-title \"Archivo Black\"",
-    "msg": "\"Archivo Black\" is asked for by the h1 and the h2s but never loaded (no font link or @font-face loads it): it shows in its fallback",
-    "fix": "load every family the type asks for: name it in the font link as start.mjs prints it, spelt as Google Fonts spells it, or ask for a family the page loads",
+    "check": "section-height",
+    "where": "section#why \"04 / WHYকেন লিখিত রেকর্ড? 01মুখের কথা ভু\"",
+    "msg": "the section is 906px tall (1 screens), 6px over one screen (900px): every section after the hero is one screen or two, 2px either way (SR-2)",
+    "fix": "set the section to one screen or two (height: calc(var(--h,1) * 100vh), --h 1 or 2) and cut or split its content to fit",
     "widths": [
      1440
     ],
     "from": "consistency"
    },
    {
-    "check": "visual-caption",
-    "where": "section.hero > div.wrap.hero-grid > div.map-box > p.map-tag \"● ঢাকা — চট্টগ্রাম · ডটেড ম্যাপ, লাইভ রু\"",
-    "msg": "a small 11px line is laid over the lower half of the drawing (svg): \"● ঢাকা — চট্টগ্রাম · ডটেড ম্যাপ, লাইভ রু...\"; no caption or description under any image, render or visual (house rule)",
-    "fix": "take the line away: no caption or description under, over or on any image, render or visual; a licence credit goes in one footer line",
+    "check": "section-height",
+    "where": "section#faq \"05 / FAQপ্রশ্ন ও উত্তর 01DealCraft কি টা\"",
+    "msg": "the section starts at 4506px, 6px below the screen grid (5 x 900px): sections start on whole screens (SR-2)",
+    "fix": "make every section above it exactly one or two screens tall, so this one starts on a whole screen",
     "widths": [
-     1440,
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "section-height",
+    "where": "section#app \"06 / APPঅ্যাপ — রেকর্ড শুরু করুন ফোন নম্\"",
+    "msg": "the section starts at 5406px, 6px below the screen grid (6 x 900px): sections start on whole screens (SR-2)",
+    "fix": "make every section above it exactly one or two screens tall, so this one starts on a whole screen",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "section-height",
+    "where": "footer.closing \"07 / START ফোনে কাজ শুরু হয়। কাজের আগে \"",
+    "msg": "the section starts at 6306px, 6px below the screen grid (7 x 900px): sections start on whole screens (SR-2)",
+    "fix": "make every section above it exactly one or two screens tall, so this one starts on a whole screen",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "section-air",
+    "where": "section#why / section#faq",
+    "msg": "98px of air between the content of these two sections: 128-480px (64-600px WARN) (every gap out of the band at 1440px, top to bottom: 98px after \"04 / WHYকেন লিখিত রে\", 105px after \"05 / FAQপ্রশ্ন ও উত্\") (SR-3)",
+    "fix": "keep 128-480px of air between the content of neighbouring sections (112-420px on a phone): the sections' padding (--padt, --padb)",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "section-air",
+    "where": "section#faq / section#app",
+    "msg": "105px of air between the content of these two sections: 128-480px (64-600px WARN) (SR-3)",
+    "fix": "keep 128-480px of air between the content of neighbouring sections (112-420px on a phone): the sections' padding (--padt, --padb)",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "no-visual",
+    "where": "main#top > section.hero \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থা\"",
+    "msg": "pictures, effects and mocks cover 17% of this section; a feature section needs a visual (about 25% or more)",
+    "fix": "give the section a visual: a UI fragment on a ground, real icons, or a photograph that fits",
+    "widths": [
      390
     ],
     "from": "consistency"
    },
    {
-    "check": "skip-link",
-    "where": "header.nav > div.wrap.nav-in > a.brand \"DEALCRAFT.\"",
-    "msg": "the first Tab stop is \"DEALCRAFT.\", not a skip link: a keyboard user tabs through the whole nav on every visit",
-    "fix": "add the starter's skip link as the header's first child: <a class=\"skip-link\" href=\"#top\">Skip to content</a>",
-    "widths": [
-     1440
-    ],
-    "from": "consistency"
-   },
-   {
-    "check": "share-meta",
-    "where": "head",
-    "msg": "the head lacks og:title, og:description, og:image, twitter:card: a shared link shows no picture or title of its own",
-    "fix": "copy the head block of starter.html: og tags, twitter:card, the icon and theme-color (references/system.md, Head)",
-    "widths": [
-     1440
-    ],
-    "from": "consistency"
-   },
-   {
-    "check": "form-fields",
-    "where": "form#form-login",
-    "msg": "the form has no status line (role=\"status\"): sending, sent and errors are never read out",
-    "fix": "give each field its type, autocomplete and inputmode, never block paste or disable the button before a submit, and add the status line (references/system.md, Forms)",
-    "widths": [
-     1440
-    ],
-    "from": "consistency"
-   },
-   {
-    "check": "tap-size",
-    "where": "header.nav > div.wrap.nav-in > a.brand \"DEALCRAFT.\"",
-    "msg": "a 129x35px tap target: under the 44px a phone needs",
-    "fix": "make every link and control outside running text 44px tall on a phone: display: inline-flex; align-items: center; min-height: 44px (a footer list then needs no gap), a 44px small button, or a transparent ::before laid past the box",
-    "widths": [
-     390,
-     320
-    ],
-    "from": "consistency"
-   },
-   {
-    "check": "cta",
-    "where": "section#why \"কেন লিখিত রেকর্ড?\"",
-    "msg": "a section over 1.5 screens long with no link or button in it",
-    "fix": "add the action: a button in the hero, one on every priced item, one in the closing section",
+    "check": "section-gaps",
+    "where": "main#top > section.hero / section#journey",
+    "msg": "77px between these sections, -27% against the median 105px",
+    "fix": "use one gap between sections (all within 25% of each other)",
     "widths": [
      390
     ],
@@ -1049,8 +560,8 @@
    },
    {
     "check": "orphan",
-    "where": "section.hero > div.wrap.hero-grid > div:nth-of-type(1) > p.kicker \"০১ — বাংলা-প্রথম কাজের রেকর্ড · APPLINK \"",
-    "msg": "its last line holds only \"2.0\" (and 1 more like it: \"HIRER 01700000001 · WORK\")",
+    "where": "section.hero > div.wrap.hero-grid > div.hero-text > p.kicker \"০১ — বাংলা-প্রথম কাজের রেকর্ড · APPLINK \"",
+    "msg": "its last line holds only \"2.0\"",
     "fix": "rebalance the text (text-wrap: pretty, or a shorter line) so the last line holds more than one short word",
     "widths": [
      390
@@ -1058,18 +569,18 @@
     "from": "consistency"
    },
    {
-    "check": "fold-cut",
-    "where": "button#cta-demo \"ডেমো কাজ দেখুন\"",
-    "msg": "the hero's button \"ডেমো কাজ দেখুন\" is cut by the bottom of the first screen (12px of its 52px below the fold)",
-    "fix": "size the hero so the heading ends above the fold, or starts below it",
+    "check": "visual-caption",
+    "where": "span#journey-label \"V2 — ৳20,000 · CHANGELOCK\"",
+    "msg": "a muted 11px line of 2 rows sits 1px under the drawing (svg): it reads as a caption: \"V2 — ৳20,000 · CHANGELOCK\"; no caption or description under any image, render or visual (house rule)",
+    "fix": "take the line away: no caption or description under, over or on any image, render or visual; a licence credit goes in one footer line",
     "widths": [
-     320
+     390
     ],
     "from": "consistency"
    },
    {
     "check": "copy-em-dash",
-    "msg": "32 em dashes in the body (budget 2)",
+    "msg": "29 em dashes in the body (budget 2)",
     "fix": "use a comma, a colon, parentheses or a full stop where each is natural (references/copy-tells.md)",
     "widths": [],
     "from": "copy",
@@ -1088,219 +599,66 @@
   ],
   "crashed": [],
   "seconds": {
-   "consistency": 144,
-   "layout": 17
+   "consistency": 128,
+   "layout": 16
   }
  },
  "open": [
   {
-   "check": "assets",
-   "where": "(the page)",
-   "msg": "the stylesheet https://fonts.googleapis.com/css2?family=Archivo+Black&family=Oswald:wght@500;600;700&family=Noto+Sans+Bengali:wght@400;600;800&display=swap did not load (ERR_TUNNEL_CONNECTION_FAILED): everything here was measured without it",
-   "fix": "fix the path, or remove the reference",
-   "widths": [
-    1440
-   ],
-   "from": "consistency",
-   "ids": [
-    "assets"
-   ],
-   "wheres": [
-    "(the page)"
-   ]
-  },
-  {
    "check": "no-visual",
-   "where": "section#journey \"ফোন থেকে লিখিত রেকর্ড\"",
-   "msg": "no picture, effect or mock in this section; a feature section needs a visual",
+   "where": "main#top > section.hero \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থা\"",
+   "msg": "pictures, effects and mocks cover 9% of this section; a feature section needs a visual (about 25% or more)",
    "fix": "give the section a visual: a UI fragment on a ground, real icons, or a photograph that fits",
    "widths": [
-    1440,
-    390
+    1440
    ],
    "from": "consistency",
    "ids": [
     "no-visual"
    ],
    "wheres": [
-    "section#journey \"ফোন থেকে লিখিত রেকর্ড\""
+    "main#top > section.hero \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থা\""
    ]
   },
   {
-   "check": "no-visual",
-   "where": "section#why \"কেন লিখিত রেকর্ড?\"",
-   "msg": "no picture, effect or mock in this section; a feature section needs a visual",
-   "fix": "give the section a visual: a UI fragment on a ground, real icons, or a photograph that fits",
-   "widths": [
-    1440,
-    390
-   ],
-   "from": "consistency",
-   "ids": [
-    "no-visual"
-   ],
-   "wheres": [
-    "section#why \"কেন লিখিত রেকর্ড?\""
-   ]
-  },
-  {
-   "check": "no-visual",
-   "where": "section#app \"অ্যাপ — রেকর্ড শুরু করুন\"",
-   "msg": "no picture, effect or mock in this section; a feature section needs a visual",
-   "fix": "give the section a visual: a UI fragment on a ground, real icons, or a photograph that fits",
-   "widths": [
-    1440,
-    390
-   ],
-   "from": "consistency",
-   "ids": [
-    "no-visual"
-   ],
-   "wheres": [
-    "section#app \"অ্যাপ — রেকর্ড শুরু করুন\""
-   ]
-  },
-  {
-   "check": "copy-headings",
-   "where": "div#journey-steps > article.jstep:nth-of-type(1) > div:nth-of-type(2) > h3 \"FAIRSCOPE — আগে প্রশ্ন, পরে কাজ\"",
-   "msg": "\"FAIRSCOPE — আগে প্রশ্ন, পরে কাজ\" names no product, part, place or section (6 headings like it; at most one brand line per page) (and 5 more like it: \"দুজনেই নিশ্চিত করুন — OT\", \"টাকা দিলে — PAYPROOF\", \"মত না মিললে — DISPUTE + \", \"OTP না দিলে কী হবে?\", ...)",
-   "fix": "name the thing in every heading: the product, a part, the place or a section noun",
+   "check": "copy-headline",
+   "where": "section.hero > div.wrap.hero-grid > div.hero-text > h1.hero-title \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থা\"",
+   "msg": "\"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থাকুক।\" does not name what is sold (mutually confirmed digital work record for informal jobs, mutually, confirmed, digital, from flags)",
+   "fix": "put the category noun in the h1 (and who it is for, or where), in 2 to 8 words",
    "widths": [
     1440
    ],
    "from": "consistency",
    "ids": [
-    "copy-headings"
+    "copy-headline"
    ],
    "wheres": [
-    "div#journey-steps > article.jstep:nth-of-type(1) > div:nth-of-type(2) > h3 \"FAIRSCOPE — আগে প্রশ্ন, পরে কাজ\""
+    "section.hero > div.wrap.hero-grid > div.hero-text > h1.hero-title \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থা\""
    ]
   },
   {
-   "check": "heading-scale",
-   "where": "div#view-login > h3.app-title \"লগইন — ফোন + OTP\"",
-   "msg": "h3 headings in 4 sizes, 22px (\"DEALCRAFT কি টাকা রাখে?\") to 32px (x1.45)",
-   "fix": "size headings by level: the h1 largest, one size per level, each level below the one above",
-   "widths": [
-    1440,
-    390
-   ],
-   "from": "consistency",
-   "ids": [
-    "heading-scale"
-   ],
-   "wheres": [
-    "div#view-login > h3.app-title \"লগইন — ফোন + OTP\""
-   ]
-  },
-  {
-   "check": "heading-scale",
-   "where": "div.wrap > div.stats > div.stat:nth-of-type(1) > div.stat-num \"৳10\"",
-   "msg": "the figure \"৳10\" is set at 88px, larger than the section headings (h2 72px); 2 more like it",
-   "fix": "set figures at the h2 size or under: a stat reads as data, not as the heading",
-   "widths": [
-    1440,
-    390
-   ],
-   "from": "consistency",
-   "ids": [
-    "heading-scale"
-   ],
-   "wheres": [
-    "div.wrap > div.stats > div.stat:nth-of-type(1) > div.stat-num \"৳10\""
-   ]
-  },
-  {
-   "check": "empty-area",
-   "where": "section#journey \"ফোন থেকে লিখিত রেকর্ড\"",
-   "msg": "56% of the section is empty: 208px of empty rows between its content, 46% beside content that covers under half the container, in its 1952px of rows (WARN over 35%, FAIL over 50%)",
-   "fix": "fill the section: a picture or a second column beside the words, or more of its own content; the section stays one or two screens tall (T-height)",
+   "check": "section-gaps",
+   "where": "section#journey / section#price",
+   "msg": "259px between these sections, +90% against the median 136px of gaps at a change of ground",
+   "fix": "use one gap between sections (all within 25% of each other)",
    "widths": [
     1440
    ],
    "from": "consistency",
    "ids": [
-    "empty-area"
+    "section-gaps"
    ],
    "wheres": [
-    "section#journey \"ফোন থেকে লিখিত রেকর্ড\""
-   ]
-  },
-  {
-   "check": "focus-visible",
-   "where": "input#login-phone",
-   "msg": "Tab stop 11, input \"\": the focus lands on something you cannot see",
-   "fix": "keep the kit's ring (system.css :focus-visible, 2px in --action, there at once); a control that hides itself shows on focus",
-   "widths": [
-    1440
-   ],
-   "from": "consistency",
-   "ids": [
-    "focus-visible"
-   ],
-   "wheres": [
-    "input#login-phone"
-   ]
-  },
-  {
-   "check": "hero-screen",
-   "where": "main#top > section.hero \"০১ — বাংলা-প্রথম কাজের রেকর্ড · AppLink \"",
-   "msg": "the hero ends at 1058px on a 900px screen, 158px below the fold: it ends at the fold, 1px either way (SR-1)",
-   "fix": "make the hero exactly one screen (height: 100svh, its content fitted inside), never taller or shorter",
-   "widths": [
-    1440
-   ],
-   "from": "consistency",
-   "ids": [
-    "hero-screen"
-   ],
-   "wheres": [
-    "main#top > section.hero \"০১ — বাংলা-প্রথম কাজের রেকর্ড · AppLink \""
+    "section#journey / section#price"
    ]
   },
   {
    "check": "section-height",
-   "where": "footer \"DEALCRAFT. অনানুষ্ঠানিক কাজের জন্য বাংলা\"",
-   "msg": "the section is 389px tall (0.4 screens), 511px short of one screen (900px): every section after the hero is one screen or two, 2px either way (SR-2)",
-   "fix": "set the section to one screen or two (height: calc(var(--h,1) * 100vh), --h 1 or 2) and cut or split its content to fit",
+   "where": "section#why \"04 / WHYকেন লিখিত রেকর্ড? 01মুখের কথা ভু\"",
+   "msg": "the section's content does not fit it: its lowest content ends 858px below its top, past 834px (the section less 72px of bottom padding) (SR-2)",
+   "fix": "fit the content above the section's bottom padding (--padb), or make it two screens (.g2) in two groups",
    "widths": [
     1440
-   ],
-   "from": "consistency",
-   "ids": [
-    "section-height"
-   ],
-   "wheres": [
-    "footer \"DEALCRAFT. অনানুষ্ঠানিক কাজের জন্য বাংলা\""
-   ]
-  },
-  {
-   "check": "section-height",
-   "where": "section#price \"03 / PRICEসহজ খরচ। লুকানো কিছু নেই। ৳10প\"",
-   "msg": "the section is 585px tall (0.6 screens), 315px short of one screen (900px): every section after the hero is one screen or two, 2px either way (SR-2)",
-   "fix": "set the section to one screen or two (height: calc(var(--h,1) * 100vh), --h 1 or 2) and cut or split its content to fit",
-   "widths": [
-    1440
-   ],
-   "from": "consistency",
-   "ids": [
-    "section-height",
-    "screen-short",
-    "screen-height"
-   ],
-   "wheres": [
-    "section#price \"03 / PRICEসহজ খরচ। লুকানো কিছু নেই। ৳10প\"",
-    "#price section.section.section-white \"03 / PRICEসহজ খরচ। লুকানো কিছু ন\""
-   ]
-  },
-  {
-   "check": "section-height",
-   "where": "section#journey \"02 / HOW IT WORKSফোন থেকে লিখিত রেকর্ড V\"",
-   "msg": "the section is 2096px tall (2.3 screens), 296px over two screens (1800px): every section after the hero is one screen or two, 2px either way (and 3 more like it: \"04 / WHYকেন লিখিত রেকর্ড\", \"06 / APPঅ্যাপ — রেকর্ড শ\", \"05 / FAQপ্রশ্ন ও উত্তর 0\") (SR-2)",
-   "fix": "set the section to one screen or two (height: calc(var(--h,1) * 100vh), --h 1 or 2) and cut or split its content to fit",
-   "widths": [
-    1440,
-    390
    ],
    "from": "consistency",
    "ids": [
@@ -1308,85 +666,14 @@
     "screen-height"
    ],
    "wheres": [
-    "section#journey \"02 / HOW IT WORKSফোন থেকে লিখিত রেকর্ড V\"",
-    "#journey section.section.section-black \"02 / HOW IT WORKSফোন থেকে লিখিত \""
-   ]
-  },
-  {
-   "check": "section-height",
-   "where": "section#faq \"05 / FAQপ্রশ্ন ও উত্তর 01DealCraft কি টা\"",
-   "msg": "the section starts at 4887px, 387px below the screen grid (5 x 900px): sections start on whole screens (and 3 more like it: \"06 / APPঅ্যাপ — রেকর্ড শ\", \"02 / HOW IT WORKSফোন থেক\", \"04 / WHYকেন লিখিত রেকর্ড\") (SR-2)",
-   "fix": "make every section above it exactly one or two screens tall, so this one starts on a whole screen",
-   "widths": [
-    1440,
-    390
-   ],
-   "from": "consistency",
-   "ids": [
-    "section-height",
-    "screen-height"
-   ],
-   "wheres": [
-    "section#faq \"05 / FAQপ্রশ্ন ও উত্তর 01DealCraft কি টা\"",
-    "#faq section.section.section-black \"05 / FAQপ্রশ্ন ও উত্তর 01DealCra\""
+    "section#why \"04 / WHYকেন লিখিত রেকর্ড? 01মুখের কথা ভু\"",
+    "#why section.section.section-white \"04 / WHYকেন লিখিত রেকর্ড? 01মুখে\""
    ]
   },
   {
    "check": "one-section",
-   "where": "section#journey \"02 / HOW IT WORKSফোন থেকে লিখিত রেকর্ড V\"",
-   "msg": "the screen at scroll 2700px (stride 3) shows 389px of section 2 and the content of 2 sections, over 24px each beside section 3: a screen shows one section (another may peek 8px, 24px WARN) (SR-4)",
-   "fix": "make each section exactly one screen or two, so a screen shows one section and no neighbour peeks",
-   "widths": [
-    1440
-   ],
-   "from": "consistency",
-   "ids": [
-    "one-section"
-   ],
-   "wheres": [
-    "section#journey \"02 / HOW IT WORKSফোন থেকে লিখিত রেকর্ড V\"",
-    "section#journey > div.wrap > div.frag \"V1 · ELECTRICIAN · ৳18,000 · 2026-12-05 \""
-   ]
-  },
-  {
-   "check": "one-section",
-   "where": "footer \"DEALCRAFT. অনানুষ্ঠানিক কাজের জন্য বাংলা\"",
-   "msg": "the screen at scroll 7094px (the top of section 7) shows 389px of section 7 and the content of 2 sections, over 24px each beside section 6: a screen shows one section (another may peek 8px, 24px WARN) (SR-4)",
-   "fix": "make each section exactly one screen or two, so a screen shows one section and no neighbour peeks",
-   "widths": [
-    1440
-   ],
-   "from": "consistency",
-   "ids": [
-    "one-section"
-   ],
-   "wheres": [
-    "footer \"DEALCRAFT. অনানুষ্ঠানিক কাজের জন্য বাংলা\""
-   ]
-  },
-  {
-   "check": "one-section",
-   "where": "section#why \"04 / WHYকেন লিখিত রেকর্ড? RECORD · SCOPE\"",
-   "msg": "the screen at scroll 4500px (stride 5) shows 322px of section 4 and the content of 2 sections, over 24px each beside section 5: a screen shows one section (another may peek 8px, 24px WARN) (and 4 more like it: scroll 3154px, scroll 6300px, scroll 900px) (SR-4)",
-   "fix": "make each section exactly one screen or two, so a screen shows one section and no neighbour peeks",
-   "widths": [
-    1440,
-    390
-   ],
-   "from": "consistency",
-   "ids": [
-    "one-section",
-    "neighbour"
-   ],
-   "wheres": [
-    "section#why \"04 / WHYকেন লিখিত রেকর্ড? RECORD · SCOPE\"",
-    "#why section.section.section-white \"04 / WHYকেন লিখিত রেকর্ড? RECORD\""
-   ]
-  },
-  {
-   "check": "one-section",
-   "where": "main#top > section.hero > div.ticker \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\"",
-   "msg": "a band: a box 100% of the section wide on a ground of its own that holds only text: the section's own ground is the band (SR-4)",
+   "where": "div#view-login > div.demo-card \"DEMO — ৳18,000 REWIRING · V1 → V2 ৳20,00\"",
+   "msg": "a band: a box 89% of the section wide on a ground of its own that holds only text: the section's own ground is the band (SR-4)",
    "fix": "put every block of <main> in a <section>, and give a band its own section instead of a ground inside one",
    "widths": [
     1440
@@ -1396,31 +683,13 @@
     "one-section"
    ],
    "wheres": [
-    "main#top > section.hero > div.ticker \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\""
-   ]
-  },
-  {
-   "check": "one-section",
-   "where": "section#price > div.wrap > div.stats \"৳10প্রতি রেকর্ড — যতটুকু ব্যবহারএকটি কাজ\"",
-   "msg": "a band: a box 89% of the section wide on a ground of its own that holds only text: the section's own ground is the band (and 3 more like it: \"RECORD · SCOPE: APARTMEN\", \"লগইন — ফোন + OTP Hirer হ\", \"DEMO — ৳18,000 REWIRING \") (SR-4)",
-   "fix": "put every block of <main> in a <section>, and give a band its own section instead of a ground inside one",
-   "widths": [
-    1440
-   ],
-   "from": "consistency",
-   "ids": [
-    "one-section",
-    "neighbour"
-   ],
-   "wheres": [
-    "section#price > div.wrap > div.stats \"৳10প্রতি রেকর্ড — যতটুকু ব্যবহারএকটি কাজ\"",
-    "#price section.section.section-white \"03 / PRICEসহজ খরচ। লুকানো কিছু ন\""
+    "div#view-login > div.demo-card \"DEMO — ৳18,000 REWIRING · V1 → V2 ৳20,00\""
    ]
   },
   {
    "check": "container-edges",
-   "where": "footer \"DEALCRAFT. অনানুষ্ঠানিক কাজের জন্য বাংলা\"",
-   "msg": "a <footer> at the top of the page, outside header.nav, main, footer.closing and nav.actionbar (SR-6)",
+   "where": "main#top > section.hero > div.map-box.hero-map-bg \"++++DHAKACHATTOGRAM\"",
+   "msg": "a child of section 1 beside its .wrap is no valid background layer: not img, picture, video or canvas; does not span the screen from 0 to 1440px; z-index auto, not 0; a hero layer with neither alt nor aria-hidden=\"true\" (SR-6)",
    "fix": "build the page as header.nav, a main of sections (each one in-flow .wrap plus background layers) and footer.closing",
    "widths": [
     1440
@@ -1430,29 +699,13 @@
     "container-edges"
    ],
    "wheres": [
-    "footer \"DEALCRAFT. অনানুষ্ঠানিক কাজের জন্য বাংলা\""
-   ]
-  },
-  {
-   "check": "container-edges",
-   "where": "main#top > section.hero > div.ticker \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\"",
-   "msg": "a child of section 1 beside its .wrap is no valid background layer: not img, picture, video or canvas; z-index 2, not 0 (SR-6)",
-   "fix": "build the page as header.nav, a main of sections (each one in-flow .wrap plus background layers) and footer.closing",
-   "widths": [
-    1440
-   ],
-   "from": "consistency",
-   "ids": [
-    "container-edges"
-   ],
-   "wheres": [
-    "main#top > section.hero > div.ticker \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\""
+    "main#top > section.hero > div.map-box.hero-map-bg \"++++DHAKACHATTOGRAM\""
    ]
   },
   {
    "check": "container-edges",
    "where": "main#top > section.hero > div.wrap.hero-grid \"০১ — বাংলা-প্রথম কাজের রেকর্ড · AppLink \"",
-   "msg": "the .wrap has z-index auto beside a layer: 1 or more (and 1 more like it: \"০১ — বাংলা-প্রথম কাজের র\") (SR-6)",
+   "msg": "the .wrap has z-index auto beside a layer: 1 or more (SR-6)",
    "fix": "build the page as header.nav, a main of sections (each one in-flow .wrap plus background layers) and footer.closing",
    "widths": [
     1440
@@ -1466,224 +719,76 @@
    ]
   },
   {
-   "check": "container-edges",
-   "where": "main#top > section.hero > div.ticker > span:nth-of-type(1) \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\"",
-   "msg": "\"DEALCRAFT ● BANGLA-FIRST WORK RE\" runs 0-84px, outside the container lines of section 1 at 80-1360px: full width is for background layers and grounds only (SR-6)",
-   "fix": "keep it inside the container lines (.wrap): full width is for background layers and grounds only",
-   "widths": [
-    1440
-   ],
-   "from": "consistency",
-   "ids": [
-    "container-edges"
-   ],
-   "wheres": [
-    "main#top > section.hero > div.ticker > span:nth-of-type(1) \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\""
-   ]
-  },
-  {
-   "check": "container-edges",
-   "where": "div#view-login > div.demo-card > p.mono:nth-of-type(1) \"DEMO — ৳18,000 REWIRING · V1 → V2 ৳20,00\"",
-   "msg": "3 text blocks start on a left line at x 142, 62px from the container's left: text starts on the container's left, or on one split line (x 623, 732, 841) (also \"ডেমো কাজটি লোড করুন — হিরার ৳১৮,\", \"HIRER 01700000001 · WORKER 01800\") (SR-6)",
-   "fix": "start the text on the container's left, or on the one split line every split shares",
-   "widths": [
-    1440
-   ],
-   "from": "consistency",
-   "ids": [
-    "container-edges"
-   ],
-   "wheres": [
-    "div#view-login > div.demo-card > p.mono:nth-of-type(1) \"DEMO — ৳18,000 REWIRING · V1 → V2 ৳20,00\""
-   ]
-  },
-  {
-   "check": "container-edges",
-   "where": "div#view-login > h3.app-title \"লগইন — ফোন + OTP\"",
-   "msg": "4 text blocks start on a left line at x 117, 37px from the container's left: text starts on the container's left, or on one split line (x 623, 732, 841) (also \"Hirer হিসেবে লগইন করুন। Worker-দ\", \"ফোন নম্বর\", \"আপনার নাম (ঐচ্ছিক)\") (SR-6)",
-   "fix": "start the text on the container's left, or on the one split line every split shares",
-   "widths": [
-    1440
-   ],
-   "from": "consistency",
-   "ids": [
-    "container-edges"
-   ],
-   "wheres": [
-    "div#view-login > h3.app-title \"লগইন — ফোন + OTP\""
-   ]
-  },
-  {
-   "check": "row-lines",
-   "where": "main#top > section.hero > div.ticker \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\"",
-   "msg": "a clipped carousel: its window runs 0-1440px, not on the container at 80-1360px; 1 item cut at rest (SR-7)",
-   "fix": "show every item inside the container, or stack them: no sideways scroller, no half-cut carousel",
-   "widths": [
-    1440
-   ],
-   "from": "consistency",
-   "ids": [
-    "row-lines"
-   ],
-   "wheres": [
-    "main#top > section.hero > div.ticker \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\""
-   ]
-  },
-  {
-   "check": "row-lines",
-   "where": "main#top > section.hero > div.ticker > span:nth-of-type(1) \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\"",
-   "msg": "\"DEALCRAFT ● BANGLA-FIRST WORK RE\" ends at 1440px, past the container's right line at 1360px (SR-7)",
-   "fix": "end it at the container's right line",
-   "widths": [
-    1440
-   ],
-   "from": "consistency",
-   "ids": [
-    "row-lines"
-   ],
-   "wheres": [
-    "main#top > section.hero > div.ticker > span:nth-of-type(1) \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\""
-   ]
-  },
-  {
-   "check": "split-pair",
-   "where": "footer > div.wrap.foot-grid \"DEALCRAFT. অনানুষ্ঠানিক কাজের জন্য বাংলা\"",
-   "msg": "the split's columns are off the page's one pair of lines: its right column starts at x 736, the first split's at 623; its right column starts at x 736, on none of the split lines 623 (k=5), 732 (k=6), 841 (k=7) (SR-8)",
-   "fix": "start every split's right column on one shared line (wrap.left + k x (width + 24) / 12, k 5, 6 or 7; 6 on a place page) and end the left one 24px before it",
-   "widths": [
-    1440
-   ],
-   "from": "consistency",
-   "ids": [
-    "split-pair"
-   ],
-   "wheres": [
-    "footer > div.wrap.foot-grid \"DEALCRAFT. অনানুষ্ঠানিক কাজের জন্য বাংলা\""
-   ]
-  },
-  {
-   "check": "cut-text",
-   "where": "main#top > section.hero > div.ticker > span:nth-of-type(1) \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\"",
-   "msg": "5 of 7 lines hidden by the overflow of main#top > section.hero > div.ticker",
-   "fix": "give the text room: no overflow clipping a line, no line past its box",
+   "check": "flush",
+   "where": "div#map-hero > svg \"++++DHAKACHATTOGRAM\"",
+   "msg": "its last line sits 10px above the rule on top of section#journey",
+   "fix": "give the section its padding at the edge where the ground changes (the closing call keeps a clear gap above the footer)",
    "widths": [
     390
    ],
    "from": "consistency",
    "ids": [
-    "cut-text"
+    "flush"
    ],
    "wheres": [
-    "main#top > section.hero > div.ticker > span:nth-of-type(1) \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\""
+    "div#map-hero > svg \"++++DHAKACHATTOGRAM\""
    ]
   },
   {
-   "check": "edge-right",
-   "where": "#journey svg",
-   "msg": "ends at x 320; the right line is 1360",
-   "fix": "end it on the .wrap right line",
+   "check": "section-gaps",
+   "where": "section#price / section#why",
+   "msg": "180px between these sections, +71% against the median 105px",
+   "fix": "use one gap between sections (all within 25% of each other)",
    "widths": [
-    1440,
     390
    ],
-   "from": "layout",
+   "from": "consistency",
    "ids": [
-    "edge-right"
+    "section-gaps"
    ],
    "wheres": [
-    "#journey svg"
-   ]
-  },
-  {
-   "check": "edge-right",
-   "where": "#price svg",
-   "msg": "ends at x 320; the right line is 1360",
-   "fix": "end it on the .wrap right line",
-   "widths": [
-    1440,
-    390
-   ],
-   "from": "layout",
-   "ids": [
-    "edge-right"
-   ],
-   "wheres": [
-    "#price svg"
-   ]
-  },
-  {
-   "check": "edge-right",
-   "where": "#why svg",
-   "msg": "ends at x 320; the right line is 1360",
-   "fix": "end it on the .wrap right line",
-   "widths": [
-    1440,
-    390
-   ],
-   "from": "layout",
-   "ids": [
-    "edge-right"
-   ],
-   "wheres": [
-    "#why svg"
-   ]
-  },
-  {
-   "check": "edge-right",
-   "where": "#app svg",
-   "msg": "ends at x 320; the right line is 1360",
-   "fix": "end it on the .wrap right line",
-   "widths": [
-    1440,
-    390
-   ],
-   "from": "layout",
-   "ids": [
-    "edge-right"
-   ],
-   "wheres": [
-    "#app svg"
-   ]
-  },
-  {
-   "check": "edge-left",
-   "where": "footer div.foot-map \"++++DHAKACHATTOGRAM\"",
-   "msg": "starts at x 736; the lines are 80 and the column starts",
-   "fix": "start it on the .wrap left line",
-   "widths": [
-    1440
-   ],
-   "from": "layout",
-   "ids": [
-    "edge-left"
-   ],
-   "wheres": [
-    "footer div.foot-map \"++++DHAKACHATTOGRAM\""
+    "section#price / section#why"
    ]
   },
   {
    "check": "screen-height",
-   "where": "#why section.section.section-white \"04 / WHYকেন লিখিত রেকর্ড? RECORD\"",
-   "msg": "1148px, 1.28 screens; a section is exactly one or two (--h)",
+   "where": "#journey section.section.section-black \"02 / HOW IT WORKSফোন থেকে লিখিত \"",
+   "msg": "2832px, 3.36 screens; a section is exactly one or two (--h), or on a phone at least one that its content fills",
    "fix": "make the section exactly one or two screens (--h: 1 or 2)",
    "widths": [
-    1440
+    390
    ],
    "from": "layout",
    "ids": [
     "screen-height"
    ],
    "wheres": [
-    "#why section.section.section-white \"04 / WHYকেন লিখিত রেকর্ড? RECORD\""
+    "#journey section.section.section-black \"02 / HOW IT WORKSফোন থেকে লিখিত \""
+   ]
+  },
+  {
+   "check": "neighbour",
+   "where": "#price section.section.section-white \"03 / PRICEসহজ খরচ। লুকানো কিছু ন\"",
+   "msg": "framed, 82px of #why section.section.section-white \"04 / WHYকেন লিখিত রেকর্ড? 01মুখে\" shows",
+   "fix": "keep the next section's heading and picture out of this screen",
+   "widths": [
+    390
+   ],
+   "from": "layout",
+   "ids": [
+    "neighbour"
+   ],
+   "wheres": [
+    "#price section.section.section-white \"03 / PRICEসহজ খরচ। লুকানো কিছু ন\""
    ]
   },
   {
    "check": "neighbour",
    "where": "#faq section.section.section-black \"05 / FAQপ্রশ্ন ও উত্তর 01DealCra\"",
-   "msg": "framed, 68px of #app section.section.section-black \"06 / APPঅ্যাপ — রেকর্ড শুরু করুন\" shows",
+   "msg": "framed, 19px of #app section.section.section-white \"06 / APPঅ্যাপ — রেকর্ড শুরু করুন\" shows",
    "fix": "keep the next section's heading and picture out of this screen",
    "widths": [
-    1440
+    390
    ],
    "from": "layout",
    "ids": [
@@ -1692,160 +797,13 @@
    "wheres": [
     "#faq section.section.section-black \"05 / FAQপ্রশ্ন ও উত্তর 01DealCra\""
    ]
-  },
-  {
-   "check": "screen-height",
-   "where": "#app section.section.section-black \"06 / APPঅ্যাপ — রেকর্ড শুরু করুন\"",
-   "msg": "1102px, 1.22 screens; a section is exactly one or two (--h)",
-   "fix": "make the section exactly one or two screens (--h: 1 or 2)",
-   "widths": [
-    1440
-   ],
-   "from": "layout",
-   "ids": [
-    "screen-height"
-   ],
-   "wheres": [
-    "#app section.section.section-black \"06 / APPঅ্যাপ — রেকর্ড শুরু করুন\""
-   ]
-  },
-  {
-   "check": "hero-fold",
-   "where": "section.hero section.hero \"০১ — বাংলা-প্রথম কাজের রেকর্ড · \"",
-   "msg": "ends at y 1058, past the fold (900): 1.18 screens tall",
-   "fix": "the hero fills the first screen alone, its button inside it",
-   "widths": [
-    1440,
-    390
-   ],
-   "from": "layout",
-   "ids": [
-    "hero-fold"
-   ],
-   "wheres": [
-    "section.hero section.hero \"০১ — বাংলা-প্রথম কাজের রেকর্ড · \""
-   ]
-  },
-  {
-   "check": "edge-left",
-   "where": "#journey svg",
-   "msg": "starts at x 20; the lines are 0 and the column starts",
-   "fix": "start it on the .wrap left line",
-   "widths": [
-    390
-   ],
-   "from": "layout",
-   "ids": [
-    "edge-left"
-   ],
-   "wheres": [
-    "#journey svg"
-   ]
-  },
-  {
-   "check": "edge-left",
-   "where": "#price svg",
-   "msg": "starts at x 20; the lines are 0 and the column starts",
-   "fix": "start it on the .wrap left line",
-   "widths": [
-    390
-   ],
-   "from": "layout",
-   "ids": [
-    "edge-left"
-   ],
-   "wheres": [
-    "#price svg"
-   ]
-  },
-  {
-   "check": "edge-left",
-   "where": "#why svg",
-   "msg": "starts at x 20; the lines are 0 and the column starts",
-   "fix": "start it on the .wrap left line",
-   "widths": [
-    390
-   ],
-   "from": "layout",
-   "ids": [
-    "edge-left"
-   ],
-   "wheres": [
-    "#why svg"
-   ]
-  },
-  {
-   "check": "edge-left",
-   "where": "#app svg",
-   "msg": "starts at x 20; the lines are 0 and the column starts",
-   "fix": "start it on the .wrap left line",
-   "widths": [
-    390
-   ],
-   "from": "layout",
-   "ids": [
-    "edge-left"
-   ],
-   "wheres": [
-    "#app svg"
-   ]
-  },
-  {
-   "check": "neighbour",
-   "where": "#app section.section.section-black \"06 / APPঅ্যাপ — রেকর্ড শুরু করুন\"",
-   "msg": "framed, 374px of the footer shows",
-   "fix": "keep the next section's heading and picture out of this screen",
-   "widths": [
-    390
-   ],
-   "from": "layout",
-   "ids": [
-    "neighbour"
-   ],
-   "wheres": [
-    "#app section.section.section-black \"06 / APPঅ্যাপ — রেকর্ড শুরু করুন\""
-   ]
   }
  ],
  "waived": [
   {
-   "check": "placeholder",
-   "where": "div#view-login > div.demo-card > p.mono:nth-of-type(3) \"HIRER 01700000001 · WORKER 01800000002\"",
-   "msg": "a stand-in contact printed on the page (\"01700000001\"): no visitor can use it (and 1 more like it: \"HIRER 01700000001 · WORK\")",
-   "fix": "print the real address and number, or a form or a button that names the action: never an example.com address or a number of zeros",
-   "widths": [
-    1440
-   ],
-   "from": "consistency",
-   "ids": [
-    "placeholder"
-   ],
-   "wheres": [
-    "div#view-login > div.demo-card > p.mono:nth-of-type(3) \"HIRER 01700000001 · WORKER 01800000002\""
-   ],
-   "reason": "These are the documented demo numbers from the demo script and README, not placeholder text; the demo seed uses them."
-  },
-  {
-   "check": "marquee",
-   "where": "main#top > section.hero > div.ticker > span:nth-of-type(1) \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\"",
-   "msg": "a running line of text, cut mid-word at the edge of the screen in every still",
-   "fix": "drop the running line, or set it as full words that fit the screen",
-   "widths": [
-    1440
-   ],
-   "from": "consistency",
-   "ids": [
-    "marquee"
-   ],
-   "wheres": [
-    "main#top > section.hero > div.ticker > span:nth-of-type(1) \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\""
-   ],
-   "reason": "The ticker is the United Carriers reference motif the client picked (Direction 03): a mono news ticker, now docked at the hero bottom edge."
-  },
-  {
    "check": "button-styles",
    "where": "(the page)",
-   "msg": "3 button styles on the page: pill, fill #ffffff, outline #ffffff x2 (\"রেকর্ড শুরু করুন\"); pill, outline #ffffff x1 (\"ডেমো কাজ দেখুন\"); pill, fill #000000, outline #000000 x1 (\"OTP পাঠান\")",
+   "msg": "3 button styles on the page: pill, fill #ffffff, outline #ffffff x3 (\"রেকর্ড শুরু করুন\"); pill, outline #ffffff x1 (\"ডেমো কাজ দেখুন\"); pill, fill #000000, outline #000000 x1 (\"START A RECORD\")",
    "fix": "one primary and one secondary button: one shape, one height per size, one label size",
    "widths": [
     1440,
@@ -1861,41 +819,24 @@
    "reason": "This is an app, not a marketing page: pill CTAs are the one action style, square tab and option controls are form controls by design."
   },
   {
-   "check": "copy-headline",
-   "where": "section.hero > div.wrap.hero-grid > div:nth-of-type(1) > h1.hero-title \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থা\"",
-   "msg": "\"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থাকুক।\" does not name what is sold (mutually confirmed digital work record for informal jobs, mutually, confirmed, digital, from flags)",
-   "fix": "put the category noun in the h1 (and who it is for, or where), in 2 to 8 words",
+   "check": "copy-headings",
+   "where": "div#journey-steps > article.jstep:nth-of-type(1) > div:nth-of-type(2) > h3 \"FAIRSCOPE — আগে প্রশ্ন, পরে কাজ\"",
+   "msg": "\"FAIRSCOPE — আগে প্রশ্ন, পরে কাজ\" names no product, part, place or section (5 headings like it; at most one brand line per page) (and 4 more like it: \"দুজনেই নিশ্চিত করুন — OT\", \"টাকা দিলে — PAYPROOF\", \"মত না মিললে — DISPUTE + \", \"OTP না দিলে কী হবে?\")",
+   "fix": "name the thing in every heading: the product, a part, the place or a section noun",
    "widths": [
     1440
    ],
    "from": "consistency",
    "ids": [
-    "copy-headline"
+    "copy-headings"
    ],
    "wheres": [
-    "section.hero > div.wrap.hero-grid > div:nth-of-type(1) > h1.hero-title \"ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থা\""
+    "div#journey-steps > article.jstep:nth-of-type(1) > div:nth-of-type(2) > h3 \"FAIRSCOPE — আগে প্রশ্ন, পরে কাজ\""
    ],
-   "reason": "The headline names the category in Bangla, কাজের রেকর্ড (work record), for the Bangla-first audience; the checker matches English nouns only."
-  },
-  {
-   "check": "moment-none",
-   "where": "(the page)",
-   "msg": "a software page (--type) deals no moment: every kind carries one, two on a long page (moments.md)",
-   "fix": "deal one (moments.mjs pick --page software) and mount it in its own section",
-   "widths": [
-    1440
-   ],
-   "from": "consistency",
-   "ids": [
-    "moment-none"
-   ],
-   "wheres": [
-    "(the page)"
-   ],
-   "reason": "The pinned scroll journey V1 to V2 with progress ring is the dealt moment of this page."
+   "reason": "The step headings name the product's own parts — FairScope, ChangeLock, PayProof, Dispute — in Bangla; the checker matches English nouns only."
   }
  ],
- "warnCount": 23,
- "at": "2026-11-26T06:34:50.357Z",
+ "warnCount": 31,
+ "at": "2026-11-26T07:11:41.628Z",
  "openTold": true
 }
