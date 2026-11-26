@@ -1,0 +1,27 @@
+[
+ {
+  "check": "placeholder",
+  "target": "div#view-login > div.demo-card > p.mono:nth-of-type(3) \"HIRER 01700000001 · WORKER 01800000002\"",
+  "reason": "These are the documented demo numbers from the demo script and README, not placeholder text; the demo seed uses them."
+ },
+ {
+  "check": "marquee",
+  "target": "div.ticker > span:nth-of-type(1) \"DEALCRAFT ● BANGLA-FIRST WORK RECORD ● W\"",
+  "reason": "The ticker is the United Carriers reference motif the client picked (Direction 03): a mono news ticker, now docked at the hero bottom edge."
+ },
+ {
+  "check": "copy-headline",
+  "target": "section.hero > div.wrap.hero-grid > div:nth-of-type(1) > h1.hero-title",
+  "reason": "The headline names the category in Bangla, কাজের রেকর্ড (work record), for the Bangla-first audience; the checker matches English nouns only."
+ },
+ {
+  "check": "moment-none",
+  "target": "(the page)",
+  "reason": "The pinned scroll journey V1 to V2 with progress ring is the dealt moment of this page."
+ },
+ {
+  "check": "button-styles",
+  "target": "(the page)",
+  "reason": "This is an app, not a marketing page: pill CTAs are the one action style, square tab and option controls are form controls by design."
+ }
+]

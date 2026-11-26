@@ -1,0 +1,14 @@
+node_modules/
+server/data/*.db
+server/data/*.db-journal
+server/data/*.db-shm
+server/data/*.db-wal
+server/data/*.jsonl
+uploads/*
+!uploads/.gitkeep
+.env
+.DS_Store
+
+# taste-skill gate screenshots (evidence stays in gate.json + waivers.json)
+.taste-skill/gate/
+.taste-skill/build.done.json

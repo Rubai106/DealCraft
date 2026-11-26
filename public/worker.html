@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DealCraft — Worker</title>
+<meta name="theme-color" content="#000000">
+<link rel="stylesheet" href="style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;800&family=Oswald:wght@500;600&display=swap" rel="stylesheet">
+</head>
+<body class="light-page">
+<header class="topbar"><span style="font-family:'Oswald',sans-serif;font-size:20px">DEALCRAFT<span style="color:#FF5A1F">.</span></span><span class="mono" style="color:#bbb">WORKER · শ্রমিক</span></header>
+<main>
+  <p class="mono" style="color:#666">ONE ACTION PER SCREEN · এক স্ক্রিনে এক কাজ</p>
+  <h1 id="w-title" style="font-family:'Oswald','Noto Sans Bengali',sans-serif;font-size:34px;line-height:1.1;text-transform:uppercase;margin:8px 0">কাজের রেকর্ড</h1>
+  <div id="w-err" class="error" hidden></div>
+  <div id="w-sandbox" class="sandbox" hidden><b>SANDBOX — not a live AppLink call.</b><br><span id="w-sandbox-text"></span></div>
+
+  <section id="w-record" hidden>
+    <div class="record" id="w-summary"></div>
+    <div id="w-missing" class="warn" hidden><h4>ঠিক হয়নি — Missing terms</h4><ul id="w-missing-list"></ul></div>
+    <button class="big-btn orange" id="w-confirm" type="button">সম্মত — OTP দিয়ে নিশ্চিত করুন</button>
+    <div id="w-otp-box" hidden>
+      <label for="w-otp">OTP কোড</label>
+      <input id="w-otp" type="text" inputmode="numeric" placeholder="6-digit code">
+      <button class="big-btn" id="w-confirm-send" type="button">নিশ্চিত করুন</button>
+    </div>
+  </section>
+
+  <section id="w-change" hidden>
+    <h2 style="font-family:'Oswald',sans-serif;text-transform:uppercase">পরিবর্তনের প্রস্তাব</h2>
+    <div id="w-change-text" class="notice"></div>
+    <button class="big-btn" id="w-ch-accept" type="button">মানলাম — Accept</button>
+    <button class="big-btn ghost" id="w-ch-reject" type="button">মানলাম না — Reject</button>
+    <button class="big-btn ghost" id="w-ch-ask" type="button">জিজ্ঞাসা করুন — Ask</button>
+    <div id="w-ch-otp-box" hidden>
+      <label for="w-ch-otp">OTP কোড</label>
+      <input id="w-ch-otp" type="text" inputmode="numeric" placeholder="6-digit code">
+      <button class="big-btn" id="w-ch-send" type="button">OTP দিয়ে পাঠান</button>
+    </div>
+  </section>
+
+  <section id="w-pay" hidden>
+    <h2 style="font-family:'Oswald',sans-serif;text-transform:uppercase">টাকা পেয়েছেন?</h2>
+    <div id="w-pay-text" class="notice"></div>
+    <button class="big-btn" id="w-pay-ok" type="button">পেয়েছি — Received</button>
+    <button class="big-btn ghost" id="w-pay-bad" type="button">টাকার পরিমাণ ভুল — Amount is incorrect</button>
+    <div id="w-pay-otp-box" hidden>
+      <label for="w-pay-otp">OTP কোড</label>
+      <input id="w-pay-otp" type="text" inputmode="numeric" placeholder="6-digit code">
+      <button class="big-btn" id="w-pay-send" type="button">নিশ্চিত করুন</button>
+    </div>
+  </section>
+
+  <section id="w-mile" hidden>
+    <h2 style="font-family:'Oswald',sans-serif;text-transform:uppercase">মাইলস্টোন</h2>
+    <div id="w-mile-list"></div>
+    <h2 style="font-family:'Oswald',sans-serif;text-transform:uppercase">ছবি যোগ করুন</h2>
+    <label for="w-photo">ছবি — Photo</label>
+    <input id="w-photo" type="file" accept="image/*">
+    <button class="big-btn" id="w-photo-send" type="button">ছবি আপলোড করুন</button>
+  </section>
+
+  <section id="w-say" hidden>
+    <h2 style="font-family:'Oswald',sans-serif;text-transform:uppercase">আপনার বক্তব্য যোগ করুন</h2>
+    <label for="w-stmt">বক্তব্য — Statement</label>
+    <textarea id="w-stmt" rows="3" placeholder="সংক্ষেপে লিখুন"></textarea>
+    <button class="big-btn" id="w-stmt-send" type="button">পাঠান — Send</button>
+  </section>
+
+  <p class="small" style="margin-top:28px;color:#666">DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়।</p>
+  <p class="small"><a href="index.html">DealCraft হোম</a> · <a href="passport.html">WorkPassport</a></p>
+</main>
+<script>
+(function(){'use strict';
+var q=new URLSearchParams(location.search), token=q.get('token')||'';
+var payDecision='received', payId=q.get('paymentId')||null, changeId=null, changeDecision=null;
+var jobId=null, disputeId=null;
+function $(id){return document.getElementById(id);}
+function err(m){var e=$('w-err');e.hidden=false;e.textContent=m;}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function taka(n){return n==null?'—':'৳'+Number(n).toLocaleString('en-IN');}
+function wt(){return '?token='+encodeURIComponent(token);}
+/* The backend reads the worker token from ?token= (or x-worker-token header). */
+async function api(p,o){o=o||{};o.headers={'Content-Type':'application/json'};
+ var r=await fetch(p,o);var d=null;try{d=await r.json();}catch(e){}
+ if(!r.ok)throw new Error((d&&(d.error||d.message))||('HTTP '+r.status));return d;}
+function show(id){$(id).hidden=false;}
+function parsePayload(ev){try{return typeof ev.payload_json==='string'?JSON.parse(ev.payload_json||'{}'):(ev.payload||{});}catch(e){return{};}}
+async function requestOtp(purpose){
+ var r=await api('/api/worker/'+encodeURIComponent(token)+'/request-otp',{method:'POST',body:JSON.stringify({purpose:purpose})});
+ if(r&&r.sandbox){$('w-sandbox').hidden=false;$('w-sandbox-text').textContent='OTP: '+(r.sandbox.otp||'—')+' — '+(r.sandbox.note||'');}
+ return r;}
+async function load(){
+ if(!token){err('No worker link token. Ask the hirer to send your link again. / কোনো লিংক নেই। Hirer-কে আবার লিংক পাঠাতে বলুন।');return;}
+ try{var r=await api('/api/worker/'+encodeURIComponent(token));
+  var job=r.job||r; jobId=job.id||job._id;
+  /* Price/deadline/scope live on the current version, not on the job row. */
+  var ver=r.version||{};
+  var scope={}; try{scope=typeof ver.scope_json==='string'?JSON.parse(ver.scope_json||'{}'):(ver.scope||{});}catch(e){}
+  var price=ver.price, deadline=ver.deadline;
+  $('w-summary').innerHTML='<h3>'+esc((job.trade||'')+' — '+esc(job.worker_name||job.workerName||''))+'</h3><table>'+
+   '<tr><th>দাম / Price</th><td>'+taka(price)+'</td></tr>'+
+   '<tr><th>শেষ তারিখ / Deadline</th><td>'+esc(deadline||'—')+'</td></tr>'+
+   '<tr><th>সংস্করণ / Version</th><td>V'+esc(job.current_version||ver.version_no||1)+'</td></tr>'+
+   '<tr><th>বিবরণ / Scope</th><td>'+esc(scope.scope||job.scope||'—')+'</td></tr></table>'+
+   '<p class="small">Hirer: '+esc(job.hirerName||job.hirerPhone||'—')+'</p>';
+  var miss=scope.skippedTerms||job.missingTerms||[];
+  if(miss.length){$('w-missing').hidden=false;$('w-missing-list').innerHTML=miss.map(function(m){return '<li>'+esc(typeof m==='string'?m:(m.question||m))+'</li>';}).join('');}
+  show('w-record');
+  var events=r.events||[];
+  /* Latest PENDING change: a CHANGE_PROPOSED event with no later APPROVED/REJECTED for the same changeId. */
+  var decided={};
+  events.forEach(function(ev){var p=parsePayload(ev);
+   if((ev.type==='CHANGE_APPROVED'||ev.type==='CHANGE_REJECTED')&&p.changeId)decided[p.changeId]=true;});
+  var proposed=null;
+  events.forEach(function(ev){if(ev.type==='CHANGE_PROPOSED'){var p=parsePayload(ev);if(p.changeId&&!decided[p.changeId])proposed=p;}});
+  if(proposed){changeId=proposed.changeId;
+   $('w-change-text').innerHTML='<b>'+esc(proposed.reason||'Change')+'</b><br>দামের পরিবর্তন: '+taka(proposed.priceDelta||0)+' · নতুন দাম: '+taka((price||0)+(proposed.priceDelta||0))+(proposed.deadline?'<br>নতুন শেষ তারিখ: '+esc(proposed.deadline):'');
+   show('w-change');}
+  /* Pending payment: ack_status AWAITING. ?paymentId= selects one explicitly. */
+  var pays=r.payments||job.payments||[];
+  var pay=payId?pays.filter(function(p){return String(p.id)===String(payId);})[0]:pays.filter(function(p){return p.ack_status==='AWAITING';})[0];
+  if(pay){payId=pay.id;$('w-pay-text').textContent='টাকা: '+taka(pay.amount)+' · '+esc(pay.method||'')+' · '+esc(pay.date||'');show('w-pay');}
+  var miles=r.milestones||job.milestones||[];
+  if(miles.length){$('w-mile-list').innerHTML=miles.map(function(m,i){return '<div class="job-row"><div><div class="t">'+esc(m.title||('ধাপ '+(i+1)))+'</div><div class="m">'+taka(m.amount)+' · '+esc(m.approved?'APPROVED':m.completed?'COMPLETE':'PENDING')+'</div></div><button class="big-btn" style="max-width:220px" data-mile="'+i+'" '+(m.completed?'disabled':'')+'>সম্পূর্ণ — Mark complete</button></div>';}).join('');
+   $('w-mile-list').querySelectorAll('[data-mile]').forEach(function(b){b.addEventListener('click',async function(){try{await api('/api/jobs/'+encodeURIComponent(jobId)+'/milestones/'+b.getAttribute('data-mile')+'/complete'+wt(),{method:'POST',body:'{}'});b.disabled=true;b.textContent='সম্পূর্ণ হয়েছে — Complete';}catch(e){err(e.message);}});});
+   show('w-mile');}
+  events.forEach(function(ev){if(ev.type==='DISPUTE_OPENED'){var p=parsePayload(ev);if(p.disputeId)disputeId=p.disputeId;}});
+  if(disputeId)show('w-say');
+ }catch(e){err('রেকর্ড খোলা যায়নি: '+e.message+' / Could not open record: '+e.message);}}
+$('w-confirm').addEventListener('click',async function(){try{await requestOtp('worker-confirm');$('w-otp-box').hidden=false;$('w-otp').focus();}catch(e){err(e.message);}});
+$('w-confirm-send').addEventListener('click',async function(){try{await api('/api/worker/'+encodeURIComponent(token)+'/confirm',{method:'POST',body:JSON.stringify({otpCode:$('w-otp').value.trim()})});
+  $('w-confirm').disabled=true;$('w-confirm').textContent='নিশ্চিত হয়েছে — Confirmed';}catch(e){err(e.message);}});
+/* Change response: accept/reject need an OTP (purpose change-approve); clarify does not. */
+function startChange(decision){return async function(){
+ changeDecision=decision;
+ if(decision==='clarify'){try{await api('/api/changes/'+encodeURIComponent(changeId)+'/respond'+wt(),{method:'POST',body:JSON.stringify({decision:'clarify',note:'Worker asked a question.'})});$('w-change').hidden=true;}catch(e){err(e.message);}return;}
+ try{await requestOtp('change-approve');$('w-ch-otp-box').hidden=false;$('w-ch-otp').focus();}catch(e){err(e.message);}};}
+$('w-ch-accept').addEventListener('click',startChange('accept'));
+$('w-ch-reject').addEventListener('click',startChange('reject'));
+$('w-ch-ask').addEventListener('click',startChange('clarify'));
+$('w-ch-send').addEventListener('click',async function(){try{await api('/api/changes/'+encodeURIComponent(changeId)+'/respond'+wt(),{method:'POST',body:JSON.stringify({decision:changeDecision,otpCode:$('w-ch-otp').value.trim()})});
+  $('w-change').hidden=true;}catch(e){err(e.message);}});
+function payAck(dec){return function(){payDecision=dec;$('w-pay-otp-box').hidden=false;
+  requestOtp('payment-ack').catch(function(e){err(e.message);});};}
+$('w-pay-ok').addEventListener('click',payAck('received'));
+$('w-pay-bad').addEventListener('click',payAck('incorrect'));
+$('w-pay-send').addEventListener('click',async function(){try{await api('/api/payments/'+encodeURIComponent(payId)+'/ack'+wt(),{method:'POST',body:JSON.stringify({decision:payDecision,otpCode:$('w-pay-otp').value.trim()})});
+  $('w-pay').hidden=true;}catch(e){err(e.message);}});
+$('w-photo-send').addEventListener('click',async function(){var f=$('w-photo').files[0];if(!f){err('একটি ছবি বেছে নিন। / Choose a photo first.');return;}
+ var fd=new FormData();fd.append('photo',f);
+ try{var r=await fetch('/api/jobs/'+encodeURIComponent(jobId)+'/photos'+wt(),{method:'POST',body:fd});
+  if(!r.ok){var d=null;try{d=await r.json();}catch(e){}throw new Error((d&&(d.error||d.message))||('HTTP '+r.status));}
+  $('w-photo-send').textContent='আপলোড হয়েছে — Uploaded';}catch(e){err(e.message);}});
+$('w-stmt-send').addEventListener('click',async function(){var t=$('w-stmt').value.trim();if(!t||!disputeId){err('বক্তব্য লিখুন। / Write a statement first.');return;}
+ try{await api('/api/disputes/'+encodeURIComponent(disputeId)+'/statements'+wt(),{method:'POST',body:JSON.stringify({side:'worker',text:t})});$('w-stmt').value='';$('w-stmt-send').textContent='পাঠানো হয়েছে — Sent';}catch(e){err(e.message);}});
+load();
+})();
+</script>
+</body>
+</html>
