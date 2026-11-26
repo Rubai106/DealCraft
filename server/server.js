@@ -15,8 +15,9 @@ const QRCode = require('qrcode');
 const { db, init, now, clearAllTables, DATA_DIR } = require('./src/db');
 const { fingerprint } = require('./src/fingerprint');
 const { randomToken, newId, expiryDate } = require('./src/tokens');
-const { FAIRSCOPE_QUESTIONS, questionsFor, computeMissingTerms } = require('./src/fairscope');
+const { FAIRSCOPE_QUESTIONS, questionsFor, computeMissingTerms, validateSkippedTerms } = require('./src/fairscope');
 const { getAdapter, getMode } = require('./src/applink');
+const { resetRateLimits } = require('./src/applink/otp-rate-limit');
 const { readLog, LOG_PATH } = require('./src/applink/log');
 
 init();
@@ -30,7 +31,31 @@ const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 if (fs.existsSync(PUBLIC_DIR)) app.use(express.static(PUBLIC_DIR));
-app.use('/uploads', express.static(UPLOADS_DIR));
+// Photos are NOT served from a public directory: a photo belongs to a
+// job (or a bid job), and only that job's hirer / worker (via token) —
+// or, for bid-job problem photos, any signed-in user browsing the open
+// listing — may fetch it. A random filename alone is not privacy.
+app.get('/uploads/:file', (req, res) => {
+  const file = path.basename(req.params.file || '');
+  if (!file || file.includes('..')) return err(res, 400, 'invalid file');
+  const url = '/uploads/' + file;
+  const jobPhoto = db.prepare('SELECT * FROM Photo WHERE url = ?').get(url);
+  if (jobPhoto) {
+    const job = getJob(jobPhoto.job_id);
+    if (!job) return err(res, 404, 'photo not found');
+    const user = authedUser(req);
+    const wt = workerTokenForJob(req, job.id);
+    if (!(user && user.id === job.hirer_id) && !wt) return err(res, 401, 'authentication required');
+    return res.sendFile(path.join(UPLOADS_DIR, file));
+  }
+  const bidPhoto = db.prepare('SELECT * FROM BidJobPhoto WHERE url = ?').get(url);
+  if (bidPhoto) {
+    // Problem photos are listing photos: any signed-in user may see them.
+    if (!authedUser(req)) return err(res, 401, 'authentication required');
+    return res.sendFile(path.join(UPLOADS_DIR, file));
+  }
+  return err(res, 404, 'photo not found');
+});
 
 // ---------------------------------------------------------------- helpers
 function err(res, status, message) {
@@ -389,35 +414,54 @@ function maskPhoneInText(s) {
     (m, p, head, _mid, tail) => (p || '0') + head + '******' + tail);
 }
 
+// Sensitive values never leave the server in a log entry: any key that
+// looks like a token, OTP, code, password or secret is replaced wholesale,
+// and worker-link tokens embedded in SMS text are redacted too. Phone
+// numbers are masked as well. The full diagnostic log stays server-side
+// only (server/data/applink-log.jsonl).
+const SENSITIVE_KEY = /(token|otp|code|password|passwd|secret|api[-_]?key|auth)/i;
 function maskLogEntry(e) {
   const out = JSON.parse(JSON.stringify(e));
-  const scrub = (v) => {
-    if (typeof v === 'string') return maskPhoneInText(v);
-    if (Array.isArray(v)) return v.map(scrub);
+  const scrubText = (s) => maskPhoneInText(s)
+    .replace(/([?&]token=)[^&\s"']+/g, '$1[redacted]')
+    .replace(/(token[=:]\s*)[^\s"',}]+/gi, '$1[redacted]');
+  const scrub = (v, key) => {
+    if (key && SENSITIVE_KEY.test(key)) return '[redacted]';
+    if (typeof v === 'string') return scrubText(v);
+    if (Array.isArray(v)) return v.map((x) => scrub(x));
     if (v && typeof v === 'object') {
       const o = {};
-      for (const [k, val] of Object.entries(v)) o[k] = scrub(val);
+      for (const [k, val] of Object.entries(v)) o[k] = scrub(val, k);
       return o;
     }
     return v;
   };
   if (out.request) out.request = scrub(out.request);
   if (out.response) out.response = scrub(out.response);
+  delete out.ownerPhone; // internal scoping field — never exposed
   return out;
 }
 
 app.get('/api/applink/log', (req, res) => {
   const user = authedUser(req);
   if (!user) return err(res, 401, 'authentication required');
-  res.json({ entries: readLog(50).map(maskLogEntry) });
+  // Scoped to the authenticated user only: entries are tagged with the
+  // subscriber they belong to (ownerPhone); entries with no owner (e.g.
+  // delivery reports that carry no phone) stay server-side only.
+  const mine = readLog(50).filter((e) => e.ownerPhone === user.phone);
+  res.json({ entries: mine.map(maskLogEntry) });
 });
 
 // ---------------------------------------------------------------- auth
+// Name/role supplied at OTP request time are held in memory only until
+// the code is verified — the User row is created/updated ONLY after a
+// successful verification, never before.
+const pendingProfiles = new Map(); // normalized phone -> { name, role }
 app.post('/api/auth/request-otp', async (req, res) => {
   const { phone, name, role, purpose } = req.body || {};
   const normalized = normalizeBdPhone(phone);
   if (!normalized) return err(res, 400, 'phone must be a Bangladesh mobile number (01XXXXXXXXX)');
-  if (name || role) upsertUser(normalized, name, role);
+  if (name || role) pendingProfiles.set(normalized, { name: name || null, role: role || null });
   const adapter = getAdapter();
   try {
     const result = await adapter.sendOtp(normalized, purpose || 'login');
@@ -434,19 +478,25 @@ app.post('/api/auth/request-otp', async (req, res) => {
 app.post('/api/auth/verify-otp', async (req, res) => {
   const { phone, code } = req.body || {};
   if (!phone || !code) return err(res, 400, 'phone and code are required');
+  // Normalised the same way as request-otp, BEFORE anything else: a code
+  // requested with +88017… verifies with 017… and vice versa.
+  const normalized = normalizeBdPhone(phone);
+  if (!normalized) return err(res, 400, 'phone must be a Bangladesh mobile number (01XXXXXXXXX)');
   const adapter = getAdapter();
   let ok = false;
   try {
-    ok = await adapter.verifyOtp(phone, String(code), 'login');
+    ok = await adapter.verifyOtp(normalized, String(code), 'login');
   } catch (e) {
     return otpError(res, e);
   }
   if (!ok) return err(res, 401, 'invalid or expired code');
-  const user = upsertUser(phone, null, null);
+  const profile = pendingProfiles.get(normalized) || {};
+  pendingProfiles.delete(normalized);
+  const user = upsertUser(normalized, profile.name || null, profile.role || null);
   const token = randomToken();
   // Sessions last 7 days; authedUser() rejects anything older.
   db.prepare('INSERT INTO Session (id, token, phone, created_at, expires_at) VALUES (?, ?, ?, ?, ?)')
-    .run(newId(), token, phone, now(), expiryDate(7));
+    .run(newId(), token, normalized, now(), expiryDate(7));
   res.json({ ok: true, token, user });
 });
 
@@ -475,18 +525,27 @@ app.post('/api/jobs', requireAuth, async (req, res) => {
     if (site.address != null && typeof site.address === 'string') siteAddress = site.address.slice(0, 200);
   }
   const tradeKey = trade.toUpperCase();
-  const missingTerms = computeMissingTerms(tradeKey, answers || {}, skippedTerms || []);
+  // FairScope gate: an unanswered question is UNRESOLVED, not skipped.
+  // Creation is refused while any term is unresolved — the hirer must
+  // answer it or explicitly skip that one term. Bulk auto-skipping is
+  // not possible: only terms listed in skippedTerms, one by one, count.
+  const gate = validateSkippedTerms(tradeKey, answers || {}, skippedTerms || []);
+  if (gate.invalid.length) return err(res, 400, 'skipped terms must be FairScope questions for this trade: ' + gate.invalid.join(', '));
+  if (gate.unresolved.length) {
+    return err(res, 400, 'unresolved FairScope terms — answer each one or explicitly skip it: ' + gate.unresolved.join(', '));
+  }
+  const missingTerms = computeMissingTerms(tradeKey, answers || {}, gate.effectiveSkipped);
   const jobId = newId();
   const scopeDoc = {
     scope: scope ?? '',
     milestones: Array.isArray(milestones) ? milestones : [],
     answers: answers || {},
-    skippedTerms: skippedTerms || [],
+    skippedTerms: gate.effectiveSkipped,
   };
   db.prepare(
     'INSERT INTO Job (id, hirer_id, worker_phone, worker_name, trade, status, current_version, site_lat, site_lng, site_address, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(jobId, req.user.id, workerPhoneNorm, workerName || null, tradeKey, 'DRAFT', 1, siteLat, siteLng, siteAddress, now());
-  const fp = fingerprint({ job_id: jobId, version_no: 1, scope: scopeDoc.scope, price, deadline: deadline || null });
+  const fp = fingerprint({ job_id: jobId, version_no: 1, scope: scopeDoc.scope, price, deadline: deadline || null, answers: scopeDoc.answers, skippedTerms: scopeDoc.skippedTerms, milestones: scopeDoc.milestones });
   db.prepare(
     'INSERT INTO JobVersion (id, job_id, version_no, scope_json, price, deadline, fingerprint, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(newId(), jobId, 1, JSON.stringify(scopeDoc), price, deadline || null, fp, now());
@@ -685,8 +744,12 @@ app.post('/api/worker/:token/location', async (req, res) => {
       "SELECT 1 FROM Event WHERE job_id = ? AND type = 'ARRIVED_ON_SITE' LIMIT 1"
     ).get(job.id);
     if (!already) {
+      // Privacy: the permanent record keeps only that the worker arrived
+      // and when — never the precise coordinates. (The live trail is
+      // deleted on close/dispute; the arrival event used to keep lat/lng
+      // in the history, which defeated that deletion.)
       addEvent(job.id, 'ARRIVED_ON_SITE', 'worker:' + job.worker_phone, {
-        lat, lng, accuracy: accuracy ?? null, simulated: !!simulated, arrivedAt: ts,
+        status: 'ARRIVED', arrivedAt: ts, simulated: !!simulated,
       });
       db.prepare('UPDATE LocationShare SET arrived_at = ? WHERE job_id = ?').run(ts, job.id);
       // Notify the hirer in-app (the event above, on the timeline) and by
@@ -707,16 +770,22 @@ app.post('/api/worker/:token/location', async (req, res) => {
   res.json({ ok: true, status: view ? view.status : 'en-route', distanceKm: view ? view.distanceKm : null, etaMinutes: view ? view.etaMinutes : null });
 });
 
-// Hirer side: only that job's hirer, only while sharing is on and the job
-// is ACTIVE — 404 otherwise (so a stopped/closed job leaks no location).
+// Hirer side: only that job's hirer, only while the job is ACTIVE — 404
+// otherwise (so a stopped/closed job leaks no location). When nothing is
+// being shared — never started, or stopped — it returns 200 with status
+// 'not-sharing' and no coordinates: the hirer's page polls this every 10
+// seconds, and a 404 on every poll spams the console with an error on a
+// perfectly healthy page. (Stop deletes the share row, so 'never' and
+// 'stopped' are the same answer here; the worker's own page shows the
+// stopped state.)
 app.get('/api/jobs/:id/location', requireAuth, (req, res) => {
   const job = getJob(req.params.id);
   if (!job) return err(res, 404, 'job not found');
   if (job.hirer_id !== req.user.id) return err(res, 404, 'job not found');
   if (job.status !== 'ACTIVE') return err(res, 404, 'location is not being shared');
   const view = locationView(job);
-  if (!view) return err(res, 404, 'location is not being shared');
-  res.json(view);
+  if (view) return res.json(view);
+  return res.json({ sharing: false, status: 'not-sharing', latest: null, site: jobSite(job), distanceKm: null, etaMinutes: null, trail: [] });
 });
 
 // ---------------------------------------------------------------- worker link resend
@@ -752,6 +821,14 @@ app.post('/api/jobs/:id/changes', requireJobAccess, (req, res) => {
   const { priceDelta, deadline, reason, details } = req.body || {};
   if (typeof priceDelta !== 'number' && !deadline && !details) {
     return err(res, 400, 'priceDelta, deadline or details is required');
+  }
+  // The revised price must stay positive: a change that would make the
+  // agreement free or negative is refused up front, not at acceptance.
+  if (typeof priceDelta === 'number') {
+    const current = getCurrentVersion(job);
+    if (current && current.price + priceDelta <= 0) {
+      return err(res, 400, 'revised price must stay positive (BDT ' + current.price + ' + ' + priceDelta + ')');
+    }
   }
   const changeId = newId();
   db.prepare(
@@ -812,17 +889,28 @@ app.post('/api/changes/:changeId/respond', async (req, res) => {
     if (Array.isArray(details.milestones)) newScope.milestones = details.milestones;
     if (details.answers) newScope.answers = { ...(prevScope.answers || {}), ...details.answers };
     const newPrice = current.price + (change.price_delta || 0);
+    if (!(newPrice > 0)) return err(res, 400, 'revised price must stay positive');
     const newDeadline = change.deadline || current.deadline;
     const newVersionNo = job.current_version + 1;
-    const fp = fingerprint({ job_id: job.id, version_no: newVersionNo, scope: newScope.scope, price: newPrice, deadline: newDeadline });
-    db.prepare(
-      'INSERT INTO JobVersion (id, job_id, version_no, scope_json, price, deadline, fingerprint, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(newId(), job.id, newVersionNo, JSON.stringify(newScope), newPrice, newDeadline, fp, now());
-    db.prepare('UPDATE Job SET current_version = ? WHERE id = ?').run(newVersionNo, job.id);
-    db.prepare("UPDATE ChangeProposal SET status = 'APPROVED' WHERE id = ?").run(change.id);
-    addEvent(job.id, 'CHANGE_APPROVED', side + ':' + (side === 'worker' ? job.worker_phone : user.phone), {
-      changeId: change.id, version: newVersionNo, price: newPrice, deadline: newDeadline,
-    });
+    const fp = fingerprint({ job_id: job.id, version_no: newVersionNo, scope: newScope.scope, price: newPrice, deadline: newDeadline, answers: newScope.answers || {}, skippedTerms: newScope.skippedTerms || [], milestones: newScope.milestones || [] });
+    // One transaction: version row + active-version update + proposal
+    // status + event all land together, or none of them do — a failure
+    // halfway can no longer leave a half-applied change.
+    try {
+      db.exec('BEGIN IMMEDIATE');
+      db.prepare(
+        'INSERT INTO JobVersion (id, job_id, version_no, scope_json, price, deadline, fingerprint, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      ).run(newId(), job.id, newVersionNo, JSON.stringify(newScope), newPrice, newDeadline, fp, now());
+      db.prepare('UPDATE Job SET current_version = ? WHERE id = ?').run(newVersionNo, job.id);
+      db.prepare("UPDATE ChangeProposal SET status = 'APPROVED' WHERE id = ?").run(change.id);
+      addEvent(job.id, 'CHANGE_APPROVED', side + ':' + (side === 'worker' ? job.worker_phone : user.phone), {
+        changeId: change.id, version: newVersionNo, price: newPrice, deadline: newDeadline,
+      });
+      db.exec('COMMIT');
+    } catch (e) {
+      try { db.exec('ROLLBACK'); } catch (_e) {}
+      return err(res, 500, 'change could not be applied: ' + e.message);
+    }
   } else if (decision === 'reject') {
     db.prepare("UPDATE ChangeProposal SET status = 'REJECTED' WHERE id = ?").run(change.id);
     addEvent(job.id, 'CHANGE_REJECTED', side + ':' + (side === 'worker' ? job.worker_phone : user.phone), {
@@ -923,6 +1011,26 @@ app.post('/api/jobs/:id/milestones/:index/approve', requireAuth, (req, res) => {
 });
 
 // ---------------------------------------------------------------- photos
+// Magic bytes, not the client-supplied MIME type: a text file renamed
+// .png (or sent with image/png) is rejected. PNG / JPEG / GIF / WebP only.
+function isRealImage(filePath) {
+  try {
+    const buf = fs.readFileSync(filePath);
+    if (buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return true; // PNG
+    if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return true; // JPEG
+    if (buf.length >= 6 && buf.slice(0, 6).toString('ascii') === 'GIF89a') return true; // GIF89a
+    if (buf.length >= 6 && buf.slice(0, 6).toString('ascii') === 'GIF87a') return true; // GIF87a
+    if (buf.length >= 12 && buf.slice(0, 4).toString('ascii') === 'RIFF' && buf.slice(8, 12).toString('ascii') === 'WEBP') return true; // WebP
+    return false;
+  } catch (_e) { return false; }
+}
+// Multer's dest storage already generates random filenames (32 hex chars);
+// nothing here ever trusts a client-supplied filename.
+// Retention: photos live in uploads/ alongside the record they belong to
+// and are deleted with nothing automatic yet — see README (planned: a
+// retention/deletion pass in the production sprint).
+const MAX_PHOTOS_PER_JOB = 10;
+
 const upload = multer({
   dest: UPLOADS_DIR,
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -941,6 +1049,15 @@ app.post('/api/jobs/:id/photos', (req, res) => {
   upload.single('photo')(req, res, (uploadErr) => {
     if (uploadErr) return err(res, 400, uploadErr.message);
     if (!req.file) return err(res, 400, "field 'photo' is required");
+    if (!isRealImage(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (_e) {}
+      return err(res, 400, 'file is not a real image (PNG, JPEG, GIF or WebP only)');
+    }
+    const existingPhotos = db.prepare('SELECT COUNT(*) AS n FROM Photo WHERE job_id = ?').get(job.id).n;
+    if (existingPhotos >= MAX_PHOTOS_PER_JOB) {
+      try { fs.unlinkSync(req.file.path); } catch (_e) {}
+      return err(res, 400, 'at most ' + MAX_PHOTOS_PER_JOB + ' photos per job');
+    }
     const milestone = req.body.milestone !== undefined && req.body.milestone !== ''
       ? Number(req.body.milestone) : null;
     const kind = req.body.kind !== undefined && req.body.kind !== '' ? String(req.body.kind).toUpperCase() : null;
@@ -1074,6 +1191,10 @@ app.post('/api/bid-jobs/:id/photos', requireAuth, (req, res) => {
   upload.single('photo')(req, res, (uploadErr) => {
     if (uploadErr) return err(res, 400, uploadErr.message);
     if (!req.file) return err(res, 400, "field 'photo' is required");
+    if (!isRealImage(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (_e) {}
+      return err(res, 400, 'file is not a real image (PNG, JPEG, GIF or WebP only)');
+    }
     const photoId = newId();
     const url = '/uploads/' + req.file.filename;
     db.prepare('INSERT INTO BidJobPhoto (id, bid_job_id, url, taken_at) VALUES (?, ?, ?, ?)')
@@ -1210,7 +1331,7 @@ app.post('/api/bid-jobs/:id/bids/:bidId/accept', requireAuth, async (req, res) =
     'INSERT INTO Job (id, hirer_id, worker_phone, worker_name, trade, status, current_version, site_lat, site_lng, site_address, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(jobId, req.user.id, workerPhoneNorm, bid.worker_name || null, bidJob.trade, 'DRAFT', 1,
     bidJob.site_lat, bidJob.site_lng, bidJob.site_address, now());
-  const fp = fingerprint({ job_id: jobId, version_no: 1, scope: scopeDoc.scope, price: bid.amount, deadline });
+  const fp = fingerprint({ job_id: jobId, version_no: 1, scope: scopeDoc.scope, price: bid.amount, deadline, answers: scopeDoc.answers, skippedTerms: scopeDoc.skippedTerms, milestones: scopeDoc.milestones });
   db.prepare(
     'INSERT INTO JobVersion (id, job_id, version_no, scope_json, price, deadline, fingerprint, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(newId(), jobId, 1, JSON.stringify(scopeDoc), bid.amount, deadline, fp, now());
@@ -1328,28 +1449,68 @@ app.post('/api/disputes/:disputeId/statements', (req, res) => {
 });
 
 // ---------------------------------------------------------------- dispute resolve
-// A dispute is resolved by mutual agreement only: both sides must have a
-// statement on record, and the hirer confirms the agreement. DealCraft
-// never decides and never records a verdict — the event says only that
-// both sides agreed to return the job to ACTIVE.
-app.post('/api/disputes/:disputeId/resolve', requireAuth, (req, res) => {
+// A dispute is resolved by MUTUAL agreement only, in two steps:
+//   1. the hirer PROPOSES how it will be resolved (RESOLUTION_PROPOSED),
+//   2. the worker ACCEPTS or REJECTS it (RESOLUTION_ACCEPTED / REJECTED).
+// The job returns to ACTIVE only after the worker accepts. A rejection
+// keeps the job DISPUTED. Two statements alone are not agreement — the
+// worker must independently confirm the resolution itself. DealCraft
+// never decides and never records a verdict.
+app.post('/api/disputes/:disputeId/resolve-proposal', requireAuth, (req, res) => {
   const dispute = db.prepare('SELECT * FROM Dispute WHERE id = ?').get(req.params.disputeId);
   if (!dispute) return err(res, 404, 'dispute not found');
   const job = getJob(dispute.job_id);
   if (!job) return err(res, 404, 'job not found');
-  if (job.hirer_id !== req.user.id) return err(res, 403, 'only the hirer records a mutual resolution');
+  if (job.hirer_id !== req.user.id) return err(res, 403, 'only the hirer proposes a resolution');
   if (job.status !== 'DISPUTED') return err(res, 400, 'job is not DISPUTED');
-  const { confirmMutual, note } = req.body || {};
-  if (!confirmMutual) return err(res, 400, 'confirmMutual:true is required — both sides must agree to resolve');
+  const { proposal, note } = req.body || {};
+  const text = (proposal || note || '').trim();
+  if (!text) return err(res, 400, 'proposal is required — say how the dispute should be resolved');
   const sides = db.prepare('SELECT DISTINCT side FROM DisputeStatement WHERE dispute_id = ?').all(dispute.id).map((r) => r.side);
   if (!sides.includes('hirer') || !sides.includes('worker')) {
-    return err(res, 400, 'both sides must have a statement on record before the dispute can be resolved');
+    return err(res, 400, 'both sides must have a statement on record before a resolution can be proposed');
   }
-  db.prepare("UPDATE Job SET status = 'ACTIVE' WHERE id = ?").run(job.id);
-  addEvent(job.id, 'DISPUTE_RESOLVED', 'hirer:' + req.user.phone, {
-    disputeId: dispute.id, mutual: true, note: note || null,
+  const existing = db.prepare("SELECT * FROM DisputeResolution WHERE dispute_id = ? AND status = 'PROPOSED'").get(dispute.id);
+  if (existing) return err(res, 409, 'a resolution is already proposed — the worker must accept or reject it first');
+  const id = newId();
+  db.prepare('INSERT INTO DisputeResolution (id, dispute_id, proposed_by, proposal, status, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(id, dispute.id, 'hirer:' + req.user.phone, text, 'PROPOSED', now());
+  addEvent(job.id, 'RESOLUTION_PROPOSED', 'hirer:' + req.user.phone, {
+    disputeId: dispute.id, resolutionId: id, proposal: text,
   });
-  res.json({ job: getJob(job.id), dispute });
+  res.status(201).json({ resolution: db.prepare('SELECT * FROM DisputeResolution WHERE id = ?').get(id), job: getJob(job.id) });
+});
+
+app.post('/api/disputes/:disputeId/resolve-response', (req, res) => {
+  const dispute = db.prepare('SELECT * FROM Dispute WHERE id = ?').get(req.params.disputeId);
+  if (!dispute) return err(res, 404, 'dispute not found');
+  const job = getJob(dispute.job_id);
+  if (!job) return err(res, 404, 'job not found');
+  const wt = workerTokenForJob(req, job.id);
+  if (!wt) return err(res, 401, 'a valid worker token is required — only the worker accepts or rejects a resolution');
+  if (job.status !== 'DISPUTED') return err(res, 400, 'job is not DISPUTED');
+  const resolution = db.prepare("SELECT * FROM DisputeResolution WHERE dispute_id = ? AND status = 'PROPOSED' ORDER BY created_at DESC LIMIT 1").get(dispute.id);
+  if (!resolution) return err(res, 400, 'no resolution has been proposed yet');
+  const { decision, note } = req.body || {};
+  if (!['accept', 'reject'].includes(decision)) {
+    return err(res, 400, "decision must be 'accept' or 'reject'");
+  }
+  if (decision === 'accept') {
+    db.prepare("UPDATE DisputeResolution SET status = 'ACCEPTED' WHERE id = ?").run(resolution.id);
+    db.prepare("UPDATE Job SET status = 'ACTIVE' WHERE id = ?").run(job.id);
+    addEvent(job.id, 'RESOLUTION_ACCEPTED', 'worker:' + job.worker_phone, {
+      disputeId: dispute.id, resolutionId: resolution.id, note: note || null,
+    });
+    addEvent(job.id, 'DISPUTE_RESOLVED', 'worker:' + job.worker_phone, {
+      disputeId: dispute.id, mutual: true, note: note || null,
+    });
+  } else {
+    db.prepare("UPDATE DisputeResolution SET status = 'REJECTED' WHERE id = ?").run(resolution.id);
+    addEvent(job.id, 'RESOLUTION_REJECTED', 'worker:' + job.worker_phone, {
+      disputeId: dispute.id, resolutionId: resolution.id, note: note || null,
+    });
+  }
+  res.json({ resolution: db.prepare('SELECT * FROM DisputeResolution WHERE id = ?').get(resolution.id), job: getJob(job.id) });
 });
 
 // ---------------------------------------------------------------- close
@@ -1495,14 +1656,35 @@ app.get('/api/jobs/:id/resolvepack', requireJobAccess, (req, res) => {
 });
 
 // ---------------------------------------------------------------- passport
+// WorkPassport is WORKER-OWNED: only the worker (via their job token) may
+// publish a closed job and choose what is shown (amounts / client /
+// photos — photos are private by default). A hirer can never publish or
+// expose the worker's data. The public identifier is a random profile id,
+// never the worker's phone number: no phone appears in the public URL,
+// the public API, or the public page.
+function getOrCreateProfileId(workerPhone) {
+  const existing = db.prepare('SELECT profile_id FROM PassportProfile WHERE worker_phone = ?').get(workerPhone);
+  if (existing) return existing.profile_id;
+  const profileId = 'pp_' + newId().replace(/-/g, '').slice(0, 24);
+  db.prepare('INSERT INTO PassportProfile (profile_id, worker_phone, created_at) VALUES (?, ?, ?)')
+    .run(profileId, workerPhone, now());
+  return profileId;
+}
+
+function profilePhone(profileId) {
+  const row = db.prepare('SELECT worker_phone FROM PassportProfile WHERE profile_id = ?').get(profileId);
+  return row ? row.worker_phone : null;
+}
+
 app.post('/api/passport/add', (req, res) => {
   const { jobId, showAmounts, showClient, showPhotos } = req.body || {};
   if (!jobId) return err(res, 400, 'jobId is required');
   const job = getJob(jobId);
   if (!job) return err(res, 404, 'job not found');
-  const user = authedUser(req);
+  // Worker only: the hirer (or anyone else) cannot publish the worker's
+  // record or choose what it discloses.
   const wt = workerTokenForJob(req, jobId);
-  if (!(user && user.id === job.hirer_id) && !wt) return err(res, 401, 'authentication required');
+  if (!wt) return err(res, 403, 'only the worker can add a job to their WorkPassport');
   if (job.status !== 'CLOSED') return err(res, 400, 'only a CLOSED job can be added to the passport');
   const existing = db.prepare('SELECT id FROM PassportEntry WHERE job_id = ?').get(jobId);
   if (existing) return err(res, 409, 'this job is already in the WorkPassport');
@@ -1510,7 +1692,8 @@ app.post('/api/passport/add', (req, res) => {
   db.prepare(
     'INSERT INTO PassportEntry (id, worker_phone, job_id, show_amounts, show_client, show_photos, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
   ).run(id, job.worker_phone, jobId, showAmounts ? 1 : 0, showClient ? 1 : 0, showPhotos ? 1 : 0, now());
-  res.status(201).json({ entry: db.prepare('SELECT * FROM PassportEntry WHERE id = ?').get(id) });
+  const profileId = getOrCreateProfileId(job.worker_phone);
+  res.status(201).json({ entry: db.prepare('SELECT * FROM PassportEntry WHERE id = ?').get(id), profileId });
 });
 
 function passportData(workerPhone) {
@@ -1520,10 +1703,13 @@ function passportData(workerPhone) {
     const job = getJob(e.job_id);
     if (!job) return null;
     const hirer = db.prepare('SELECT name FROM User WHERE id = ?').get(job.hirer_id);
+    // Completion time is when the job actually closed (JOB_CLOSED event),
+    // not when it was created.
+    const closed = db.prepare("SELECT created_at FROM Event WHERE job_id = ? AND type = 'JOB_CLOSED' ORDER BY id ASC LIMIT 1").get(e.job_id);
     return {
       jobId: e.job_id,
       trade: job.trade,
-      completedAt: job.created_at,
+      completedAt: closed ? closed.created_at : job.created_at,
       showAmounts: !!e.show_amounts,
       showClient: !!e.show_client,
       showPhotos: !!e.show_photos,
@@ -1537,16 +1723,21 @@ function passportData(workerPhone) {
   }).filter(Boolean);
   const trades = [...new Set(jobs.map((j) => j.trade))];
   // The worker's name comes from the User table — the phone number is an
-  // identifier, not a name, and must not be shown as one.
-  return { workerPhone, workerName: worker ? worker.name : undefined, trades, completedJobs: jobs.length, entries: jobs };
+  // identifier, not a name, and must not be shown as one. No phone number
+  // is returned in the public shape at all.
+  return { profileId: getOrCreateProfileId(workerPhone), workerName: worker ? worker.name : undefined, trades, completedJobs: jobs.length, entries: jobs };
 }
 
-app.get('/api/passport/:workerPhone', (req, res) => {
-  res.json(passportData(req.params.workerPhone));
+app.get('/api/passport/:profileId', (req, res) => {
+  const phone = profilePhone(req.params.profileId);
+  if (!phone) return err(res, 404, 'passport not found');
+  res.json(passportData(phone));
 });
 
-app.get('/api/passport/:workerPhone/qr.png', async (req, res) => {
-  const url = baseUrl(req) + '/passport/' + encodeURIComponent(req.params.workerPhone);
+app.get('/api/passport/:profileId/qr.png', async (req, res) => {
+  const phone = profilePhone(req.params.profileId);
+  if (!phone) return err(res, 404, 'passport not found');
+  const url = baseUrl(req) + '/passport/' + encodeURIComponent(req.params.profileId);
   try {
     const png = await QRCode.toBuffer(url, { type: 'png', width: 256 });
     res.setHeader('Content-Type', 'image/png');
@@ -1556,8 +1747,10 @@ app.get('/api/passport/:workerPhone/qr.png', async (req, res) => {
   }
 });
 
-app.get('/passport/:workerPhone', (req, res) => {
-  const data = passportData(req.params.workerPhone);
+app.get('/passport/:profileId', (req, res) => {
+  const phone = profilePhone(req.params.profileId);
+  if (!phone) return res.status(404).send('WorkPassport not found.');
+  const data = passportData(phone);
   const rows = data.entries.map((e) => {
     const amount = e.showAmounts && e.amount !== undefined ? ' — BDT ' + e.amount : '';
     const client = e.showClient && e.clientName ? ' — client: ' + escapeHtml(e.clientName) : '';
@@ -1565,13 +1758,14 @@ app.get('/passport/:workerPhone', (req, res) => {
       ? ' — photos: ' + e.photoUrls.map((u) => escapeHtml(u)).join(', ') : '';
     return '<li>' + escapeHtml(e.trade) + ' — completed ' + escapeHtml(e.completedAt.slice(0, 10)) + escapeHtml(amount) + client + photos + '</li>';
   }).join('') || '<li>No completed jobs listed yet.</li>';
-  const displayName = data.workerName || data.workerPhone;
+  const displayName = data.workerName || 'DealCraft worker';
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send('<!DOCTYPE html><html><head><meta charset="utf-8"><title>DealCraft Passport — ' + escapeHtml(displayName) + '</title></head>'
-    + '<body><h1>DealCraft Passport</h1><p>Worker: ' + escapeHtml(displayName) + ' (' + escapeHtml(data.workerPhone) + ')</p>'
+  res.send('<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>DealCraft Passport — ' + escapeHtml(displayName) + '</title>'
+    + '<style>body{font-family:system-ui,sans-serif;background:#000;color:#fff;max-width:640px;margin:0 auto;padding:24px 16px}h1{font-size:40px;text-transform:uppercase;margin:8px 0}.orange{color:#FF5A1F}a{color:#FF5A1F}li{margin:8px 0;line-height:1.5}.mono{font-family:monospace;color:#bbb;font-size:12px}.card{border:1px solid #333;padding:12px;margin:12px 0}</style></head>'
+    + '<body><p class="mono">WORKPASSPORT · <span class="orange">DEALCRAFT</span></p><h1>' + escapeHtml(displayName) + '</h1>'
     + '<p>Completed jobs: ' + data.completedJobs + ' | Trades: ' + escapeHtml(data.trades.join(', ') || '—') + '</p>'
-    + '<ul>' + rows + '</ul>'
-    + '<p>DealCraft holds no money. This record is not a legal document.</p></body></html>');
+    + '<div class="card"><ul>' + rows + '</ul></div>'
+    + '<p class="mono">Amounts, client names and photos are shown only if the worker enabled them. DealCraft holds no money. This record is not a legal document.</p></body></html>');
 });
 
 // ---------------------------------------------------------------- billing
@@ -1581,6 +1775,22 @@ app.post('/api/billing/caas', requireAuth, async (req, res) => {
   const job = getJob(jobId);
   if (!job) return err(res, 404, 'job not found');
   if (job.hirer_id !== req.user.id) return err(res, 403, 'only the hirer pays for the job');
+  // Idempotent: a pending or verified charge already exists for this job,
+  // so return it instead of charging again. (A failed/expired charge has
+  // no local row to reuse — only PENDING/VERIFIED rows count.)
+  const existing = db.prepare(
+    "SELECT * FROM Billing WHERE job_id = ? AND kind = 'caas' AND status IN ('PENDING','VERIFIED') ORDER BY created_at DESC LIMIT 1"
+  ).get(jobId);
+  if (existing) {
+    const out = { chargeId: existing.id, status: existing.status, existing: true };
+    if (getMode() === 'sandbox') {
+      // The sandbox OTP for a reused PENDING charge is the one the adapter
+      // generated at charge time; it is not stored locally, so a reused
+      // charge asks the hirer to request a fresh code via the verify step.
+      out.note = 'charge already exists for this job — no second charge was made';
+    }
+    return res.json(out);
+  }
   const adapter = getAdapter();
   let result;
   try {
@@ -1599,6 +1809,10 @@ app.post('/api/billing/caas', requireAuth, async (req, res) => {
 app.post('/api/billing/caas/:chargeId/verify', requireAuth, async (req, res) => {
   const billing = db.prepare("SELECT * FROM Billing WHERE id = ? AND kind = 'caas'").get(req.params.chargeId);
   if (!billing) return err(res, 404, 'charge not found');
+  // Ownership: the charge must belong to the authenticated hirer.
+  if (billing.user_phone && billing.user_phone !== req.user.phone) {
+    return err(res, 403, 'this charge belongs to another hirer');
+  }
   const { otpCode } = req.body || {};
   if (!otpCode) return err(res, 400, 'otpCode is required');
   const adapter = getAdapter();
@@ -1673,6 +1887,64 @@ app.get('/api/billing/status', requireAuth, (req, res) => {
   });
 });
 
+// ---------------------------------------------------------------- applink callbacks
+// Callback endpoints named in APPLINK-APP-CREATION.md (Callback URL).
+// They only ever log (masked) and update local state where that is safe:
+// a delivery report is recorded in the server log; an MO SMS is logged
+// and answered 200 (DealCraft does not act on plain-SMS replies yet —
+// worker replies by SMS are a planned feature, not a live one); a
+// subscription notification updates the local subscription row only when
+// it names a phone we already have a subscription for. Nothing here
+// trusts the caller: payloads are logged masked, never executed.
+function applinkCallback(req, res, kind, handler) {
+  const body = req.body || {};
+  appendLogSafe(kind, body);
+  try { handler(body); } catch (_e) { /* log-only callback: never 500 */ }
+  res.json({ ok: true, received: kind });
+}
+function appendLogSafe(api, body) {
+  try {
+    const { appendLog } = require('./src/applink/log');
+    appendLog({ api, request: body, response: { received: true }, mode: getMode() });
+  } catch (_e) { /* logging must never break a callback */ }
+}
+app.post('/api/applink/sms-report', (req, res) => {
+  applinkCallback(req, res, 'sms.delivery-report', () => {});
+});
+app.post('/api/applink/mo-sms', (req, res) => {
+  applinkCallback(req, res, 'sms.mo-inbound', () => {});
+});
+app.post('/api/applink/caas-notify', (req, res) => {
+  applinkCallback(req, res, 'caas.notify', (body) => {
+    // A CaaS notification naming a charge we hold: mark it VERIFIED only
+    // when the notification itself says the charge succeeded.
+    const chargeId = body.transactionId || body.chargeId || null;
+    const ok = body.statusCode === 'S1000' || body.status === 'VERIFIED' || body.status === 'CHARGED';
+    if (chargeId && ok) {
+      const row = db.prepare("SELECT * FROM Billing WHERE id = ? AND kind = 'caas'").get(chargeId);
+      if (row) {
+        db.prepare("UPDATE Billing SET status = 'VERIFIED' WHERE id = ?").run(chargeId);
+        db.prepare('UPDATE Job SET billing_paid = 1 WHERE id = ?').run(row.job_id);
+      }
+    }
+  });
+});
+app.post('/api/applink/subscription-notify', (req, res) => {
+  applinkCallback(req, res, 'subscription.notify', (body) => {
+    // Reconciliation: a notification that a subscription ended cancels
+    // the local ACTIVE row for that phone. A local ACTIVE subscription is
+    // NOT proof of auto-renewal — it is reconciled against AppLink
+    // callbacks, and the billing gate re-checks it on every activation.
+    const raw = body.subscriberId || body.phone || null;
+    const phone = raw ? normalizeBdPhone(String(raw).replace(/^tel:/, '')) : null;
+    const ended = body.status === 'UNREGISTERED' || body.subscriptionStatus === 'UNREGISTERED'
+      || body.statusCode === 'E1003';
+    if (phone && ended) {
+      db.prepare("UPDATE Billing SET status = 'CANCELLED' WHERE kind = 'subscription' AND status = 'ACTIVE' AND user_phone = ?").run(phone);
+    }
+  });
+});
+
 // ---------------------------------------------------------------- demo
 const DEMO_SCRIPT = [
   { step: 1, title: 'Hirer signs in with phone + OTP', detail: 'POST /api/auth/request-otp with 01700000001, then verify the sandbox code.' },
@@ -1694,6 +1966,7 @@ app.get('/api/demo/script', (req, res) => {
 app.post('/api/demo/reset', (req, res) => {
   if (!demoAllowed(req, res)) return;
   clearAllTables();
+  resetRateLimits();
   try { fs.writeFileSync(LOG_PATH, ''); } catch (_e) {}
   res.json({ ok: true, note: 'demo data cleared' });
 });
@@ -1701,6 +1974,7 @@ app.post('/api/demo/reset', (req, res) => {
 app.post('/api/demo/seed', async (req, res) => {
   if (!demoAllowed(req, res)) return;
   clearAllTables();
+  resetRateLimits();
   try { fs.writeFileSync(LOG_PATH, ''); } catch (_e) {}
   const hirerPhone = '01700000001';
   const workerPhone = '01800000002';
@@ -1729,7 +2003,7 @@ app.post('/api/demo/seed', async (req, res) => {
   db.prepare(
     'INSERT INTO Job (id, hirer_id, worker_phone, worker_name, trade, status, current_version, site_lat, site_lng, site_address, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(jobId, hirer.id, workerPhone, 'Karim Mistri', 'ELECTRICIAN', 'DRAFT', 1, 23.8103, 90.4125, 'Demo flat, Dhaka', now());
-  const fp = fingerprint({ job_id: jobId, version_no: 1, scope, price, deadline });
+  const fp = fingerprint({ job_id: jobId, version_no: 1, scope, price, deadline, answers, skippedTerms: [], milestones });
   db.prepare(
     'INSERT INTO JobVersion (id, job_id, version_no, scope_json, price, deadline, fingerprint, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(newId(), jobId, 1, JSON.stringify(scopeDoc), price, deadline, fp, now());

@@ -13,3 +13,7 @@ uploads/*
 .taste-skill/gate/
 .taste-skill/build.done.json
 .taste-skill/shots/
+
+# Full AppLink sheet with real account/application values (personal data).
+# The repo carries only the redacted APPLINK-APP-CREATION.md.
+APPLINK-APP-CREATION.local.md

@@ -5,12 +5,17 @@ Steps 3 (approval emails) and 4 (live credentials into DealCraft) come after —
 
 ## Step 1 — SP profile (user.applink.com.bd)
 
-Account on file: username **Rubai**, SP ID **SPP_010237**, email samin.yeasar.rubai@g.bracu.ac.bd,
-phone 8801757007084. Portal popup says Approved, but the profile page says
+Account on file: username **[redacted — see local copy]**, SP ID **[redacted — see local copy]**,
+email **[redacted — see local copy]**, phone **[redacted — see local copy]**.
+Portal popup says Approved, but the profile page says
 "Account Verification Pending / Your profile is incomplete".
 
+> Personal and account values are redacted from this public repo copy.
+> The full sheet lives in `APPLINK-APP-CREATION.local.md`, which is
+> gitignored and never pushed.
+
 Check / fill in the profile form (Settings > SP Profile):
-- Full name: Samin Yeasar Rubai
+- Full name: [redacted — see local copy]
 - Organisation: BRAC University, type Educational, industry Education, country Bangladesh
 - Website: https://www.bracu.ac.bd
 - Mobile, date of birth, gender, occupation
@@ -33,7 +38,7 @@ and note what you picked — the exact dropdown labels vary.
 | Application Description | Mutually confirmed digital work record for informal jobs in Bangladesh. A phone-call agreement becomes a versioned record confirmed by both hirer and worker by OTP. No money is held, no escrow, payment acknowledgements only. |
 | Application Category | Business (or Productivity / Utility if Business is not listed) |
 | Application URL | https://github.com/Rubai106/DealCraft |
-| Callback URL | https://github.com/Rubai106/DealCraft (placeholder until the app is deployed — update it to the live server URL before go-live; the server callback endpoints are /api/applink/sms-report, /api/applink/caas-notify and /api/applink/subscription-notify) |
+| Callback URL | https://github.com/Rubai106/DealCraft (placeholder until the app is deployed — update it to the live server URL before go-live; the server callback endpoints are /api/applink/sms-report, /api/applink/mo-sms, /api/applink/caas-notify and /api/applink/subscription-notify) |
 | Terms & Conditions | Agree |
 
 ### Step 2 — Services (Add API)
@@ -95,7 +100,7 @@ APPLINK_PASSWORD, server-side only, never committed. Without them the app runs
 in labelled sandbox mode.
 
 ## ACTUALS — filled 2026-11-26 14:09 +06 (portal)
-- Application ID: APP_019204 — status Pending Approval
+- Application ID: [redacted — see local copy] — status Pending Approval
 - Short code accepted: 21213 (21212 was NOT available — portal offered only 21213)
 - SMS keyword: dealcraft (lowercase — portal rejected DEALCRAFT)
 - Default Sender Address: 21213
@@ -108,6 +113,6 @@ in labelled sandbox mode.
 - SMS charging default: MT SMS charged to subscriber, 2.00 BDT
 - No API key shown anywhere — appears only after approval.
 - SP profile: Organisation Details saved (BRAC University, Bangladesh,
-  8801757007084). STILL MISSING: Contact Person (DOB, gender, permanent
+  [redacted — see local copy]). STILL MISSING: Contact Person (DOB, gender, permanent
   address, NID/Passport scan) and Reconciliation Details (beneficiary name,
   bank name/branch/routing/account). Profile status: Account Verification Pending.

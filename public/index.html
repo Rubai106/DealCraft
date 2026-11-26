@@ -16,6 +16,9 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="DealCraft — Bangla-first work record">
 <meta name="twitter:description" content="A phone call can start a job. It shouldn't be the only record of what was promised.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Oswald:wght@500;600;700&family=Noto+Sans+Bengali:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
@@ -52,10 +55,18 @@
       <button class="btn btn-ghost" type="button" id="cta-demo" data-i18n="hero.cta2">See demo job</button>
     </div>
     <div class="hero-meta">
-      <span class="mono grey" data-i18n="hero.meta1">Workers — free, always</span>
+      <span class="mono grey" data-i18n="hero.meta1">Workers — no DealCraft fee</span>
       <span class="mono grey" data-i18n="hero.meta2">Hirer — ৳10 / record · ৳70 / month</span>
       <span class="live-pill" data-i18n="hero.meta3">Sandbox — demo</span>
     </div>
+    <div class="hero-life" aria-label="How a record changes over time">
+      <div class="hero-life-step"><b>V1</b><span>ELECTRICIAN · ৳18,000 · BOTH SIDES OTP-CONFIRMED</span></div>
+      <div class="hero-life-arrow" aria-hidden="true">→</div>
+      <div class="hero-life-step"><b>+৳2,000</b><span>TWO EXTRA POINTS · PROPOSED, NOT FORCED</span></div>
+      <div class="hero-life-arrow" aria-hidden="true">→</div>
+      <div class="hero-life-step"><b>V2</b><span>৳20,000 · V1 KEPT INTACT · SHA-256 FINGERPRINT</span></div>
+    </div>
+    <p class="small hero-life-note">A record is not a fixed document — it is a history of what both sides accepted. That is the whole product.</p>
   </div>
 </div>
 <div class="map-box hero-map-bg" aria-label="Dotted map of Bangladesh">
@@ -262,8 +273,8 @@
         <h4 data-i18n="warn.title">Missing terms — ঠিক হয়নি</h4>
         <p data-i18n="warn.text">নিচের বিষয়গুলো এখনো ঠিক হয়নি। কাজ শুরুর আগে ঠিক করে নেওয়া ভালো।</p>
         <ul id="missing-list"></ul>
-        <div class="btn-row"><button class="btn btn-orange btn-sm" type="button" id="warn-resolve" data-i18n="warn.resolve">Resolve now</button>
-        <button class="btn btn-dark-ghost btn-sm" type="button" id="warn-skip" data-i18n="warn.skip">Skip — continue anyway</button></div>
+        <div class="btn-row"><button class="btn btn-orange btn-sm" type="button" id="warn-resolve" data-i18n="warn.resolve">Resolve now</button></div>
+        <p class="small">প্রতিটি শর্ত আলাদাভাবে বাদ দিতে হয় — সব একসাথে বাদ দেওয়া যায় না। / Each term is skipped one by one — never in bulk.</p>
       </div>
       <div class="btn-row"><button class="btn btn-dark-ghost" type="button" id="back-step-1" data-i18n="new.back">Back</button>
       <button class="btn btn-dark" type="button" id="to-step-3" data-i18n="new.next2">Next — price &amp; dates</button></div>
@@ -392,7 +403,11 @@
       <hr class="hr">
       <h3 data-i18n="detail.close">Close job</h3>
       <p data-i18n="detail.closeText">কাজ শেষ হলে দুই পক্ষের সম্মতিতে বন্ধ করুন।</p>
+      <p class="small" data-i18n="detail.closeHow">Worker তার পাতায় "কাজ শেষ" চাপলে একটি OTP কোড পান — সেই কোড এখানে লিখুন। কোড না থাকলে "একা বন্ধ করুন" বেছে নিন (রেকর্ডে Hirer-only লেখা থাকবে)। / The worker taps "Confirm close" on their page and gets a code — enter it here. Without the code, choose "Close alone" (recorded as hirer-only).</p>
+      <label for="close-otp" data-i18n="detail.closeOtp">Worker-এর OTP কোড — Worker close code</label>
+      <input id="close-otp" type="text" inputmode="numeric" placeholder="6-digit code" autocomplete="one-time-code">
       <p><label style="display:flex;gap:10px;align-items:center;font-family:var(--sans);font-size:15px;text-transform:none;letter-spacing:0;color:#111"><input type="checkbox" id="close-force" style="width:auto"> <span data-i18n="detail.force">Close anyway — not all milestones are approved yet</span></label></p>
+      <p><label style="display:flex;gap:10px;align-items:center;font-family:var(--sans);font-size:15px;text-transform:none;letter-spacing:0;color:#111"><input type="checkbox" id="close-anyway" style="width:auto"> <span data-i18n="detail.closeAnyway">Close alone — without the worker's code (hirer-only)</span></label></p>
       <div class="btn-row"><button class="btn btn-dark" type="button" id="btn-close-job" data-i18n="detail.closeBtn">Close job — confirm completion</button>
       <button class="btn btn-dark-ghost" type="button" id="btn-resolvepack" data-i18n="detail.pack">Download ResolvePack (PDF)</button></div>
       <hr class="hr">
@@ -406,9 +421,9 @@
     </div>
     <div class="tabpanel" id="tab-billing" hidden>
       <h3 data-i18n="bill.title">Billing</h3>
-      <p data-i18n="bill.text">একটি রেকর্ড ৳10, অথবা মাসে ৳70-তে সীমাহীন। Worker ফ্রি।</p>
+      <p data-i18n="bill.text">একটি রেকর্ড ৳10, অথবা মাসে ৳70-তে সীমাহীন। Worker-এর জন্য DealCraft ফি নেই — তবে AppLink SMS-এর জন্য মোবাইল অপারেটর চার্জ লাগতে পারে।</p>
       <div id="billing-status" class="notice blue" hidden></div>
-      <p class="small" data-i18n="bill.smsNote">MT SMS is charged at 2.00 BDT to the subscriber.</p>
+      <p class="small" data-i18n="bill.smsNote">MT SMS is charged at 2.00 BDT to the subscriber — a worker receiving SMS may also incur carrier charges. A ৳10 fee yields roughly ৳4–5 to DealCraft under the AppLink revenue share, before costs — not proven profitable without settlement data. A local ACTIVE subscription is not proof of auto-renewal; it is reconciled against AppLink callbacks.</p>
       <div class="btn-row"><button class="btn btn-dark" type="button" id="btn-caas" data-i18n="bill.caas">Pay ৳10 for this record</button>
       <button class="btn btn-dark-ghost" type="button" id="btn-sub" data-i18n="bill.sub">Subscribe ৳70 / month</button></div>
       <div id="billing-box"></div>

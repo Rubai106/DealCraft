@@ -40,8 +40,9 @@ npm run dev        # watch mode
    In sandbox mode the OTP codes are shown on screen, labelled
    **SANDBOX — not a live AppLink call**.
 2. **FairScope** — the ৳18,000 apartment electrical rewiring. Wall repair was
-   "Not decided" in the first draft; the missing-term warning blocks sending until it
-   is resolved to "Worker includes wall repair".
+   "Not decided" in the first draft; creation is refused while any term is
+   unresolved — it must be answered or explicitly skipped, one term at a time
+   (the demo resolves it to "Worker includes wall repair").
 3. **Dual confirmation** — hirer confirms with the hirer-confirm OTP, the worker opens
    the SMS link and confirms with their own OTP. Job becomes **ACTIVE** only after both.
 4. **ChangeLock** — the worker proposes +৳2,000 for two extra points; the hirer
@@ -52,12 +53,14 @@ npm run dev        # watch mode
 6. **Milestones + photos** — worker completes all three milestones with a photo;
    hirer approves each; job closes.
 7. **ResolvePack** — download the PDF: the whole chronological record on one export.
-8. **WorkPassport** — add the closed job; open the public passport page / QR code.
+8. **WorkPassport** — the worker adds the closed job from their own link,
+   choosing what is shown; open the public passport page / QR code.
    Amounts, client names and photos stay hidden unless the worker enables them.
 
 The full script is also at `GET /api/demo/script`. The regression test
 (`tests/regression/run-demo.mjs`) runs exactly this story over real HTTP and asserts
-every step — **142 assertions, PASS**.
+every step — **243 assertions, PASS**. CI runs it on every push to main
+(`.github/workflows/test.yml`, Node 24, `npm ci` + `npm test`).
 
 ## Architecture — one append-only event log
 
@@ -120,8 +123,9 @@ verifies before marking a record paid. See the log any time:
 ### Getting real AppLink credentials (portal steps)
 
 The AppLink application **exists and is Pending Approval** — created in the
-portal 2026-11-26 14:09: **DealCraft, applicationId `APP_019204`**, APIs
-SMS / CaaS / Subscription, operator Banglalink. Short code **21213**
+portal 2026-11-26 14:09: **DealCraft, applicationId [redacted — see
+`APPLINK-APP-CREATION.local.md`]**, APIs SMS / CaaS / Subscription,
+operator Banglalink. Short code **21213**
 (21212 was unavailable), SMS keyword **dealcraft** (lowercase only —
 the portal rejects uppercase), subscription **৳70/month** ("DealCraft
 Frequent Hirer", monthly, no free trial), CaaS via Banglalink Mobile
@@ -131,7 +135,8 @@ yet** — it is emailed to the registered address only after approval, so
 there is still no live AppLink call; everything runs in labelled sandbox
 mode. The portal wizard had no field for the ৳10 CaaS price point and no
 SMS-environment selector, so both still need checking after approval.
-Rubai's SP account is `SPP_010237` (username Rubai); the SP profile is
+The SP account id is redacted from this public repo (see
+`APPLINK-APP-CREATION.local.md`); the SP profile is
 still "Account Verification Pending" — Contact Person (DOB, gender,
 permanent address, NID/passport scan) and Reconciliation (bank details)
 are missing and need his own documents.
@@ -180,9 +185,11 @@ Steps:
 ## Features (what is built, nothing more)
 
 1. **FairScope** — guided questions per trade (Electrician 8, Painter 7, Plumber 5;
-   `server/src/fairscope.js`). Fixed options incl. "Not decided". Any "Not decided"
-   term produces a prominent missing-term warning on review; the hirer must resolve it
-   or explicitly skip it before sending.
+   `server/src/fairscope.js`). Fixed options incl. "Not decided". Every question has
+   three states — answered / unresolved / explicitly skipped — and creation is
+   refused while any term is unresolved. A term is skipped only by tapping
+   "Skip this term" on that one term; there is no bulk skip, and the server
+   enforces the gate (`validateSkippedTerms`).
 2. **Agreement + dual OTP confirmation** — one-page Bangla work record; ACTIVE only
    after both confirmations.
 3. **ChangeLock** — propose a change (price ±, deadline shift, reason); the other side
@@ -192,24 +199,72 @@ Steps:
    does not verify external transactions); recipient acknowledges or disputes via OTP.
    Running balance always visible.
 5. **Milestones + photos** — milestones with amounts; worker marks complete + photo
-   upload (`uploads/`, served at `/uploads/*`); hirer approves.
+   upload (`uploads/`). Photos are validated by magic bytes (PNG/JPEG/GIF/WebP
+   only — a text file sent as `image/png` is rejected), get random filenames,
+   are capped at 10 per job, and are served only to that job's hirer/worker
+   (`GET /uploads/:file` is job-scoped, not a public directory); hirer approves.
 6. **Worker flow** — token-secured per-job links, one action per screen, big buttons,
    plain Bangla, light pages (`public/worker.html`, ~13 KB).
 7. **ResolvePack** — open a discrepancy (5 categories), both sides add statements,
-   DealCraft never decides. One-click PDF export of the complete chronological record
-   (`GET /api/jobs/:id/resolvepack`).
-8. **WorkPassport** — after a job closes, the worker may add it. Public page + QR
-   (`/passport/:phone`) showing only what the worker chooses. No star ratings anywhere.
-9. **Accounts & pricing** — phone + OTP login; ৳10 per confirmed record (CaaS),
-   ৳70/month plan (Subscription); workers always free.
+   DealCraft never decides. Resolution is mutual: the hirer proposes how it is
+   resolved, the worker accepts or rejects it; the job returns to ACTIVE only
+   after the worker accepts. One-click PDF export of the complete chronological
+   record (`GET /api/jobs/:id/resolvepack`).
+8. **WorkPassport** — after a job closes, only the worker (from their own link)
+   may add it, choosing what is shown (amounts / client / photos — photos
+   private by default). The public identifier is a random profile id
+   (`/passport/:profileId`); no phone number appears in the public URL, API
+   or page. Completion time is when the job actually closed. No star ratings anywhere.
+9. **Accounts & pricing** — phone + OTP login (the same number in +880 or 01
+   form — normalised identically at request and verify; the user row is
+   created only after successful verification); ৳10 per confirmed record
+   (CaaS, idempotent per job — a second charge returns the existing one;
+   verification is ownership-checked), ৳70/month plan (Subscription). No
+   DealCraft fee for workers — but a worker may incur carrier charges for
+   AppLink SMS (MT SMS 2.00 BDT, charged to the subscriber). A ৳10 record
+   fee yields roughly ৳4–5 to DealCraft under the AppLink revenue share,
+   before costs — not presented as profitable without settlement data. A
+   local ACTIVE subscription is not proof of auto-renewal; it is reconciled
+   against AppLink callbacks.
 10. **Live location** — opt-in per job: the worker taps Share on the job
     page, the hirer sees a moving dot + route + distance/ETA on a live map
     (Leaflet + OpenStreetMap, no key) with En route / Arriving / Arrived
     states; entering 100 m of the job site writes one `ARRIVED_ON_SITE`
-    event and notifies the hirer. Only that job's hirer can see it, only
-    while sharing is on and the job is ACTIVE; the trail (last 50 points)
-    and latest point are deleted on close. A labelled simulated-movement
-    demo mode exists for judges without a real phone GPS.
+    event (timestamp + status only — no coordinates are kept in the
+    permanent history) and notifies the hirer. Distance shown is
+    straight-line distance, never presented as road routing. Only that
+    job's hirer can see it, only while sharing is on and the job is
+    ACTIVE; the trail (last 50 points) and latest point are deleted on
+    close. A labelled simulated-movement demo mode exists for judges
+    without a real phone GPS.
+
+## What works, what is sandbox-only, what is planned
+
+**Working (verified by the regression, 243 assertions, PASS):** FairScope
+three-state gate, dual OTP confirmation, ChangeLock (transactional,
+positive-price-checked), PayProof balances, milestones + photos
+(magic-byte validated, job-scoped serving), mutual dispute resolution,
+ResolvePack PDF, worker-owned WorkPassport (random profile id), live
+location (opt-in, straight-line distance, arrival without coordinates),
+Find a Repairer bidding, billing gate + idempotent CaaS + subscription
+with unsubscribe, AppLink log scoped to the caller with tokens masked,
+AppLink callback endpoints (`/api/applink/sms-report`,
+`/api/applink/mo-sms`, `/api/applink/caas-notify`,
+`/api/applink/subscription-notify`).
+
+**Sandbox-only (built, labelled, never claimed as live):** every AppLink
+call — OTP, SMS, CaaS, Subscription — runs against the sandbox adapters
+until live credentials exist (app still Pending Approval, no API key).
+The live adapter is spec-correct (POST JSON, `applicationId`+`password`
+in the body, success = `S1000`, CaaS `P1003` = OTP sent, not charged) and
+its OTP transactions are persisted in SQLite, but no live call has ever
+been made. The demo OTP codes shown on screen are sandbox-only.
+
+**Planned (not built, not claimed):** USSD (DealCraft does not use it —
+the worker uses a web link, not a feature-phone menu), real GPS/map tiles
+(Leaflet CDN is blocked in the sandbox; the text fallback is verified),
+service-worker offline re-visit, photo retention/deletion pass, withdraw-bid
+endpoint, SMS-reply actions (`dealcraft YES/NO` by plain SMS).
 
 ## Design — Direction 03, "Dotted Bangladesh"
 
@@ -235,11 +290,12 @@ separators and Bangla punctuation, not prose habit; numbered steps — the
 FAQ and journey steps genuinely run in order). The remaining open FAILs
 are mostly the skill's strict company-site rules applied to an app page
 (hero visual coverage 9% vs ~25% wanted, section gaps/heights, journey
-3.36 screens on a phone). Fonts are self-hosted now (10 `.woff2` files in
-`public/fonts/`, loaded via `public/fonts.css`), but the font files are
-**not on the GitHub remote** — the GitHub connector cannot push binary
-files, so a fresh checkout falls back to system fonts until the `.woff2`
-files are uploaded via the GitHub web UI. The hero pill is mode-aware:
+3.36 screens on a phone). Fonts load from Google Fonts first (linked in
+every page's `<head>`), so a fresh clone reproduces the intended design;
+the 10 self-hosted `.woff2` files in `public/fonts/` (loaded via
+`public/fonts.css`) are an optional override when present — they are
+**not on the GitHub remote** because the GitHub connector cannot push
+binary files, and can be uploaded via the GitHub web UI. The hero pill is mode-aware:
 "Sandbox — demo" in sandbox mode, "Live" only in live mode with
 credentials configured — it never claims a simulated call was live.
 
@@ -249,8 +305,8 @@ credentials configured — it never claims a simulated call was live.
 |---|---|---|
 | Innovation & Originality | 25% | FairScope missing-term warning (the fight caught before work starts); one append-only event log with SHA-256 version fingerprints; ChangeLock versioning; WorkPassport as proof a worker carries — not a marketplace, not a contract, not escrow |
 | AppLink Integration | 20% | `server/src/applink/` — OTP, SMS, CaaS, Subscription adapters with identical interfaces; CaaS PENDING→VERIFIED two-step handled correctly; sandbox labelled + logged, live switch via env; `GET /api/applink/log` |
-| Technical Implementation | 20% | Express + SQLite (relational, append-only), random token auth, per-job signed worker links, photo uploads, server-side PDF + QR, PWA with service worker, live location (opt-in, geofenced arrival); `tests/regression/run-demo.mjs` — 142 assertions, PASS |
-| Business Viability | 20% | ৳10/record CaaS + ৳70/month subscription, workers free (frees the supply side); Banglalink-only limit stated honestly; demo story is a real, repeatable transaction |
+| Technical Implementation | 20% | Express + SQLite (relational, append-only), random token auth, per-job signed worker links, magic-byte-validated photo uploads served job-scoped, server-side PDF + QR, PWA with service worker, live location (opt-in, geofenced arrival, no coordinates kept); `tests/regression/run-demo.mjs` — 243 assertions, PASS, plus GitHub Actions CI on Node 24 |
+| Business Viability | 20% | ৳10/record CaaS (idempotent, ownership-checked) + ৳70/month subscription, no DealCraft fee for workers (carrier SMS charges disclosed); ৳10 yields ~৳4–5 under the revenue share before costs — not claimed profitable without settlement data; Banglalink-only limit stated honestly; demo story is a real, repeatable transaction |
 | Problem–Solution Fit & Impact | 10% | The exact fight the product removes: price changes, extra work, disputed payments with no proof — demo story reproduces it end to end in under 2 minutes |
 | Presentation & Demo | 5% | One-click demo seed + script (`GET /api/demo/script`), ResolvePack PDF as the one-page story, Direction 03 poster design, Bangla-first |
 
@@ -268,10 +324,10 @@ POST /api/jobs/:id/photos (multipart, field 'photo')
 POST /api/jobs/:id/disputes | POST /api/disputes/:id/statements
 POST /api/jobs/:id/close
 GET  /api/jobs/:id/resolvepack (PDF) | GET /api/jobs/:id/resolvepack.json
-POST /api/passport/add | GET /api/passport/:phone | GET /passport/:phone | GET /api/passport/:phone/qr.png
+POST /api/passport/add | GET /api/passport/:profileId | GET /passport/:profileId | GET /api/passport/:profileId/qr.png
 POST /api/billing/caas | POST /api/billing/caas/:id/verify | POST /api/billing/subscribe
 POST /api/billing/unsubscribe | GET /api/billing/status
-POST /api/jobs/:id/worker-link | POST /api/disputes/:id/resolve
+POST /api/jobs/:id/worker-link | POST /api/disputes/:id/resolve-proposal | POST /api/disputes/:id/resolve-response
 GET  /api/applink/mode | GET /api/applink/log | GET /api/fairscope | GET /api/health
 POST /api/demo/seed | POST /api/demo/reset | GET /api/demo/script
 ```
@@ -290,7 +346,8 @@ POST /api/demo/seed | POST /api/demo/reset | GET /api/demo/script
   configured. Sessions expire 7 days after login. OTP verify is rate
   limited: 5 failed attempts per phone+purpose per 15 minutes, then 429.
 - Photo uploads are stored on local disk (`uploads/`); move to object storage before
-  production.
+  production. There is no automatic photo retention/deletion yet — planned
+  for the production sprint.
 
 ## Hardening (26 Nov 2026 — audit fixes, all covered by the regression)
 
@@ -301,16 +358,61 @@ POST /api/demo/seed | POST /api/demo/reset | GET /api/demo/script
   duplicate row; `POST /api/billing/unsubscribe` cancels it;
   `GET /api/billing/status` reports record fee / subscription fee / paid and
   unpaid job counts. MT SMS costs **2.00 BDT per message, charged to the
-  subscriber** (portal fact).
+  subscriber** (portal fact) — a worker receiving SMS may also incur carrier
+  charges. A local ACTIVE subscription is not proof of auto-renewal; it is
+  reconciled against AppLink subscription callbacks.
 - **OTP abuse is capped.** Verify: 5 failed attempts per phone+purpose per 15
   minutes, then 429. Send: 5 sends per phone+purpose per 15 minutes, then 429.
   Only Bangladesh mobiles are accepted (`01[3-9]XXXXXXXX`, `+880` accepted).
 - **Sessions expire** 7 days after login; expired tokens are rejected (401).
-- **AppLink log is hirer-auth only** and masks full phone numbers (`017******001`).
+- **AppLink log is scoped to the caller** — `GET /api/applink/log` returns
+  only entries tagged with the authenticated user's own phone; entries with
+  no owner stay server-side only. It masks full phone numbers
+  (`017******001`) and redacts tokens, OTPs and codes, including worker
+  tokens embedded in SMS text.
 - **ChangeLock:** the proposer cannot accept/reject their own proposal (403);
   "clarify" writes `CLARIFICATION` + a `CHANGE_CLARIFIED` event, not a fresh proposal.
-- **Disputes can be resolved:** `POST /api/disputes/:id/resolve` returns the job to
-  ACTIVE once both sides have a statement — DealCraft gives no verdict.
+- **Disputes are resolved mutually, not by one side:** the hirer proposes a
+  resolution (`POST /api/disputes/:id/resolve-proposal`), the worker accepts
+  or rejects it (`POST /api/disputes/:id/resolve-response`); the job returns
+  to ACTIVE only after the worker accepts, and stays DISPUTED on rejection.
+  The old hirer-only `/resolve` endpoint is removed. DealCraft gives no verdict.
+- **FairScope cannot be silently skipped.** Creation is refused while any
+  term is unresolved; a term counts as skipped only when the hirer tapped
+  "Skip this term" on that one term. The UI never bulk-assigns skips.
+- **WorkPassport is worker-owned.** Only the worker (via their job token) can
+  publish a job and choose what it discloses; the hirer gets 403. The public
+  identifier is a random profile id — no phone number in the public URL, API
+  or page — and completion time is the actual close time.
+- **Location privacy:** `ARRIVED_ON_SITE` stores a timestamp and status only;
+  no coordinates survive in the permanent event history. Distances are
+  labelled straight-line, never road routing.
+- **Phones are normalised identically** at OTP request and verify (+880 and
+  01 forms are the same number), and the user row is created only after a
+  successful verification.
+- **Billing is idempotent and ownership-checked.** A second CaaS charge for
+  the same job returns the existing charge; verifying a charge that belongs
+  to another hirer is 403. A local ACTIVE subscription is not proof of
+  auto-renewal — it is reconciled against AppLink callbacks.
+- **Fingerprints cover the whole agreement.** The SHA-256 fingerprint now
+  hashes scope, price, deadline, FairScope answers, explicitly skipped
+  terms and milestones; changing any answer changes the fingerprint.
+  Older stored fingerprints remain readable as stored.
+- **Photos are hardened.** Magic-byte validation (PNG/JPEG/GIF/WebP),
+  random filenames, max 10 per job, served only to the job's parties —
+  not a public directory. Retention/deletion is a planned production pass.
+- **ChangeLock accepts atomically.** Version insert + active-version update
+  + proposal status + event run in one SQLite transaction, and the revised
+  price must stay positive (checked at propose and at accept).
+- **Live OTP transactions survive restarts.** `otpTransactionId` is persisted
+  in SQLite (`OtpTransaction`), not an in-memory Map.
+- **AppLink callbacks exist.** `POST /api/applink/sms-report`,
+  `/api/applink/mo-sms`, `/api/applink/caas-notify` and
+  `/api/applink/subscription-notify` log masked and update local state only
+  where safe (subscription end cancels the local ACTIVE row).
+- **Personal data is out of the public repo.** `APPLINK-APP-CREATION.md` and
+  this README carry redacted placeholders; the full sheet lives in the
+  gitignored `APPLINK-APP-CREATION.local.md`.
 - **Closing needs the worker:** `POST /api/jobs/:id/close` requires a worker OTP
   (`close-confirm` purpose) or an explicit `closeAnyway: true`, which is recorded
   as `hirerOnly: true` in the `JOB_CLOSED` event.

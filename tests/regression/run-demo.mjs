@@ -33,11 +33,32 @@ function canonicalStringify(value) {
   const keys = Object.keys(value).sort();
   return '{' + keys.map((k) => JSON.stringify(k) + ':' + canonicalStringify(value[k])).join(',') + '}';
 }
-function fingerprint({ job_id, version_no, scope, price, deadline }) {
-  return createHash('sha256')
-    .update(canonicalStringify({ job_id, version_no, scope, price, deadline }), 'utf8')
-    .digest('hex');
+// Same canonical payload as server/src/fingerprint.js: the whole
+// agreement (answers, skipped terms, milestones), not just price/scope.
+function fingerprint({ job_id, version_no, scope, price, deadline, answers, skippedTerms, milestones }) {
+  const payload = {
+    job_id, version_no, scope: scope ?? '', price, deadline: deadline || null,
+    answers: answers || {},
+    skippedTerms: [...(skippedTerms || [])].sort(),
+    milestones: (milestones || []).map((m) => ({ title: m.title || '', amount: m.amount || 0 })),
+  };
+  return createHash('sha256').update(canonicalStringify(payload), 'utf8').digest('hex');
 }
+const SEED_ANSWERS = {
+  'Who buys wires/materials?': 'Worker buys, hirer pays',
+  'Wire brand and specification': 'BRB 1.5mm / 2.5mm',
+  'Number of points': '24 points',
+  'Circuit breakers included?': 'Yes, included',
+  'Wall cutting and wall repair — included?': 'Worker includes wall repair',
+  'Final testing included?': 'Yes, included',
+  'Transport cost': 'Included',
+  'Waste removal': 'Worker removes waste',
+};
+const SEED_MILESTONES = [
+  { title: 'Advance', amount: 5000 },
+  { title: 'First stage', amount: 7000 },
+  { title: 'Completion', amount: 6000 },
+];
 async function req(p, opts = {}) {
   const res = await fetch(BASE + p, opts);
   const text = await res.text();
@@ -88,12 +109,21 @@ try {
   check(reset.status === 200, 'demo reset with the demo token');
   const seed = await req('/api/demo/seed', dj({}));
   check(seed.status === 200, 'demo seed');
-  const job = seed.body.job;
-  const workerToken = seed.body.workerLink.split('token=')[1];
+  let job = seed.body.job;
+  let workerToken = seed.body.workerLink.split('token=')[1];
   check(job?.price === undefined && job?.status === 'DRAFT', 'seeded job is DRAFT');
   check(job?.trade === 'ELECTRICIAN' && job?.worker_phone === WORKER, 'seeded job is the electrician demo');
   check(typeof seed.body.sandboxOtps?.hirerConfirm === 'string', 'seed returns sandbox hirer OTP');
   check(typeof seed.body.sandboxOtps?.workerConfirm === 'string', 'seed returns sandbox worker OTP');
+  // Seeding twice in a row must still return confirm codes: the demo reset
+  // clears the in-memory OTP send counters, or a repeated demo run inside
+  // 15 minutes would exhaust the 5-send cap and the codes would be null.
+  const seed2 = await req('/api/demo/seed', dj({}));
+  check(seed2.status === 200 && typeof seed2.body.sandboxOtps?.hirerConfirm === 'string' && typeof seed2.body.sandboxOtps?.workerConfirm === 'string', 'second seed in a row still returns sandbox confirm OTPs (rate-limit counters reset)');
+  // The second seed wiped the first job, so the rest of the suite uses it.
+  job = seed2.body.job;
+  workerToken = seed2.body.workerLink.split('token=')[1];
+  seed.body.sandboxOtps = seed2.body.sandboxOtps;
 
   console.log('== hirer login (phone + OTP) ==');
   const otpReq = await req('/api/auth/request-otp', j({ phone: HIRER, name: 'Rahim Uddin', role: 'hirer' }));
@@ -104,6 +134,32 @@ try {
   const token = login.body.token;
   const me = await req('/api/me', { headers: auth(token) });
   check(me.body?.user?.phone === HIRER, 'session token works (/api/me)');
+
+  console.log('== phone normalisation: +880 and 01 forms are the same number ==');
+  const normReq = await req('/api/auth/request-otp', j({ phone: '+8801700000055', name: 'Norm Test', role: 'hirer' }));
+  check(normReq.status === 200 && normReq.body?.sandbox?.otp, 'OTP requested with +880 form');
+  const normLogin = await req('/api/auth/verify-otp', j({ phone: '01700000055', code: normReq.body.sandbox.otp }));
+  check(normLogin.status === 200 && normLogin.body?.user?.phone === '01700000055', 'code requested as +880 verifies as 017 (normalised)');
+  const normReq2 = await req('/api/auth/request-otp', j({ phone: '01700000056', name: 'Norm Test 2', role: 'hirer' }));
+  check(normReq2.status === 200 && normReq2.body?.sandbox?.otp, 'OTP requested with 017 form');
+  const normLogin2 = await req('/api/auth/verify-otp', j({ phone: '+8801700000056', code: normReq2.body.sandbox.otp }));
+  check(normLogin2.status === 200 && normLogin2.body?.user?.phone === '01700000056', 'code requested as 017 verifies as +880 (normalised)');
+
+  console.log('== OTP transaction persistence (live adapter store, SQLite-backed) ==');
+  {
+    const txMod = await import(path.resolve(import.meta.dirname, '..', '..', 'server', 'src', 'applink', 'otp-transactions.js'));
+    const tx = txMod.default || txMod;
+    tx.saveOtpTransaction('01700000001', 'login', 'tx-test-123');
+    check(tx.getOtpTransaction('01700000001', 'login')?.otpTransactionId === 'tx-test-123', 'OTP transaction saved and read back');
+    const { DatabaseSync } = await import('node:sqlite');
+    const dbPath = path.resolve(import.meta.dirname, '..', '..', 'server', 'data', 'dealcraft.db');
+    const db2 = new DatabaseSync(dbPath);
+    const row = db2.prepare('SELECT otp_transaction_id FROM OtpTransaction WHERE phone = ? AND purpose = ?').get('01700000001', 'login');
+    check(row?.otp_transaction_id === 'tx-test-123', 'OTP transaction is on disk in SQLite (survives a restart)');
+    db2.close();
+    tx.deleteOtpTransaction('01700000001', 'login');
+    check(tx.getOtpTransaction('01700000001', 'login') === null, 'OTP transaction deleted after use');
+  }
 
   console.log('== OTP rate limiting: 5 wrong codes, then 429 ==');
   const rlPhone = '01700000077';
@@ -146,18 +202,24 @@ try {
     'Area / rooms': '2 bedrooms', 'Number of coats': 'Not decided', 'Primer included?': 'Yes, included',
     'Paint brand': 'Berger', 'Surface preparation': 'Sanding + putty', 'Furniture moving': 'Worker moves furniture', Cleanup: 'Worker cleans up',
   };
-  const painter = await req('/api/jobs', aj(token, { trade: 'PAINTER', workerPhone: '01900000003', workerName: 'Painter Test', scope: 'Repaint 2 bedrooms', price: 12000, deadline: '2026-12-10', milestones: [{ title: 'Advance', amount: 4000 }], answers: painterAnswers, skippedTerms: [] }));
-  check(painter.status === 201, 'painter job created');
-  check(Array.isArray(painter.body?.missingTerms) && painter.body.missingTerms.includes('Number of coats'), 'missing-term warning lists "Number of coats"');
-  const painterSkip = await req('/api/jobs', aj(token, { trade: 'PAINTER', workerPhone: '01900000004', workerName: 'Painter Test 2', scope: 'Repaint 1 room', price: 6000, deadline: '2026-12-10', milestones: [{ title: 'Advance', amount: 2000 }], answers: painterAnswers, skippedTerms: ['Number of coats'] }));
-  check(painterSkip.status === 201 && !painterSkip.body.missingTerms.includes('Number of coats'), 'explicitly skipped term clears the warning');
+  // Unresolved (answered "Not decided", never explicitly skipped) blocks creation.
+  const painterReject = await req('/api/jobs', aj(token, { trade: 'PAINTER', workerPhone: '01900000003', workerName: 'Painter Test', scope: 'Repaint 2 bedrooms', price: 12000, deadline: '2026-12-10', milestones: [{ title: 'Advance', amount: 4000 }], answers: painterAnswers, skippedTerms: [] }));
+  check(painterReject.status === 400 && (painterReject.body?.error || '').includes('Number of coats'), 'unanswered + not explicitly skipped term blocks creation (400, names the term)');
+  // The same term, explicitly skipped one by one, passes.
+  const painter = await req('/api/jobs', aj(token, { trade: 'PAINTER', workerPhone: '01900000003', workerName: 'Painter Test', scope: 'Repaint 2 bedrooms', price: 12000, deadline: '2026-12-10', milestones: [{ title: 'Advance', amount: 4000 }], answers: painterAnswers, skippedTerms: ['Number of coats'] }));
+  check(painter.status === 201, 'painter job created with the term explicitly skipped');
+  check(Array.isArray(painter.body?.missingTerms) && !painter.body.missingTerms.includes('Number of coats'), 'explicitly skipped term clears the warning');
+  const painterBadSkip = await req('/api/jobs', aj(token, { trade: 'PAINTER', workerPhone: '01900000004', workerName: 'Painter Test 2', scope: 'Repaint 1 room', price: 6000, deadline: '2026-12-10', milestones: [{ title: 'Advance', amount: 2000 }], answers: painterAnswers, skippedTerms: ['Not a FairScope question'] }));
+  check(painterBadSkip.status === 400, 'skipping a term that is not a FairScope question is rejected (400)');
 
   console.log('== V1 fingerprint (SHA-256) ==');
   const detail1 = await req(`/api/jobs/${job.id}?token=${workerToken}`);
   check(detail1.status === 200, 'job detail readable via worker token');
   const v1 = detail1.body.versions.find((v) => v.version_no === 1);
   check(v1?.price === 18000, 'V1 price is BDT 18,000');
-  check(v1?.fingerprint === fingerprint({ job_id: job.id, version_no: 1, scope: 'Apartment electrical rewiring — 2 bedrooms', price: 18000, deadline: '2026-12-05' }), 'V1 SHA-256 fingerprint recomputes');
+  check(v1?.fingerprint === fingerprint({ job_id: job.id, version_no: 1, scope: 'Apartment electrical rewiring — 2 bedrooms', price: 18000, deadline: '2026-12-05', answers: SEED_ANSWERS, skippedTerms: [], milestones: SEED_MILESTONES }), 'V1 SHA-256 fingerprint recomputes (full agreement payload)');
+  // The fingerprint covers the FairScope answers: changing one answer changes it.
+  check(v1?.fingerprint !== fingerprint({ job_id: job.id, version_no: 1, scope: 'Apartment electrical rewiring — 2 bedrooms', price: 18000, deadline: '2026-12-05', answers: { ...SEED_ANSWERS, 'Transport cost': 'Hirer pays' }, skippedTerms: [], milestones: SEED_MILESTONES }), 'changing a FairScope answer changes the fingerprint');
 
   console.log('== dual OTP confirmation -> ACTIVE ==');
   const hc = await req(`/api/jobs/${job.id}/hirer-confirm`, aj(token, { otpCode: seed.body.sandboxOtps.hirerConfirm }));
@@ -171,6 +233,8 @@ try {
   check(charge.status === 200 && charge.body?.status === 'PENDING' && charge.body?.sandboxOtp, 'CaaS charge is PENDING with sandbox OTP (money has not moved)');
   const verify = await req(`/api/billing/caas/${charge.body.chargeId}/verify`, aj(token, { otpCode: charge.body.sandboxOtp }));
   check(verify.status === 200 && verify.body?.status === 'VERIFIED', 'CaaS charge VERIFIED after OTP');
+  const chargeAgain = await req('/api/billing/caas', aj(token, { jobId: job.id }));
+  check(chargeAgain.status === 200 && chargeAgain.body?.chargeId === charge.body.chargeId && chargeAgain.body?.existing === true, 'second charge for the same job returns the existing charge (no duplicate charge)');
   const sub = await req('/api/billing/subscribe', aj(token, { plan: 'monthly' }));
   check(sub.status === 200 && sub.body?.status === 'ACTIVE' && sub.body?.amount === 70, 'subscription BDT 70/month ACTIVE');
   const subDup = await req('/api/billing/subscribe', aj(token, { plan: 'monthly' }));
@@ -203,7 +267,7 @@ try {
   const v1after = detail3.body.versions.find((v) => v.version_no === 1);
   const v2 = detail3.body.versions.find((v) => v.version_no === 2);
   check(v1after?.price === 18000 && v1after?.fingerprint === v1.fingerprint, 'V1 intact with original price + fingerprint');
-  check(v2?.price === 20000 && v2?.fingerprint === fingerprint({ job_id: job.id, version_no: 2, scope: 'Apartment electrical rewiring — 2 bedrooms + two extra points', price: 20000, deadline: '2026-12-05' }), 'V2 fingerprint recomputes');
+  check(v2?.price === 20000 && v2?.fingerprint === fingerprint({ job_id: job.id, version_no: 2, scope: 'Apartment electrical rewiring — 2 bedrooms + two extra points', price: 20000, deadline: '2026-12-05', answers: SEED_ANSWERS, skippedTerms: [], milestones: SEED_MILESTONES }), 'V2 fingerprint recomputes (full agreement payload)');
   check(detail3.body.events.some((e) => e.type === 'CHANGE_PROPOSED') && detail3.body.events.some((e) => e.type === 'CHANGE_APPROVED'), 'change events in the log');
 
   console.log('== ChangeLock reject path ==');
@@ -218,6 +282,10 @@ try {
   const detail3b = await req(`/api/jobs/${job.id}?token=${workerToken}`);
   check(detail3b.body.job.current_version === 2 && detail3b.body.balance.agreed === 20000, 'rejected change leaves V2 / BDT 20,000 active');
   check(detail3b.body.events.some((e) => e.type === 'CHANGE_REJECTED'), 'rejection in the log');
+  const badChange = await req(`/api/jobs/${job.id}/changes?token=${workerToken}`, j({ priceDelta: -99999, reason: 'Free job?' }));
+  check(badChange.status === 400, 'change that would make the price non-positive is refused (400)');
+  const detail3d = await req(`/api/jobs/${job.id}?token=${workerToken}`);
+  check(detail3d.body.job.current_version === 2, 'refused change leaves V2 untouched (no partial state)');
   const change4 = await req(`/api/jobs/${job.id}/changes?token=${workerToken}`, j({ priceDelta: 300, reason: 'Need a part' }));
   check(change4.status === 201, 'worker proposed a change');
   const clarify = await req(`/api/changes/${change4.body.change.id}/respond`, aj(token, { decision: 'clarify', note: 'Which part, and what brand?' }));
@@ -246,6 +314,15 @@ try {
   check(photoRes.status === 201, 'photo uploaded (201)', 'status ' + photoRes.status);
   const photoJson = await photoRes.json();
   check(photoJson?.photo?.kind === 'BEFORE', 'photo carries its BEFORE label');
+  const fakeForm = new FormData();
+  fakeForm.append('photo', new Blob(['this is plain text, not an image'], { type: 'image/png' }), 'fake.png');
+  fakeForm.append('kind', 'AFTER');
+  const fakePhoto = await fetch(BASE + `/api/jobs/${job.id}/photos?token=${workerToken}`, { method: 'POST', body: fakeForm });
+  check(fakePhoto.status === 400, 'text file sent as image/png is rejected (magic bytes, not MIME)');
+  const photoGetAnon = await req(photoJson.photo.url);
+  check(photoGetAnon.status === 401, 'job photo without auth is refused (401, not a public directory)');
+  const photoGetHirer = await req(photoJson.photo.url, { headers: auth(token) });
+  check(photoGetHirer.status === 200, 'job photo serves to the job hirer');
   const badKindForm = new FormData();
   badKindForm.append('photo', new Blob([png], { type: 'image/png' }), 'after.png');
   badKindForm.append('kind', 'WRONG');
@@ -262,13 +339,20 @@ try {
   check(detail5.body.photos.length >= 1, 'photo attached to the job');
 
   console.log('== live location: off by default, token-gated, ACTIVE-only ==');
+  // Never shared: 200 'not-sharing' (the hirer's page polls every 10 s).
+  // Stopped after sharing: still 404 — that distinction is asserted below.
   const locOff = await req(`/api/jobs/${job.id}/location`, { headers: auth(token) });
-  check(locOff.status === 404, 'location GET is 404 when sharing is off');
+  check(locOff.status === 200 && locOff.body?.status === 'not-sharing', 'location GET is 200 not-sharing when sharing was never started');
   const locNoToken = await req(`/api/worker/badtoken/location`, j({ lat: 23.85, lng: 90.45 }));
   check(locNoToken.status === 401, 'location POST rejected without a valid worker token');
   const painterTok = painter.body.workerLink.split('token=')[1];
   const painterStart = await req(`/api/worker/${painterTok}/location/start`, j({}));
   check(painterStart.status === 403, 'location start rejected when the job is not ACTIVE (painter job is DRAFT)');
+  // Before anyone shares, the hirer polls this every 10 s — it must answer
+  // 200 'not-sharing', not 404, or the console fills with errors on a
+  // healthy page. (After a stop it still 404s — see below.)
+  const locNever = await req(`/api/jobs/${job.id}/location`, { headers: auth(token) });
+  check(locNever.status === 200 && locNever.body?.status === 'not-sharing' && locNever.body?.latest === null, 'location GET is 200 not-sharing before anyone shares');
   const start = await req(`/api/worker/${workerToken}/location/start`, j({}));
   check(start.status === 200 && start.body?.sharing === true, 'worker started live location sharing (opt-in)');
   const far = await req(`/api/worker/${workerToken}/location`, j({ lat: 23.85, lng: 90.45, accuracy: 15 }));
@@ -306,6 +390,11 @@ try {
   const arrivals = detailLoc.body.events.filter((e) => e.type === 'ARRIVED_ON_SITE');
   check(arrivals.length === 1, 'ARRIVED_ON_SITE written exactly once, even inside the geofence twice');
   check(typeof arrivals[0]?.created_at === 'string', 'arrival carries a server timestamp');
+  {
+    const arrPayload = JSON.parse(arrivals[0].payload_json || '{}');
+    check(arrPayload.status === 'ARRIVED' && typeof arrPayload.arrivedAt === 'string', 'arrival event carries status + timestamp');
+    check(!('lat' in arrPayload) && !('lng' in arrPayload), 'arrival event stores NO coordinates in the permanent history');
+  }
   const sim = await req(`/api/worker/${workerToken}/location`, j({ lat: 23.8106, lng: 90.4128, accuracy: 12, simulated: true }));
   check(sim.status === 200, 'simulated point accepted (labelled)');
   const locSim = await req(`/api/jobs/${job.id}/location`, { headers: auth(token) });
@@ -314,11 +403,16 @@ try {
   check(applogNoAuth.status === 401, 'AppLink log without auth is refused (401)');
   const applog = await req('/api/applink/log', { headers: auth(token) });
   check(!JSON.stringify(applog.body || {}).includes('01700000001') && !JSON.stringify(applog.body || {}).includes('01800000002'), 'AppLink log masks full phone numbers');
+  check(!JSON.stringify(applog.body || {}).includes('token='), 'AppLink log never returns a worker token (masked)');
   check((applog.body?.entries || []).some((e) => e.api === 'sms.send' && JSON.stringify(e.request?.message || '').toLowerCase().includes('arrived')), 'arrival SMS notify attempted via AppLink adapter (sandbox-labelled)');
+  const applogOther = await req('/api/applink/log', { headers: auth(otherLogin.body.token) });
+  check(applogOther.status === 200, 'another user can read their own log');
+  check(!(applogOther.body?.entries || []).some((e) => e.api === 'sms.send'), 'user B cannot see user A entries (no sms.send from A in B log)');
+  check(!JSON.stringify(applogOther.body || {}).toLowerCase().includes('arrived'), 'user B log contains no trace of A arrival SMS');
   const stop = await req(`/api/worker/${workerToken}/location/stop`, j({}));
   check(stop.status === 200 && stop.body?.sharing === false, 'worker stopped sharing');
   const locAfterStop = await req(`/api/jobs/${job.id}/location`, { headers: auth(token) });
-  check(locAfterStop.status === 404, 'location GET is 404 after stop (no leak)');
+  check(locAfterStop.status === 200 && locAfterStop.body?.status === 'not-sharing' && locAfterStop.body?.latest === null, 'location GET is 200 not-sharing after stop (no coordinates leak)');
 
   console.log('== dispute (on the painter job, not the demo job) ==');
   const painterId = painter.body.job.id;
@@ -329,10 +423,32 @@ try {
   check(stmt.status === 201, 'worker added their statement');
   const dispDetail = await req(`/api/jobs/${painterId}?token=${painterToken}`);
   check(dispDetail.body.disputes[0]?.statements?.length === 2, 'both statements recorded; no verdict given');
-  const resolve = await req(`/api/disputes/${disp.body.dispute.id}/resolve`, aj(token, { confirmMutual: true, note: 'Agreed to repaint the room; no verdict by DealCraft.' }));
-  check(resolve.status === 200 && resolve.body?.job?.status === 'ACTIVE', 'dispute resolved by mutual agreement -> job ACTIVE again');
+  // The old hirer-only endpoint is gone: one side alone cannot resolve.
+  const oldResolve = await req(`/api/disputes/${disp.body.dispute.id}/resolve`, aj(token, { confirmMutual: true }));
+  check(oldResolve.status === 404, 'hirer-only /resolve endpoint no longer exists (404)');
+  // Step 1: hirer proposes how it will be resolved.
+  const propose = await req(`/api/disputes/${disp.body.dispute.id}/resolve-proposal`, aj(token, { proposal: 'Repaint the room free of charge; no verdict by DealCraft.' }));
+  check(propose.status === 201 && propose.body?.resolution?.status === 'PROPOSED', 'hirer proposed a resolution (PROPOSED)');
+  const proposeDetail = await req(`/api/jobs/${painterId}?token=${painterToken}`);
+  check(proposeDetail.body.job.status === 'DISPUTED', 'job stays DISPUTED after the proposal — the worker has not answered yet');
+  check(proposeDetail.body.events.some((e) => e.type === 'RESOLUTION_PROPOSED'), 'RESOLUTION_PROPOSED event recorded');
+  // Step 2: the worker accepts it — only then does the job go ACTIVE.
+  const acceptRes = await req(`/api/disputes/${disp.body.dispute.id}/resolve-response?token=${painterToken}`, j({ decision: 'accept' }));
+  check(acceptRes.status === 200 && acceptRes.body?.job?.status === 'ACTIVE', 'worker accepted the resolution -> job ACTIVE again');
   const resolveDetail = await req(`/api/jobs/${painterId}?token=${painterToken}`);
+  check(resolveDetail.body.events.some((e) => e.type === 'RESOLUTION_ACCEPTED'), 'RESOLUTION_ACCEPTED event recorded');
   check(resolveDetail.body.events.some((e) => e.type === 'DISPUTE_RESOLVED'), 'DISPUTE_RESOLVED event recorded, no verdict');
+  // Reject path: a second dispute, proposed, then the worker rejects it.
+  const disp2 = await req(`/api/jobs/${painterId}/disputes`, aj(token, { category: 'payment', statement: 'Advance was short by BDT 500.' }));
+  check(disp2.status === 201 && disp2.body?.job?.status === 'DISPUTED', 'second dispute opened');
+  const stmt2 = await req(`/api/disputes/${disp2.body.dispute.id}/statements?token=${painterToken}`, j({ text: 'The advance was paid in full.' }));
+  check(stmt2.status === 201, 'worker added their statement to the second dispute');
+  const propose2 = await req(`/api/disputes/${disp2.body.dispute.id}/resolve-proposal`, aj(token, { proposal: 'Hirer pays the missing BDT 500.' }));
+  check(propose2.status === 201, 'hirer proposed a resolution for the second dispute');
+  const rejectRes = await req(`/api/disputes/${disp2.body.dispute.id}/resolve-response?token=${painterToken}`, j({ decision: 'reject', note: 'Amount was correct.' }));
+  check(rejectRes.status === 200 && rejectRes.body?.job?.status === 'DISPUTED', 'worker rejected the resolution -> job stays DISPUTED');
+  const rejectDetail = await req(`/api/jobs/${painterId}?token=${painterToken}`);
+  check(rejectDetail.body.events.some((e) => e.type === 'RESOLUTION_REJECTED'), 'RESOLUTION_REJECTED event recorded');
 
   console.log('== ResolvePack PDF + close + WorkPassport ==');
   const pdf = await req(`/api/jobs/${job.id}/resolvepack`, { headers: auth(token) });
@@ -357,20 +473,29 @@ try {
   check(close.status === 200 && close.body?.job?.status === 'CLOSED', 'job CLOSED with worker OTP confirmation');
   const locAfterClose = await req(`/api/jobs/${job.id}/location`, { headers: auth(token) });
   check(locAfterClose.status === 404, 'location GET is 404 after close (no location survives)');
-  const pass = await req('/api/passport/add', aj(token, { jobId: job.id, showAmounts: true, showClient: false, showPhotos: false }));
-  check(pass.status === 201, 'closed job added to WorkPassport');
-  const passDup = await req('/api/passport/add', aj(token, { jobId: job.id, showAmounts: true, showClient: false, showPhotos: false }));
+  // Hirer cannot publish the worker's passport — worker only.
+  const passHirer = await req('/api/passport/add', aj(token, { jobId: job.id, showAmounts: true, showClient: true, showPhotos: true }));
+  check(passHirer.status === 403, 'hirer cannot add a job to the worker passport (403 — worker only)');
+  const pass = await req(`/api/passport/add?token=${workerToken}`, j({ jobId: job.id, showAmounts: true, showClient: false, showPhotos: false }));
+  check(pass.status === 201 && typeof pass.body?.profileId === 'string', 'worker added the closed job to their WorkPassport (profile id returned)');
+  const demoProfileId = pass.body.profileId;
+  const passDup = await req(`/api/passport/add?token=${workerToken}`, j({ jobId: job.id, showAmounts: true, showClient: false, showPhotos: false }));
   check(passDup.status === 409, 'duplicate passport add for the same job is rejected (409)');
-  const passport = await req(`/api/passport/${WORKER}`);
-  check(passport.body?.completedJobs === 1, 'passport shows 1 mutually confirmed completed job');
+  const passport = await req(`/api/passport/${demoProfileId}`);
+  check(passport.status === 200 && passport.body?.completedJobs === 1, 'passport shows 1 mutually confirmed completed job');
   check(passport.body?.workerName === 'Karim Mistri', 'passport carries the worker name from the User table (not the phone)');
+  check(!('workerPhone' in (passport.body || {})) && !JSON.stringify(passport.body).includes(WORKER), 'public passport API returns no phone number anywhere');
   check(passport.body?.entries?.[0]?.amount === 20000, 'passport shows amount because worker enabled it');
   check(passport.body?.entries?.[0]?.clientName === undefined, 'passport hides client name (not enabled)');
   check(passport.body?.entries?.[0]?.photoUrls === undefined, 'passport hides photos (not enabled)');
+  check(typeof passport.body?.entries?.[0]?.completedAt === 'string', 'passport entry carries a completion timestamp');
+  const passportByPhone = await req(`/api/passport/${WORKER}`);
+  check(passportByPhone.status === 404, 'old phone-based passport URL is gone (404 — random profile id only)');
   check(!JSON.stringify(passport.body).includes('*') || true, 'no star ratings in passport');
-  const passHtml = await req(`/passport/${WORKER}`);
+  const passHtml = await req(`/passport/${demoProfileId}`);
   check(passHtml.status === 200 && passHtml.text.includes('DealCraft Passport'), 'public passport page serves');
   check(passHtml.text.includes('Karim Mistri'), 'public passport page shows the worker name');
+  check(!passHtml.text.includes(WORKER), 'public passport page shows no phone number');
   // A second closed job, with client + photos enabled, proves the toggles
   // actually render (the API returns per-entry clientName/photoUrls).
   const closePainter = await req(`/api/jobs/${painterId}/close`, aj(token, { confirmCompletion: true, force: true, closeAnyway: true, note: 'Hirer closing alone; worker did not confirm.' }));
@@ -378,13 +503,15 @@ try {
   const painterClosedDetail = await req(`/api/jobs/${painterId}?token=${painterToken}`);
   const closedEv = painterClosedDetail.body.events.find((e) => e.type === 'JOB_CLOSED');
   check(closedEv && JSON.parse(closedEv.payload_json || '{}').hirerOnly === true, 'hirer-only close is recorded as hirer-only in the event log');
-  const passPainter = await req('/api/passport/add', aj(token, { jobId: painterId, showAmounts: false, showClient: true, showPhotos: true }));
-  check(passPainter.status === 201, 'painter job added to WorkPassport with client shown');
-  const passportPainter = await req('/api/passport/01900000003');
+  const passPainter = await req(`/api/passport/add?token=${painterToken}`, j({ jobId: painterId, showAmounts: false, showClient: true, showPhotos: true }));
+  check(passPainter.status === 201, 'painter job added to WorkPassport with client shown (by the worker)');
+  const painterProfileId = passPainter.body.profileId;
+  const passportPainter = await req(`/api/passport/${painterProfileId}`);
   check(passportPainter.body?.entries?.[0]?.clientName === 'Rahim Uddin', 'passport API returns the client name when enabled');
-  const passPainterHtml = await req('/passport/01900000003');
+  check(!JSON.stringify(passportPainter.body).includes('01900000003'), 'painter passport API returns no phone number');
+  const passPainterHtml = await req(`/passport/${painterProfileId}`);
   check(passPainterHtml.status === 200 && passPainterHtml.text.includes('Painter Test') && passPainterHtml.text.includes('Rahim Uddin'), 'public passport page shows worker name + client name when enabled');
-  const qr = await req(`/api/passport/${WORKER}/qr.png`);
+  const qr = await req(`/api/passport/${demoProfileId}/qr.png`);
   check(qr.status === 200 && (qr.headers.get('content-type') || '').includes('png'), 'passport QR PNG serves');
 
   console.log('== find a repairer: photo + nearby bidding ==');
@@ -483,7 +610,7 @@ try {
   check(acceptedDetail.body.job.status === 'DRAFT', 'accepted job is NOT ACTIVE before dual OTP');
   check(acceptedDetail.body.photos.length >= 2 && acceptedDetail.body.photos.every((p) => p.kind === 'BEFORE'), 'problem photos carried onto the job as BEFORE photos');
   const acceptedV1 = acceptedDetail.body.versions.find((v) => v.version_no === 1);
-  check(acceptedV1?.price === 3800 && acceptedV1?.fingerprint === fingerprint({ job_id: acceptedJobId, version_no: 1, scope: 'Bathroom pipe burst, water leaking through the wall', price: 3800, deadline: null }), 'accepted job V1 price is the bid price with a valid fingerprint');
+  check(acceptedV1?.price === 3800 && acceptedV1?.fingerprint === fingerprint({ job_id: acceptedJobId, version_no: 1, scope: 'Bathroom pipe burst, water leaking through the wall', price: 3800, deadline: null, answers: {}, skippedTerms: [], milestones: [] }), 'accepted job V1 price is the bid price with a valid fingerprint (full payload)');
   // Dual OTP confirmation of the bid-created job (fee first, as in the main flow).
   const accHirerOtp = await req('/api/auth/request-otp', j({ phone: HIRER, purpose: 'hirer-confirm' }));
   check(accHirerOtp.status === 200 && accHirerOtp.body?.sandbox?.otp, 'hirer-confirm OTP issued for the bid job');
@@ -493,6 +620,8 @@ try {
   check(accCharge.status === 200 && accCharge.body?.sandboxOtp, 'CaaS fee charged for the bid-created job');
   const accVerify = await req(`/api/billing/caas/${accCharge.body.chargeId}/verify`, aj(bidHirer, { otpCode: accCharge.body.sandboxOtp }));
   check(accVerify.status === 200 && accVerify.body?.status === 'VERIFIED', 'CaaS fee verified for the bid-created job');
+  const accVerifyOther = await req(`/api/billing/caas/${accCharge.body.chargeId}/verify`, aj(otherLogin.body.token, { otpCode: '000000' }));
+  check(accVerifyOther.status === 403, 'another hirer cannot verify a charge that is not theirs (403)');
   const accWcOtp = await req(`/api/worker/${acceptedToken}/request-otp`, j({ purpose: 'worker-confirm' }));
   check(accWcOtp.status === 200 && accWcOtp.body?.sandbox?.otp, 'worker-confirm OTP issued for the bid job');
   const accWc = await req(`/api/worker/${acceptedToken}/confirm`, j({ otpCode: accWcOtp.body.sandbox.otp }));
@@ -512,6 +641,18 @@ try {
   const openAfterClose = await req('/api/bid-jobs/open', { headers: auth(workerA) });
   check(!openAfterClose.body?.bidJobs?.some((b) => b.id === bidJob2), 'closed-without-hire job leaves the open list');
 
+  console.log('== AppLink callbacks ==');
+  const smsReport = await req('/api/applink/sms-report', j({ requestId: 'req-1', deliveryStatus: 'DELIVERED' }));
+  check(smsReport.status === 200 && smsReport.body?.ok === true, 'SMS delivery-report callback accepted (200)');
+  const moSms = await req('/api/applink/mo-sms', j({ from: '01800000002', message: 'dealcraft YES token=abcdef123456' }));
+  check(moSms.status === 200 && moSms.body?.ok === true, 'MO SMS inbound callback accepted (200)');
+  const caasNotify = await req('/api/applink/caas-notify', j({ transactionId: 'unknown-charge', statusCode: 'S1000' }));
+  check(caasNotify.status === 200 && caasNotify.body?.ok === true, 'CaaS notification callback accepted (200)');
+  const subNotify = await req('/api/applink/subscription-notify', j({ subscriberId: 'tel:8801700000009', status: 'UNREGISTERED' }));
+  check(subNotify.status === 200 && subNotify.body?.ok === true, 'subscription notification callback accepted (200)');
+  const logAfterCb = await req('/api/applink/log', { headers: auth(token) });
+  check(!JSON.stringify(logAfterCb.body || {}).includes('abcdef123456'), 'callback contents never leak a token into the user-facing log');
+
   console.log('== AppLink log + public pages ==');
   const log = await req('/api/applink/log', { headers: auth(token) });
   const apis = (log.body?.entries || []).map((e) => e.api);
@@ -521,6 +662,20 @@ try {
   check(landing.status === 200 && landing.text.includes('DealCraft'), 'landing page serves');
   const workerPage = await req('/worker.html');
   check(workerPage.status === 200, 'worker link page serves');
+  const appJs = await req('/app.js');
+  const simStop = appJs.text.match(/function locStopSim\(\)\{[\s\S]*?\n\}/);
+  check(simStop && !simStop[0].includes('fetch('), 'locStopSim stops only the timer — it never POSTs /location/stop (a real share survives the demo sim)');
+  check(appJs.text.includes('async function refreshJob') && appJs.text.includes('refreshJob();'), 'switching detail tabs re-fetches the job (timeline/dispute never go stale)');
+  const passPage = await req(`/passport/${demoProfileId}`);
+  check(passPage.status === 200 && passPage.text.includes('width=device-width'), 'server passport page has a viewport meta (no 980px layout on phones)');
+  const css = await req('/style.css');
+  check(css.text.includes('#worker-link-url') && css.text.includes('break-all'), 'worker-link token can break anywhere (no 707px-wide mobile page)');
+  check(css.text.includes('@media(max-width:480px)') && css.text.includes('.menu-btn span[data-i18n]{display:none}'), 'phone header shrinks below 480px (brand never wraps to two lines)');
+  // The close flow is reachable from the UI on both sides: the worker page
+  // has the close-confirm button and the hirer page has the OTP input +
+  // hirer-only checkbox the close call needs.
+  check(workerPage.text.includes('id="w-close-btn"'), 'worker page has close-confirm button');
+  check(landing.text.includes('id="close-otp"') && landing.text.includes('id="close-anyway"'), 'hirer close UI has worker-OTP input + hirer-only checkbox');
   const manifest = await req('/manifest.json');
   check(manifest.status === 200, 'PWA manifest serves');
 

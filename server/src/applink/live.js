@@ -18,6 +18,7 @@
 // Same interfaces as the sandbox adapters (see server/src/applink/index.js).
 // Live calls return Promises — callers must await adapter results.
 const { appendLog } = require('./log');
+const { saveOtpTransaction, getOtpTransaction, deleteOtpTransaction } = require('./otp-transactions');
 const { checkOtpAttempt, recordOtpAttempt, checkOtpSend, recordOtpSend } = require('./otp-rate-limit');
 
 const DEFAULT_BASE_URL = 'https://api.applink.com.bd';
@@ -109,10 +110,11 @@ function log(api, request, response) {
   appendLog({ api, request, response, mode: 'live' });
 }
 
-// otpTransactionId per phone+purpose, kept server-side only. AppLink's
-// verify call needs it, and the DealCraft routes only pass (phone, code,
-// purpose), so the adapter remembers it from the matching send call.
-const otpTransactions = new Map(); // `${phone}|${purpose}` -> { otpTransactionId, sentAt }
+// otpTransactionId per phone+purpose, kept server-side only and PERSISTED
+// in SQLite (server/src/applink/otp-transactions.js). AppLink's verify
+// call needs it, and the DealCraft routes only pass (phone, code,
+// purpose), so the adapter remembers it from the matching send call —
+// and a server restart no longer loses it.
 const subscriptions = new Map(); // phone -> { subscriptionId, phone, plan, status }
 
 async function sendOtp(phone, purpose = 'login') {
@@ -131,7 +133,7 @@ async function sendOtp(phone, purpose = 'login') {
     length: 6,
   });
   if (r.statusCode !== 'S1000') throw new AppLinkError(r.statusCode, r.statusDetail);
-  otpTransactions.set(phone + '|' + purpose, { otpTransactionId: r.otpTransactionId, sentAt: Date.now() });
+  saveOtpTransaction(phone, purpose, r.otpTransactionId);
   log('otp.send', { phone, purpose }, { statusCode: r.statusCode, requestId: r.requestId });
   // No `code` field here — deliberately. Live OTP codes are never returned.
   return { messageId: r.requestId || null, status: 'SENT', otpTransactionId: r.otpTransactionId };
@@ -140,7 +142,7 @@ async function sendOtp(phone, purpose = 'login') {
 async function verifyOtp(phone, code, purpose = 'login') {
   // 429 when this phone+purpose has failed too many times in the window.
   checkOtpAttempt(phone, purpose);
-  const entry = otpTransactions.get(phone + '|' + purpose);
+  const entry = getOtpTransaction(phone, purpose);
   if (!entry || !entry.otpTransactionId) {
     throw new Error('no live OTP was sent to this number for "' + purpose + '" — request a new code first');
   }
@@ -156,7 +158,7 @@ async function verifyOtp(phone, code, purpose = 'login') {
     throw e;
   }
   if (r.statusCode === 'S1000') {
-    otpTransactions.delete(phone + '|' + purpose);
+    deleteOtpTransaction(phone, purpose);
     recordOtpAttempt(phone, purpose, true);
     log('otp.verify', { phone, purpose }, { statusCode: r.statusCode, ok: true });
     return true;

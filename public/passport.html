@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DealCraft — WorkPassport</title>
 <meta name="theme-color" content="#000000">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23000'/%3E%3Ctext x='16' y='23' font-size='20' font-family='sans-serif' font-weight='bold' fill='%23FF5A1F' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Oswald:wght@500;600;700&family=Noto+Sans+Bengali:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -13,11 +18,11 @@
 <main>
   <div id="map-passport" style="background:#000;padding:8px 0"></div>
   <p class="mono" data-i18n="p.kicker" style="color:#666">WORKPASSPORT · কাজের পরিচয়পত্র</p>
-  <h1 id="p-name" style="font-family:'Oswald','Noto Sans Bengali',sans-serif;font-size:40px;line-height:1;text-transform:uppercase;margin:8px 0">—</h1>
-  <p id="p-phone" class="mono" style="color:#666"></p>
+  <h1 id="p-name" style="font-family:'Oswald','Noto Sans Bengali',sans-serif;font-size:44px;line-height:1;text-transform:uppercase;margin:8px 0">—</h1>
+  <p class="mono" style="color:#FF5A1F">MUTUALLY CONFIRMED WORK · দুই পক্ষের সম্মতিতে করা কাজ</p>
   <div id="p-err" class="error" hidden></div>
   <div id="p-body" hidden>
-    <div class="pass-num" id="p-count">0</div>
+    <div class="pass-num" id="p-count" style="font-size:64px;font-family:'Oswald',sans-serif;color:#FF5A1F">0</div>
     <p class="mono" data-i18n="p.countLabel" style="color:#666">MUTUALLY CONFIRMED COMPLETED JOBS · দুই পক্ষের সম্মতিতে শেষ হওয়া কাজ</p>
     <h2 data-i18n="p.trades" style="font-family:'Oswald',sans-serif;text-transform:uppercase">Trades · কাজের ধরন</h2>
     <div id="p-trades"></div>
@@ -35,7 +40,7 @@
 </main>
 <script>
 (function(){'use strict';
-var q=new URLSearchParams(location.search), phone=q.get('phone')||'';
+var q=new URLSearchParams(location.search), profileId=q.get('id')||q.get('profileId')||'';
 /* Language toggle — same pattern as index.html (dc_lang, default bn). */
 var pLang=localStorage.getItem('dc_lang')||'bn';
 var PI18N={
@@ -68,12 +73,11 @@ function inPoly(x,y){var ins=false;for(var i=0,j=BD.length-1;i<BD.length;j=i++){
  s+='<circle cx="'+dx+'" cy="'+dy+'" r="4" fill="#FF5A1F"/><circle cx="'+cx+'" cy="'+cy+'" r="4" fill="#FF5A1F"/>';
  $('map-passport').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Dotted map of Bangladesh">'+s+'</svg>';})();
 async function load(){
- if(!phone){var e=$('p-err');e.hidden=false;e.textContent='No phone number in the link. / লিংকে কোনো ফোন নম্বর নেই।';return;}
- try{var r=await fetch('/api/passport/'+encodeURIComponent(phone));var d=await r.json();
+ if(!profileId){var e=$('p-err');e.hidden=false;e.textContent='No WorkPassport link. / লিংকে কোনো WorkPassport নেই।';return;}
+ try{var r=await fetch('/api/passport/'+encodeURIComponent(profileId));var d=await r.json();
   if(!r.ok)throw new Error((d&&(d.error||d.message))||('HTTP '+r.status));
   var p=d.passport||d;
-  $('p-name').textContent=p.workerName||p.name||phone;
-  $('p-phone').textContent=phone;
+  $('p-name').textContent=p.workerName||p.name||'DealCraft worker';
   $('p-count').textContent=p.completedJobs!=null?p.completedJobs:(p.count!=null?p.count:0);
   $('p-trades').innerHTML=list(p.trades);
   /* entries: [{jobId, trade, completedAt, showAmounts, showClient, showPhotos, amount?}] */
@@ -88,7 +92,7 @@ async function load(){
   if(shownClients.length){$('p-clients').hidden=false;$('p-clients-text').textContent=shownClients.join(', ');}
   var shownPhotos=[];entries.forEach(function(e){if(e.showPhotos&&e.photoUrls)e.photoUrls.forEach(function(u){shownPhotos.push(u);});});
   if(shownPhotos.length){$('p-photos').hidden=false;$('p-photos-list').innerHTML=shownPhotos.map(function(u){return '<img src="'+esc(typeof u==='string'?u:u.url)+'" alt="" style="max-width:160px;display:inline-block;margin:0 8px 8px 0">';}).join('');}
-  $('p-qr').src='/api/passport/'+encodeURIComponent(phone)+'/qr.png';
+  $('p-qr').src='/api/passport/'+encodeURIComponent(profileId)+'/qr.png';
   $('p-qr').onerror=function(){this.style.display='none';};
   $('p-body').hidden=false;
  }catch(e){var er=$('p-err');er.hidden=false;er.textContent='WorkPassport খোলা যায়নি: '+e.message;}}

@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DealCraft — Worker</title>
 <meta name="theme-color" content="#000000">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23000'/%3E%3Ctext x='16' y='23' font-size='20' font-family='sans-serif' font-weight='bold' fill='%23FF5A1F' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Oswald:wght@500;600;700&family=Noto+Sans+Bengali:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -82,6 +87,31 @@
     <button class="big-btn" id="w-stmt-send" type="button" data-i18n="w.stmtSend">পাঠান — Send</button>
   </section>
 
+  <section id="w-resolve" hidden>
+    <h2 data-i18n="w.resTitle" style="font-family:'Oswald',sans-serif;text-transform:uppercase">সমাধানের প্রস্তাব</h2>
+    <div id="w-resolve-text" class="notice"></div>
+    <p class="small" data-i18n="w.resText">Hirer একটি সমাধানের প্রস্তাব দিয়েছে। আপনি মানলে তবেই কাজটি আবার ACTIVE হবে — না মানলে Dispute খোলাই থাকবে। / The hirer proposed a resolution. The job returns to ACTIVE only if you accept it.</p>
+    <button class="big-btn" id="w-res-accept" type="button" data-i18n="w.resAccept">মানলাম — Accept resolution</button>
+    <button class="big-btn ghost" id="w-res-reject" type="button" data-i18n="w.resReject">মানলাম না — Reject</button>
+  </section>
+
+  <section id="w-passport" hidden>
+    <h2 data-i18n="w.ppTitle" style="font-family:'Oswald',sans-serif;text-transform:uppercase">WorkPassport — আমার পরিচয়পত্র</h2>
+    <p class="small" data-i18n="w.ppText">এই কাজটি আপনার WorkPassport-এ যোগ করুন — কী দেখাবে, তা আপনিই ঠিক করুন। টাকার অঙ্ক, ক্লায়েন্টের নাম আর ছবি — না চাইলে কিছুই দেখানো হবে না। / Add this job to your WorkPassport — you choose what it shows. Amounts, client name and photos stay hidden unless you enable them.</p>
+    <p><label style="display:flex;gap:10px;align-items:center;font-size:15px"><input type="checkbox" id="w-pp-amounts" style="width:auto"> <span>টাকার অঙ্ক দেখান — Show amount</span></label></p>
+    <p><label style="display:flex;gap:10px;align-items:center;font-size:15px"><input type="checkbox" id="w-pp-client" style="width:auto"> <span>ক্লায়েন্টের নাম দেখান — Show client name</span></label></p>
+    <p><label style="display:flex;gap:10px;align-items:center;font-size:15px"><input type="checkbox" id="w-pp-photos" style="width:auto"> <span>ছবি দেখান — Show photos</span></label></p>
+    <button class="big-btn orange" id="w-pp-add" type="button" data-i18n="w.ppAdd">WorkPassport-এ যোগ করুন — Add to my WorkPassport</button>
+    <p class="notice" id="w-pp-done" hidden></p>
+  </section>
+
+  <section id="w-close" hidden>
+    <h2 data-i18n="w.closeTitle" style="font-family:'Oswald',sans-serif;text-transform:uppercase">কাজ শেষ — Close the job</h2>
+    <p class="small" data-i18n="w.closeText">কাজ শেষ হলে নিচের বোতাম চাপুন — একটি OTP কোড আসবে। কোডটি Hirer-কে জানান, Hirer ওই কোড দিয়ে কাজটি বন্ধ করবেন। / When the work is done, tap below — a code arrives. Give it to the hirer; they close the job with it.</p>
+    <button class="big-btn orange" id="w-close-btn" type="button" data-i18n="w.closeBtn">কাজ শেষ — Confirm close</button>
+    <p class="notice" id="w-close-note" hidden data-i18n="w.closeNote">কোড পাঠানো হয়েছে — Hirer-কে কোডটি জানান। / Code sent — give it to the hirer.</p>
+  </section>
+
   <p class="small" data-i18n="w.foot" style="margin-top:28px;color:#666">DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়।</p>
   <p class="small"><a href="index.html">DealCraft হোম</a> · <a href="passport.html">WorkPassport</a></p>
 </main>
@@ -118,6 +148,17 @@ var WI18N={
  'w.locResume':{bn:'আবার শুরু — Resume',en:'Resume'},
  'w.locStop':{bn:'বন্ধ করুন — Stop sharing',en:'Stop sharing'},
  'w.stmtSend':{bn:'পাঠান — Send',en:'Send'},
+ 'w.resTitle':{bn:'সমাধানের প্রস্তাব',en:'Resolution proposal'},
+ 'w.resText':{bn:'Hirer একটি সমাধানের প্রস্তাব দিয়েছে। আপনি মানলে তবেই কাজটি আবার ACTIVE হবে — না মানলে Dispute খোলাই থাকবে।',en:'The hirer proposed a resolution. The job returns to ACTIVE only if you accept it.'},
+ 'w.resAccept':{bn:'মানলাম — Accept resolution',en:'Accept resolution'},
+ 'w.resReject':{bn:'মানলাম না — Reject',en:'Reject'},
+ 'w.ppTitle':{bn:'WorkPassport — আমার পরিচয়পত্র',en:'WorkPassport — my record'},
+ 'w.ppText':{bn:'এই কাজটি আপনার WorkPassport-এ যোগ করুন — কী দেখাবে, তা আপনিই ঠিক করুন। টাকার অঙ্ক, ক্লায়েন্টের নাম আর ছবি — না চাইলে কিছুই দেখানো হবে না।',en:'Add this job to your WorkPassport — you choose what it shows. Amounts, client name and photos stay hidden unless you enable them.'},
+ 'w.ppAdd':{bn:'WorkPassport-এ যোগ করুন — Add to my WorkPassport',en:'Add to my WorkPassport'},
+ 'w.closeTitle':{bn:'কাজ শেষ — Close the job',en:'Close the job'},
+ 'w.closeText':{bn:'কাজ শেষ হলে নিচের বোতাম চাপুন — একটি OTP কোড আসবে। কোডটি Hirer-কে জানান, Hirer ওই কোড দিয়ে কাজটি বন্ধ করবেন।',en:'When the work is done, tap below — a code arrives. Give it to the hirer; they close the job with it.'},
+ 'w.closeBtn':{bn:'কাজ শেষ — Confirm close',en:'Confirm close'},
+ 'w.closeNote':{bn:'কোড পাঠানো হয়েছে — Hirer-কে কোডটি জানান।',en:'Code sent — give it to the hirer.'},
  'w.foot':{bn:'DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়।',en:'DealCraft holds no money — it records payment acknowledgements only. AppLink reaches Banglalink subscribers only.'}
 };
 function wApplyLang(){document.documentElement.lang=wLang;
@@ -180,9 +221,21 @@ async function load(){
    show('w-mile');}
   events.forEach(function(ev){if(ev.type==='DISPUTE_OPENED'){var p=parsePayload(ev);if(p.disputeId)disputeId=p.disputeId;}});
   if(disputeId)show('w-say');
+  /* Pending resolution: proposed, with no later accept/reject. The worker
+     alone decides — accept returns the job to ACTIVE, reject keeps it DISPUTED. */
+  var resDecided={};
+  events.forEach(function(ev){if(ev.type==='RESOLUTION_ACCEPTED'||ev.type==='RESOLUTION_REJECTED')resDecided[ev.type]=true;});
+  var pendingRes=null;
+  events.forEach(function(ev){if(ev.type==='RESOLUTION_PROPOSED'&&!resDecided['RESOLUTION_ACCEPTED']&&!resDecided['RESOLUTION_REJECTED']){var pp=parsePayload(ev);if(pp.resolutionId||pp.proposal)pendingRes=pp;}});
+  if(pendingRes&&disputeId){
+   $('w-resolve-text').innerHTML='<b>'+esc(pendingRes.proposal||'')+'</b>';
+   show('w-resolve');}
+  /* WorkPassport is worker-owned: only here, on the worker's own link,
+     after the job closes, with the worker choosing what is shown. */
+  if(job.status==='CLOSED'){show('w-passport');}
   /* Live location: only while the job is ACTIVE, and only if the worker
      taps Share. Nothing is sent before that — off by default. */
-  if(job.status==='ACTIVE')show('w-loc');
+  if(job.status==='ACTIVE'){show('w-loc');show('w-close');}
  }catch(e){err('রেকর্ড খোলা যায়নি: '+e.message+' / Could not open record: '+e.message);}}
 /* ---------- live location (worker side) ---------- */
 var locState='off', locWatch=null, locTimer=null, locLatest=null;
@@ -246,8 +299,12 @@ $('w-ch-reject').addEventListener('click',startChange('reject'));
 $('w-ch-ask').addEventListener('click',startChange('clarify'));
 $('w-ch-send').addEventListener('click',async function(){try{await api('/api/changes/'+encodeURIComponent(changeId)+'/respond'+wt(),{method:'POST',body:JSON.stringify({decision:changeDecision,otpCode:$('w-ch-otp').value.trim()})});
   $('w-change').hidden=true;}catch(e){err(e.message);}});
-function payAck(dec){return function(){payDecision=dec;$('w-pay-otp-box').hidden=false;
-  requestOtp('payment-ack').catch(function(e){err(e.message);});};}
+/* The OTP box must only open AFTER the fresh payment-ack code has arrived:
+   opening it first lets the old code (from the previous OTP box) still sit
+   in the sandbox text, so a fast submit sends a stale code and fails. */
+function payAck(dec){return async function(){payDecision=dec;
+  try{await requestOtp('payment-ack');$('w-pay-otp-box').hidden=false;$('w-pay-otp').focus();}
+  catch(e){err(e.message);}};}
 $('w-pay-ok').addEventListener('click',payAck('received'));
 $('w-pay-bad').addEventListener('click',payAck('incorrect'));
 $('w-pay-send').addEventListener('click',async function(){try{await api('/api/payments/'+encodeURIComponent(payId)+'/ack'+wt(),{method:'POST',body:JSON.stringify({decision:payDecision,otpCode:$('w-pay-otp').value.trim()})});
@@ -258,6 +315,23 @@ $('w-photo-send').addEventListener('click',async function(){var f=$('w-photo').f
  try{var r=await fetch('/api/jobs/'+encodeURIComponent(jobId)+'/photos'+wt(),{method:'POST',body:fd});
   if(!r.ok){var d=null;try{d=await r.json();}catch(e){}throw new Error((d&&(d.error||d.message))||('HTTP '+r.status));}
   $('w-photo-send').textContent='আপলোড হয়েছে — Uploaded';}catch(e){err(e.message);}});
+/* Close: the worker only requests the close-confirm OTP and hands the code
+   to the hirer (by SMS in live mode, in the sandbox box here). The hirer
+   types it into the close box on the job page — that call verifies it. */
+$('w-close-btn').addEventListener('click',async function(){try{await requestOtp('close-confirm');$('w-close-note').hidden=false;$('w-close-btn').disabled=true;}catch(e){err(e.message);}});
+$('w-res-accept').addEventListener('click',async function(){if(!disputeId)return;
+ try{await api('/api/disputes/'+encodeURIComponent(disputeId)+'/resolve-response'+wt(),{method:'POST',body:JSON.stringify({decision:'accept'})});
+  $('w-resolve').hidden=true;$('w-res-accept').textContent='মেনে নেওয়া হয়েছে — Accepted';}catch(e){err(e.message);}});
+$('w-res-reject').addEventListener('click',async function(){if(!disputeId)return;
+ try{await api('/api/disputes/'+encodeURIComponent(disputeId)+'/resolve-response'+wt(),{method:'POST',body:JSON.stringify({decision:'reject'})});
+  $('w-resolve').hidden=true;$('w-res-reject').textContent='মানা হয়নি — Rejected';}catch(e){err(e.message);}});
+$('w-pp-add').addEventListener('click',async function(){if(!jobId)return;
+ try{var r=await api('/api/passport/add'+wt(),{method:'POST',body:JSON.stringify({jobId:jobId,
+   showAmounts:$('w-pp-amounts').checked,showClient:$('w-pp-client').checked,showPhotos:$('w-pp-photos').checked})});
+  var done=$('w-pp-done');done.hidden=false;
+  var pid=r.profileId||(r.entry&&r.entry.profileId)||'';
+  done.innerHTML='WorkPassport-এ যোগ হয়েছে। '+(pid?'<a href="passport.html?id='+encodeURIComponent(pid)+'" target="_blank" rel="noopener">আমার WorkPassport দেখুন — View my WorkPassport</a>':'');
+  $('w-pp-add').disabled=true;}catch(e){err(e.message);}});
 $('w-stmt-send').addEventListener('click',async function(){var t=$('w-stmt').value.trim();if(!t||!disputeId){err('বক্তব্য লিখুন। / Write a statement first.');return;}
  try{await api('/api/disputes/'+encodeURIComponent(disputeId)+'/statements'+wt(),{method:'POST',body:JSON.stringify({side:'worker',text:t})});$('w-stmt').value='';$('w-stmt-send').textContent='পাঠানো হয়েছে — Sent';}catch(e){err(e.message);}});
 $('lang-bn').addEventListener('click',function(){wLang='bn';wApplyLang();});

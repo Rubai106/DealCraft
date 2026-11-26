@@ -76,4 +76,13 @@ function recordOtpSend(phone, purpose) {
   }
 }
 
-module.exports = { checkOtpAttempt, recordOtpAttempt, checkOtpSend, recordOtpSend, MAX_FAILED_ATTEMPTS, MAX_SENDS, WINDOW_MS };
+// Demo reset/seed wipes the whole database, so the in-memory OTP counters
+// must go with it — otherwise the seed's own two OTP sends plus a repeated
+// demo run exhaust the 5-send cap within 15 minutes and the demo's confirm
+// codes come back null. Only the local demo endpoints call this.
+function resetRateLimits() {
+  attempts.clear();
+  sends.clear();
+}
+
+module.exports = { checkOtpAttempt, recordOtpAttempt, checkOtpSend, recordOtpSend, resetRateLimits, MAX_FAILED_ATTEMPTS, MAX_SENDS, WINDOW_MS };

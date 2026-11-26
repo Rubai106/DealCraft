@@ -14,7 +14,7 @@ var I18N={
 'hero.title':{bn:'ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থাকুক।',en:'A phone call can start a job. Keep the work record in writing.'},
 'hero.sub':{bn:'Electrician, painter, plumber — কাজের আগে দুই পক্ষ একসাথে লিখে নিন: কী কাজ, কত টাকা, কবে শেষ। দুজনেই OTP দিয়ে নিশ্চিত করলে রেকর্ড তৈরি হয়। DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।',en:'Electrician, painter, plumber — before work starts, both sides write it down together: what work, how much, by when. The record is made only when both confirm by OTP. DealCraft holds no money — it records payment acknowledgements only.'},
 'hero.cta1':{bn:'রেকর্ড শুরু করুন',en:'Start a record'},'hero.cta2':{bn:'ডেমো কাজ দেখুন',en:'See demo job'},
-'hero.meta1':{bn:'Worker — সবসময় ফ্রি',en:'Workers — free, always'},'hero.meta2':{bn:'Hirer — ৳১০ / রেকর্ড · ৳৭০ / মাস',en:'Hirer — ৳10 / record · ৳70 / month'},'hero.meta3':{bn:'স্যান্ডবক্স — ডেমো',en:'Sandbox — demo'},'hero.meta3Live':{bn:'লাইভ — AppLink SMS',en:'Live — AppLink SMS'},
+'hero.meta1':{bn:'Worker — DealCraft ফি নেই',en:'Workers — no DealCraft fee'},'hero.meta2':{bn:'Hirer — ৳১০ / রেকর্ড · ৳৭০ / মাস',en:'Hirer — ৳10 / record · ৳70 / month'},'hero.meta3':{bn:'স্যান্ডবক্স — ডেমো',en:'Sandbox — demo'},'hero.meta3Live':{bn:'লাইভ — AppLink SMS',en:'Live — AppLink SMS'},
 'hero.map':{bn:'ঢাকা — চট্টগ্রাম · ডটেড ম্যাপ, লাইভ রুট',en:'Dhaka — Chattogram · dotted map, live route'},
 'journey.title':{bn:'ফোন থেকে লিখিত রেকর্ড',en:'From a phone call to a written record'},
 'j1t':{bn:'FairScope — আগে প্রশ্ন, পরে কাজ',en:'FairScope — questions first, work after'},'j1p':{bn:'কে মাল কিনবে, কয় কোট, কয় পয়েন্ট — প্রতিটি প্রশ্নের উত্তর ঠিক করুন। যা ঠিক হয়নি, তা লুকানো যাবে না।',en:'Who buys materials, how many coats, how many points — settle every question. What is undecided cannot be hidden.'},
@@ -63,7 +63,7 @@ var I18N={
 'new.price':{bn:'সম্মত দাম (৳)',en:'Agreed price (৳)'},'new.deadline':{bn:'শেষ তারিখ',en:'Deadline'},'new.scope':{bn:'কাজের বিবরণ — Scope',en:'Scope — work description'},
 'new.milestones':{bn:'মাইলস্টোন — ধাপ (ঐচ্ছিক)',en:'Milestones — steps (optional)'},'new.addMs':{bn:'+ মাইলস্টোন যোগ করুন',en:'+ Add milestone'},'new.review':{bn:'রেকর্ড দেখুন',en:'Review record'},
 'new.create':{bn:'কাজ তৈরি করুন ও worker-কে পাঠান',en:'Create job & send to worker'},
-'warn.title':{bn:'Missing terms — ঠিক হয়নি',en:'Missing terms — not decided'},'warn.text':{bn:'নিচের বিষয়গুলো এখনো ঠিক হয়নি। কাজ শুরুর আগে ঠিক করে নেওয়া ভালো।',en:'The items below are still undecided. It is best to settle them before work starts.'},
+'warn.title':{bn:'Missing terms — ঠিক হয়নি',en:'Missing terms — not decided'},'warn.text':{bn:'নিচের বিষয়গুলো এখনো ঠিক হয়নি। প্রতিটি শর্তের উত্তর দিন, অথবা সেই শর্তটি আলাদাভাবে বাদ দিন — সব একসাথে বাদ দেওয়া যায় না।',en:'The items below are still undecided. Answer each one, or skip that one term explicitly — they are never skipped in bulk.'},
 'warn.resolve':{bn:'এখনই ঠিক করুন',en:'Resolve now'},'warn.skip':{bn:'বাদ দিয়ে এগিয়ে যান',en:'Skip — continue anyway'},
 'bal.agreed':{bn:'সম্মত দাম',en:'Agreed'},'bal.paid':{bn:'স্বীকৃত পেমেন্ট',en:'Acknowledged paid'},'bal.rem':{bn:'বাকি',en:'Remaining'},
 'detail.back':{bn:'← সব কাজ',en:'← All jobs'},'detail.confirmTitle':{bn:'Hirer-এর নিশ্চিতকরণ দরকার',en:'Hirer confirmation needed'},
@@ -86,12 +86,15 @@ var I18N={
 'bill.paidJobs':{bn:'পরিশোধিত কাজ',en:'Paid jobs'},
 'bill.unpaidJobs':{bn:'অপরিশোধিত কাজ',en:'Unpaid jobs'},
 'bill.statusUnknown':{bn:'বিলিং অবস্থা এখন দেখা যাচ্ছে না — পরে আবার চেষ্টা করুন।',en:'Billing status is unavailable right now — please try again later.'},
-'bill.smsNote':{bn:'MT SMS-এর জন্য গ্রাহকের কাছ থেকে ২.০০ টাকা চার্জ করা হয়।',en:'MT SMS is charged at 2.00 BDT to the subscriber.'},
+'bill.smsNote':{bn:'MT SMS-এর জন্য গ্রাহকের কাছ থেকে ২.০০ টাকা চার্জ করা হয় — worker-এর কাছে আসা SMS-এর জন্যও অপারেটর চার্জ লাগতে পারে। ৳১০ ফি থেকে AppLink রেভিনিউ শেয়ারে DealCraft পায় আনুমানিক ৳৪–৫ (খরচের আগে) — সেটেলমেন্ট ডেটা ছাড়া লাভজনক বলা যায় না। সাবস্ক্রিপশনের লোকাল ACTIVE অবস্থা অটো-রিনিউয়ালের প্রমাণ নয় — AppLink কলব্যাকের সাথে মেলানো হয়।',en:'MT SMS is charged at 2.00 BDT to the subscriber — a worker receiving SMS may also incur carrier charges. A ৳10 fee yields roughly ৳4–5 to DealCraft under the AppLink revenue share, before costs — not proven profitable without settlement data. A local ACTIVE subscription is not proof of auto-renewal; it is reconciled against AppLink callbacks.'},
 'detail.passport':{bn:'WorkPassport',en:'WorkPassport'},
 'detail.passportText':{bn:'কাজ বন্ধ হওয়ার পর worker-এর WorkPassport-এ যোগ করুন। কী দেখানো হবে, তা বেছে নিন।',en:'After the job closes, add it to the worker\u2019s WorkPassport. Choose what is shown.'},
 'detail.passportBtn':{bn:'WorkPassport-এ যোগ করুন',en:'Add to WorkPassport'},
 'detail.photos':{bn:'ছবি',en:'Photos'},'detail.addPhoto':{bn:'ছবি যোগ করুন',en:'Add a photo'},'detail.upload':{bn:'ছবি আপলোড করুন',en:'Upload photo'},
 'detail.close':{bn:'কাজ বন্ধ করুন',en:'Close job'},'detail.closeText':{bn:'কাজ শেষ হলে দুই পক্ষের সম্মতিতে বন্ধ করুন।',en:'When work is done, close it with both sides\u2019 agreement.'},
+'detail.closeHow':{bn:'Worker তার পাতায় "কাজ শেষ" চাপলে একটি OTP কোড পান — সেই কোড এখানে লিখুন। কোড না থাকলে "একা বন্ধ করুন" বেছে নিন (রেকর্ডে Hirer-only লেখা থাকবে)।',en:'The worker taps "Confirm close" on their page and gets a code — enter it here. Without the code, choose "Close alone" (recorded as hirer-only).'},
+'detail.closeOtp':{bn:'Worker-এর OTP কোড — Worker close code',en:'Worker close code'},
+'detail.closeAnyway':{bn:'একা বন্ধ করুন — Worker-এর কোড ছাড়া (Hirer-only)',en:'Close alone — without the worker\u2019s code (hirer-only)'},
 'detail.closeBtn':{bn:'কাজ বন্ধ করুন — সম্পূর্ণ হয়েছে নিশ্চিত করুন',en:'Close job — confirm completion'},'detail.pack':{bn:'ResolvePack ডাউনলোড (PDF)',en:'Download ResolvePack (PDF)'},
 'tab.timeline':{bn:'টাইমলাইন',en:'Timeline'},'tab.change':{bn:'ChangeLock',en:'ChangeLock'},'tab.pay':{bn:'PayProof',en:'PayProof'},'tab.miles':{bn:'মাইলস্টোন',en:'Milestones'},'tab.dispute':{bn:'Dispute',en:'Dispute'},'tab.billing':{bn:'বিলিং',en:'Billing'},
 'change.title':{bn:'পরিবর্তনের প্রস্তাব — ChangeLock',en:'Propose a change — ChangeLock'},
@@ -101,7 +104,7 @@ var I18N={
 'pay.amount':{bn:'টাকার পরিমাণ (৳)',en:'Amount (৳)'},'pay.method':{bn:'মাধ্যম',en:'Method'},'pay.date':{bn:'তারিখ',en:'Date'},'pay.record':{bn:'পেমেন্ট রেকর্ড করুন',en:'Record payment'},
 'miles.title':{bn:'মাইলস্টোন',en:'Milestones'},
 'dispute.title':{bn:'Dispute',en:'Dispute'},'dispute.cat':{bn:'বিভাগ',en:'Category'},'dispute.text':{bn:'আপনার বক্তব্য',en:'Your statement'},'dispute.open':{bn:'Dispute খুলুন',en:'Open dispute'},
-'bill.title':{bn:'বিলিং',en:'Billing'},'bill.text':{bn:'একটি রেকর্ড ৳১০, অথবা মাসে ৳৭০-তে সীমাহীন। Worker ফ্রি।',en:'One record is ৳10, or ৳70/month for unlimited records. Workers are free.'},
+'bill.title':{bn:'বিলিং',en:'Billing'},'bill.text':{bn:'একটি রেকর্ড ৳১০, অথবা মাসে ৳৭০-তে সীমাহীন। Worker-এর জন্য DealCraft ফি নেই — তবে AppLink SMS-এর জন্য মোবাইল অপারেটর চার্জ লাগতে পারে।',en:'One record is ৳10, or ৳70/month for unlimited records. No DealCraft fee for workers — but a worker may incur carrier charges for AppLink SMS.'},
 'bill.caas':{bn:'এই রেকর্ডের জন্য ৳১০ দিন',en:'Pay ৳10 for this record'},'bill.sub':{bn:'সাবস্ক্রাইব করুন ৳৭০ / মাস',en:'Subscribe ৳70 / month'},
 'foot.text':{bn:'অনানুষ্ঠানিক কাজের জন্য বাংলা-প্রথম কাজের রেকর্ড। DealCraft কোনো টাকা রাখে না, শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়।',en:'Bangla-first work record for informal jobs. DealCraft holds no money, records payment acknowledgements only. AppLink reaches Banglalink subscribers only.'},
 'loc.title':{bn:'লাইভ লোকেশন',en:'Live location'},
@@ -115,7 +118,7 @@ var I18N={
 'loc.arrived':{bn:'পৌঁছেছে — Arrived on site',en:'Arrived on site'},
 'loc.onSite':{bn:'কাজের জায়গায় আছে — On site',en:'On site'},
 'loc.paused':{bn:'বিরতি — Paused',en:'Paused'},
-'loc.away':{bn:'দূরত্ব',en:'away'},'loc.eta':{bn:'পৌঁছাতে',en:'ETA'},
+'loc.away':{bn:'সরলরেখা দূরত্ব',en:'straight-line distance'},'loc.eta':{bn:'পৌঁছাতে',en:'ETA'},
 'site.title':{bn:'কাজের জায়গা (ঐচ্ছিক)',en:'Job site (optional)'},
 'site.hint':{bn:'ম্যাপে ট্যাপ করে পিন বসান, অথবা আপনার বর্তমান লোকেশন ব্যবহার করুন। জায়গা না দিলে দূরত্ব/ETA দেখাবে না — শেয়ারিং তবুও চলবে।',en:'Tap the map to drop a pin, or use your current location. Without a site there is no distance or ETA — sharing still works.'},
 'site.address':{bn:'ঠিকানা',en:'Address'},
@@ -273,14 +276,33 @@ function renderFairScope(){
   return '<div class="q-block"><div class="q">'+esc(q.q[lang]||q.q.en)+'</div><div class="opt-row">'+btns+'</div></div>';
  }).join('');
  box.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){
-  draft.answers[+b.getAttribute('data-q')]=b.getAttribute('data-v'); renderFairScope(); updateMissingWarn(); });});
+  var qi=+b.getAttribute('data-q');
+  draft.answers[qi]=b.getAttribute('data-v');
+  // Answering a question un-skips it: a term is skipped only while the
+  // hirer deliberately left it that way, one term at a time.
+  var qEn=(FAIRSCOPE[draft.trade]||[])[qi];
+  if(qEn) draft.skipped=draft.skipped.filter(function(s){return s!==qEn.q.en;});
+  renderFairScope(); updateMissingWarn(); });});
  updateMissingWarn();
 }
+/* Three states, never bulk auto-skip: a missing term is UNRESOLVED until
+   the hirer answers it or taps "Skip this term" on that one term. The
+   server refuses creation while any term is unresolved. */
 function updateMissingWarn(){
  var miss=missingTerms(); var w=$('missing-warn'); if(!w)return;
  w.hidden=miss.length===0;
- var ul=$('missing-list'); if(ul)ul.innerHTML=miss.map(function(m){return '<li>'+esc(m)+'</li>';}).join('');
- draft.skipped=miss;
+ var ul=$('missing-list');
+ if(ul)ul.innerHTML=miss.map(function(m){
+  var skipped=draft.skipped.indexOf(m)>=0;
+  return '<li><span>'+esc(m)+'</span> '+(skipped
+   ?'<span class="pill pill-orange">'+(lang==='bn'?'বাদ দেওয়া — Skipped':'Skipped — explicit')+'</span>'
+   :'<button type="button" class="btn btn-dark-ghost btn-sm" data-skip-term="'+esc(m)+'">'+(lang==='bn'?'এই শর্তটি বাদ দিন':'Skip this term')+'</button>')+'</li>';
+ }).join('');
+ if(ul)ul.querySelectorAll('[data-skip-term]').forEach(function(b){b.addEventListener('click',function(){
+  var term=b.getAttribute('data-skip-term');
+  if(draft.skipped.indexOf(term)<0) draft.skipped.push(term);
+  updateMissingWarn();
+ });});
 }
 function newStep(n){
  [1,2,3,4].forEach(function(i){var el=$('new-step-'+i);if(el)el.hidden=(i!==n);});
@@ -346,8 +368,11 @@ function locRender(view){
  if(view.etaMinutes!=null)txt.push(t('loc.eta')+': ~'+view.etaMinutes+' min');
  if(view.latest&&view.latest.updated_at)txt.push(new Date(view.latest.updated_at).toLocaleTimeString(lang==='bn'?'bn-BD':'en-GB',{hour:'2-digit',minute:'2-digit'}));
  $('loc-text').textContent=txt.join(' · ')||'—';
- $('loc-sim').hidden=!view.latest.simulated;
- if(locInitMap(view)){
+ /* latest is null until the worker shares anything — the server now
+    answers 200 'not-sharing' instead of 404, so guard the null here or
+    the render throws on the very first poll of an ACTIVE job. */
+ $('loc-sim').hidden=!(view.latest&&view.latest.simulated);
+ if(view.latest&&locInitMap(view)){
   locAnimateTo(view.latest.lat,view.latest.lng);
   if(view.site&&locSiteMarker)locSiteMarker.setLatLng([view.site.lat,view.site.lng]);
   if(locTrailLine)locTrailLine.setLatLngs((view.trail||[]).map(function(p){return [p.lat,p.lng];}));
@@ -357,7 +382,9 @@ function locRender(view){
 async function locPoll(){
  if(!currentJobId)return;
  try{var v=await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/location');
-  locWasSharing=true; locRender(v);
+  /* Only a real share counts: the 200 'not-sharing' answer must not flip
+     this, or a later 404 would read as 'Sharing stopped'. */
+  locWasSharing=!!v.sharing; locRender(v);
  }catch(e){
   var pill=$('loc-status-pill');
   if(pill)pill.textContent=t(locWasSharing?'loc.stopped':'loc.notSharing');
@@ -389,8 +416,11 @@ function locSimulate(){
 function locStopSim(){
  if(locSimTimer){clearInterval(locSimTimer);locSimTimer=null;}
  var a=$('btn-loc-sim'),b=$('btn-loc-sim-stop'); if(a)a.hidden=false; if(b)b.hidden=true;
- var tok=locWorkerToken();
- if(tok&&locSimStep>0){fetch(API+'/api/worker/'+encodeURIComponent(tok)+'/location/stop',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(function(){});}
+ /* Stopping the SIMULATION must not stop the worker's real sharing: the
+    old code POSTed /location/stop here, which killed a live share the
+    worker had going and flipped the hirer's pill to SHARING STOPPED right
+    after the simulated arrival. Only the timer stops; the last point
+    (simulated or real) stays visible until the worker stops sharing. */
  locSimStep=0;
 }
 
@@ -452,6 +482,16 @@ async function openJob(id){
  }catch(e){showErr((lang==='bn'?'কাজটি খোলা যায়নি: ':'Could not open job: ')+e.message);
   try{var cached=JSON.parse(localStorage.getItem('dc_job_'+id)||'null');if(cached){currentJob=cached.job||cached;renderDetail(currentJob);showView('view-detail');}}catch(_e){}}
 }
+/* Light refresh of the open job's data — re-renders the detail tabs without
+   touching location polling or a running simulation (openJob would stop
+   both via locStartPolling/locStopAll). Without this, the timeline and the
+   dispute list show only the events from when the job was opened: a
+   worker's statement, a payment ack or a geofence arrival never appears
+   until the hirer leaves and re-opens the job. Form inputs are static HTML
+   outside the re-rendered lists, so drafts survive the refresh. */
+async function refreshJob(){if(!currentJobId)return;
+ try{var r=await api('/api/jobs/'+encodeURIComponent(currentJobId));
+  currentJob=r.job||r; currentJob._full=r; renderDetail(currentJob);}catch(e){}}
 function latestVersion(job,full){
  var vs=(full&&full.versions)||job.versions||[];
  if(!vs.length)return null;
@@ -537,11 +577,22 @@ function renderDetail(job){
     (kind?'<span class="pill '+(kind==='BEFORE'?'pill-blue':'pill-orange')+'">'+esc(kind)+'</span>':'')+
     (when?'<figcaption class="mono grey">'+esc(fmtDT(when))+'</figcaption>':'')+'</figure>';
   }).join('')+'</div>':'—';}
- /* version history (ChangeLock) — one row per version */
+ /* ChangeLock journey — the clearest visual in the app: V1 -> proposed
+    change -> mutual approval -> V2, as a connected strip, then the rows. */
  var cl=$('change-list');
- cl.innerHTML=versions.length?versions.map(function(v){
+ var journey='';
+ if(versions.length){
+  var changeEvs=events.filter(function(ev){return ev.type==='CHANGE_PROPOSED'||ev.type==='CHANGE_APPROVED'||ev.type==='CHANGE_REJECTED'||ev.type==='CHANGE_CLARIFIED';});
+  journey='<div class="cl-journey" role="list" aria-label="ChangeLock journey">'+versions.map(function(v,i){
+   var vn=v.version_no||v.version||(i+1);
+   var approved=changeEvs.some(function(ev){var p={};try{p=JSON.parse(ev.payload_json||'{}');}catch(e){}return ev.type==='CHANGE_APPROVED'&&p.version===vn;});
+   var proposed=changeEvs.some(function(ev){return ev.type==='CHANGE_PROPOSED';});
+   return '<div class="cl-step" role="listitem"><div class="cl-ver">V'+vn+'</div><div class="cl-price">'+taka(v.price)+'</div><div class="mono grey">'+(v.deadline?fmtDate(v.deadline):'—')+'</div><div class="mono">'+(i===0?'AGREED':approved?'BOTH SIDES CONFIRMED':proposed?'PROPOSED':'—')+'</div></div>'+(i<versions.length-1?'<div class="cl-arrow" aria-hidden="true">→</div>':'');
+  }).join('')+'</div>';
+ }
+ cl.innerHTML=(journey||'')+(versions.length?versions.map(function(v){
   return '<div class="notice"><b>V'+(v.version_no||v.version||'?')+' — '+taka(v.price)+'</b><div class="mono grey">'+(v.deadline?fmtDate(v.deadline):'—')+' · '+(v.fingerprint?('FP '+String(v.fingerprint).slice(0,12)+'…'):'')+'</div>'+(v.scope&&v.scope.scope?'<p>'+esc(v.scope.scope)+'</p>':'')+'</div>';
- }).join(''):'<p class="small">'+(lang==='bn'?'কোনো সংস্করণ নেই।':'No versions yet.')+'</p>';
+ }).join(''):'<p class="small">'+(lang==='bn'?'কোনো সংস্করণ নেই।':'No versions yet.')+'</p>');
  /* payments — rows use ack_status: AWAITING / ACKNOWLEDGED / DISPUTED */
  var pl=$('pay-list');
  pl.innerHTML=pays.length?pays.map(function(p){
@@ -560,8 +611,30 @@ function renderDetail(job){
  var dl=$('dispute-list');
  dl.innerHTML=disputes.length?disputes.map(function(d){
   var stmts=(d.statements||[]).map(function(s){return '<div class="small"><b>'+esc(s.side||'')+':</b> '+esc(s.text||'')+'</div>';}).join('');
-  return '<div class="notice"><b>'+esc(d.category||'Dispute')+'</b><div class="mono grey">'+esc(d.status||'OPEN')+'</div>'+stmts+'</div>';
+  /* Mutual resolution: the hirer PROPOSES how it is resolved; the worker
+     accepts or rejects it on the worker page. The job returns to ACTIVE
+     only after the worker accepts — DealCraft never decides. */
+  var did=d.id||d.disputeId||'';
+  var proposed=events.some(function(ev){return ev.type==='RESOLUTION_PROPOSED';});
+  var accepted=events.some(function(ev){return ev.type==='RESOLUTION_ACCEPTED';});
+  var res=(d.status||'OPEN')==='OPEN'
+   ?'<div class="btn-row" style="margin-top:10px"><button class="btn btn-dark btn-sm" type="button" data-dis-propose="'+esc(did)+'">'+(lang==='bn'?'সমাধানের প্রস্তাব দিন':'Propose a resolution')+'</button></div>'
+    +'<div data-dis-form="'+esc(did)+'" hidden style="margin-top:10px"><label>'+(lang==='bn'?'কীভাবে মিটমাট হবে?':'How should this be resolved?')+'</label><textarea rows="2" data-dis-text="'+esc(did)+'" placeholder="'+(lang==='bn'?'যেমন: ওই রুমটা বিনা মূল্যে আবার রং করে দেবে':'e.g. repaint that room free of charge')+'"></textarea><div class="btn-row"><button class="btn btn-dark btn-sm" type="button" data-dis-send="'+esc(did)+'">'+(lang==='bn'?'প্রস্তাব পাঠান':'Send proposal')+'</button></div></div>'
+    +'<p class="small">'+(accepted
+      ?(lang==='bn'?'Worker প্রস্তাবটি মেনে নিয়েছে — সমাধান হয়েছে।':'The worker accepted the proposal — resolved.')
+      :proposed
+      ?(lang==='bn'?'প্রস্তাব পাঠানো হয়েছে — worker মানলে তবেই সমাধান হবে।':'Proposal sent — it resolves only if the worker accepts it.')
+      :(lang==='bn'?'দুই পক্ষের বক্তব্য থাকলেই প্রস্তাব দেওয়া যায়। Worker মানলে তবেই সমাধান হবে — DealCraft কোনো রায় দেয় না।':'Both sides must have a statement first. It resolves only if the worker accepts — DealCraft never decides.'))+'</p>':'';
+  return '<div class="notice"><b>'+esc(d.category||'Dispute')+'</b><div class="mono grey">'+esc(d.status||'OPEN')+'</div>'+stmts+res+'</div>';
  }).join(''):'<p class="small">'+(lang==='bn'?'কোনো dispute নেই।':'No disputes.')+'</p>';
+ dl.querySelectorAll('[data-dis-propose]').forEach(function(b){b.addEventListener('click',function(){
+  var did=b.getAttribute('data-dis-propose');
+  var f=dl.querySelector('[data-dis-form="'+did+'"]'); if(f)f.hidden=false;});});
+ dl.querySelectorAll('[data-dis-send]').forEach(function(b){b.addEventListener('click',async function(){clearErr();
+  var did=b.getAttribute('data-dis-send');
+  var ta=dl.querySelector('[data-dis-text="'+did+'"]');
+  try{await api('/api/disputes/'+encodeURIComponent(did)+'/resolve-proposal',{method:'POST',body:JSON.stringify({proposal:ta?ta.value.trim():''})});openJob(currentJobId);}
+  catch(e){showErr(e.message);}});});
  loadBillingStatus();
 }
 
@@ -591,7 +664,7 @@ async function loadBillingStatus(){
 function initNewJob(){
  var picker=$('trade-picker');
  if(picker)picker.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){
-  draft.trade=b.getAttribute('data-trade'); draft.answers={};
+  draft.trade=b.getAttribute('data-trade'); draft.answers={}; draft.skipped=[];
   picker.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false');});
   renderFairScope(); });});
  $('to-step-2').addEventListener('click',function(){
@@ -599,7 +672,6 @@ function initNewJob(){
   clearErr(); renderFairScope(); newStep(2); });
  $('back-step-1').addEventListener('click',function(){newStep(1);});
  $('warn-resolve').addEventListener('click',function(){$('missing-warn').scrollIntoView({behavior:'smooth',block:'center'});});
- $('warn-skip').addEventListener('click',function(){$('missing-warn').hidden=true;});
  $('to-step-3').addEventListener('click',function(){newStep(3);initSiteMap();});
  $('btn-site-me').addEventListener('click',function(){
   if(!('geolocation' in navigator)){showErr(lang==='bn'?'এই ডিভাইসে লোকেশন পাওয়া যাচ্ছে না।':'Location is not available on this device.');return;}
@@ -621,7 +693,7 @@ function initNewJob(){
   clearErr();
   draft.payload={trade:draft.trade,workerPhone:$('worker-phone').value.trim(),workerName:$('worker-name').value.trim(),
    scope:$('job-scope').value.trim(),price:Number($('job-price').value)||0,deadline:$('job-deadline').value,
-   milestones:miles,answers:answers,skippedTerms:missingTerms(),
+   milestones:miles,answers:answers,skippedTerms:draft.skipped.slice(),
    site:draft.site?{lat:draft.site.lat,lng:draft.site.lng,address:$('site-address').value.trim()||draft.site.address||''}:undefined};
   var miss=missingTerms();
   $('review-record').innerHTML='<h3>'+esc(draft.trade)+' — '+(lang==='bn'?'এক পাতার কাজের রেকর্ড':'One-page work record')+'</h3><table>'+
@@ -633,6 +705,7 @@ function initNewJob(){
     var disp=v==='Not decided'?NOT_DECIDED[lang]:(function(){var ix=q.opts.en.indexOf(v);return ix>=0?(q.opts[lang]||q.opts.en)[ix]:v;})();
     return '<tr><th>'+esc(q.q[lang]||q.q.en)+'</th><td>'+esc(disp)+'</td></tr>';}).join('')+
    (miss.length?'<tr><th>'+(lang==='bn'?'ঠিক হয়নি':'Not decided')+'</th><td style="color:#c23c00">'+miss.map(function(m){var qq=qs.filter(function(x){return x.q.en===m;})[0];return esc(qq?(qq.q[lang]||qq.q.en):m);}).join(', ')+'</td></tr>':'')+
+   (draft.skipped.length?'<tr><th>'+(lang==='bn'?'বাদ দেওয়া (ইচ্ছাকৃত)':'Explicitly skipped')+'</th><td>'+draft.skipped.map(function(m){var qq=qs.filter(function(x){return x.q.en===m;})[0];return esc(qq?(qq.q[lang]||qq.q.en):m);}).join(', ')+'</td></tr>':'')+
    '</table><p class="small">'+(lang==='bn'?'DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।':'DealCraft holds no money — it records payment acknowledgements only.')+'</p>';
   newStep(4); });
  $('back-step-3').addEventListener('click',function(){newStep(3);});
@@ -661,7 +734,8 @@ function initDetail(){
  document.querySelectorAll('.tabs button').forEach(function(b){b.addEventListener('click',function(){
   document.querySelectorAll('.tabs button').forEach(function(x){x.setAttribute('aria-selected',x===b?'true':'false');});
   document.querySelectorAll('.tabpanel').forEach(function(p){p.hidden=(p.id!=='tab-'+b.getAttribute('data-tab'));});
-  if(b.getAttribute('data-tab')==='billing')loadBillingStatus(); });});
+  if(b.getAttribute('data-tab')==='billing')loadBillingStatus();
+  refreshJob(); });});
  $('btn-hirer-confirm').addEventListener('click',async function(){clearErr();
   try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/hirer-confirm',{method:'POST',body:JSON.stringify({otpCode:$('confirm-otp').value.trim()})});openJob(currentJobId);}
   catch(e){showErr(e.message);}});
@@ -685,8 +759,11 @@ function initDetail(){
   }catch(e){showErr(e.message);}});
  $('form-change').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
   try{var r=await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/changes',{method:'POST',body:JSON.stringify({priceDelta:Number($('ch-delta').value)||0,deadline:$('ch-deadline').value||undefined,reason:$('ch-reason').value.trim(),details:$('ch-reason').value.trim()})});
-   if(r&&r.notifyLink){clearErr();var n=$('change-list');n.insertAdjacentHTML('afterbegin','<div class="notice blue"><b>Proposal sent.</b><p class="mono">WORKER LINK: '+esc(r.notifyLink)+'</p></div>');}
-   openJob(currentJobId);}
+   /* Insert the notice AFTER the re-render: openJob rebuilds #change-list,
+      so inserting before it wipes the notice instantly and the hirer never
+      sees that the proposal was sent. */
+   await openJob(currentJobId);
+   if(r&&r.notifyLink){clearErr();var n=$('change-list');if(n)n.insertAdjacentHTML('afterbegin','<div class="notice blue"><b>Proposal sent.</b><p class="mono">WORKER LINK: '+esc(r.notifyLink)+'</p></div>');}}
   catch(e){showErr(e.message);}});
  $('form-pay').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
   try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/payments',{method:'POST',body:JSON.stringify({amount:Number($('pay-amount').value),method:$('pay-method').value,date:$('pay-date').value||undefined})});openJob(currentJobId);}
@@ -701,15 +778,23 @@ function initDetail(){
   try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/disputes',{method:'POST',body:JSON.stringify({category:$('dis-category').value,statement:$('dis-text').value.trim()})});openJob(currentJobId);}
   catch(e){showErr(e.message);}});
  $('btn-close-job').addEventListener('click',async function(){clearErr();
+  /* The server requires either the worker's close-confirm OTP or an
+     explicit closeAnyway — sending neither always 400s, so the old button
+     could never close a job. The OTP comes from the worker's page. */
   try{var body={confirmCompletion:true};
    if($('close-force')&&$('close-force').checked){body.force=true;body.note='Closed by hirer before all milestones were approved.';}
+   var cotp=$('close-otp')?$('close-otp').value.trim():'';
+   if(cotp)body.workerOtpCode=cotp;
+   if($('close-anyway')&&$('close-anyway').checked)body.closeAnyway=true;
    await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/close',{method:'POST',body:JSON.stringify(body)});openJob(currentJobId);}
   catch(e){showErr(e.message);}});
- $('btn-passport-add').addEventListener('click',async function(){clearErr();
-  try{var r=await api('/api/passport/add',{method:'POST',body:JSON.stringify({jobId:currentJobId,
-   showAmounts:$('pp-amounts').checked,showClient:$('pp-client').checked,showPhotos:$('pp-photos').checked})});
-   $('passport-box').innerHTML='<p class="mono">ADDED TO WORKPASSPORT — '+esc(jobPhone(currentJob))+' · <a href="passport.html?phone='+encodeURIComponent(jobPhone(currentJob))+'" target="_blank" rel="noopener">View passport</a></p>';
-  }catch(e){showErr(e.message);}});
+ $('btn-passport-add').addEventListener('click',function(){
+  /* Worker-owned: only the worker (from their link) can add a job to
+     their WorkPassport and choose what it shows. The hirer cannot publish
+     the worker's record — the worker does it from the worker page. */
+  var box=$('passport-box');
+  if(box)box.innerHTML='<p class="small">'+(lang==='bn'?'WorkPassport worker-এর নিজের: কাজ শেষ হলে worker নিজের লিংক থেকে এই কাজটি যোগ করবেন, আর কী দেখাবে তা নিজেই ঠিক করবেন।':'The WorkPassport belongs to the worker: after the job closes, the worker adds it from their own link and chooses what it shows.')+'</p>';
+ });
  $('btn-resolvepack').addEventListener('click',function(){
   /* window.open carries no Authorization header, so the PDF route (which
      needs hirer or worker auth) would 401. The job-scoped worker token from
@@ -743,7 +828,7 @@ function bidPhotosHtml(photos){
 }
 function bidDistText(b){
  if(b.distanceKm==null)return lang==='bn'?'দূরত্ব জানা নেই — লোকেশন দিন':'Distance unavailable — share your location';
- return (lang==='bn'?'দূরত্ব: ':'Distance: ')+b.distanceKm+' km';
+ return (lang==='bn'?'সরলরেখা দূরত্ব: ':'Straight-line distance: ')+b.distanceKm+' km';
 }
 async function loadMyBidJobs(){
  var box=$('bid-mine-list'); if(!box)return; box.innerHTML='<p class="small">LOADING…</p>';
@@ -767,7 +852,7 @@ async function openBidDetail(id){
    var facts=[];
    if(pass.completedJobs!=null)facts.push((lang==='bn'?'সম্পন্ন কাজ: ':'Completed jobs: ')+pass.completedJobs);
    if(pass.trades&&pass.trades.length)facts.push((lang==='bn'?'কাজের ধরন: ':'Trades: ')+pass.trades.join(', '));
-   return '<div class="job-row"><div><div class="t">'+taka(bd.amount)+' · '+esc(bd.workerName||bd.workerPhone||'')+'</div><div class="m">'+esc(bd.note||'')+(bd.earliestStart?' · '+(lang==='bn'?'শুরু: ':'Starts: ')+esc(bd.earliestStart):'')+'</div><div class="m">'+(bd.distanceKm!=null?(lang==='bn'?'দূরত্ব: ':'Distance: ')+bd.distanceKm+' km':(lang==='bn'?'দূরত্ব জানা নেই':'Distance unavailable'))+' · '+esc(facts.join(' · '))+'</div><div class="m">'+esc(bd.status)+' · '+(lang==='bn'?'মেয়াদ: ':'Expires: ')+esc(fmtDT(bd.expires_at))+'</div></div>'+
+   return '<div class="job-row"><div><div class="t">'+taka(bd.amount)+' · '+esc(bd.workerName||bd.workerPhone||'')+'</div><div class="m">'+esc(bd.note||'')+(bd.earliestStart?' · '+(lang==='bn'?'শুরু: ':'Starts: ')+esc(bd.earliestStart):'')+'</div><div class="m">'+(bd.distanceKm!=null?(lang==='bn'?'সরলরেখা দূরত্ব: ':'Straight-line distance: ')+bd.distanceKm+' km':(lang==='bn'?'দূরত্ব জানা নেই':'Distance unavailable'))+' · '+esc(facts.join(' · '))+'</div><div class="m">'+esc(bd.status)+' · '+(lang==='bn'?'মেয়াদ: ':'Expires: ')+esc(fmtDT(bd.expires_at))+'</div></div>'+
    (bd.status==='LIVE'?'<button class="btn btn-dark btn-sm" type="button" data-accept="'+esc(bd.id)+'">'+(lang==='bn'?'বেছে নিন':'Pick this bid')+'</button>':'')+'</div>';
   }).join(''):'<p class="small">'+(lang==='bn'?'এখনো কোনো দর আসেনি।':'No bids yet.')+'</p>';
   bl.querySelectorAll('[data-accept]').forEach(function(btn){btn.addEventListener('click',async function(){

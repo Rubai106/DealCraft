@@ -190,6 +190,32 @@ function init() {
       url TEXT NOT NULL,
       taken_at TEXT NOT NULL
     );
+    -- Random public WorkPassport identifier (never a phone number).
+    CREATE TABLE IF NOT EXISTS PassportProfile (
+      profile_id TEXT PRIMARY KEY,
+      worker_phone TEXT UNIQUE NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    -- Mutual dispute resolution: the hirer proposes, the worker accepts or
+    -- rejects. A job returns to ACTIVE only after the worker accepts.
+    CREATE TABLE IF NOT EXISTS DisputeResolution (
+      id TEXT PRIMARY KEY,
+      dispute_id TEXT NOT NULL,
+      proposed_by TEXT NOT NULL,
+      proposal TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'PROPOSED'
+        CHECK (status IN ('PROPOSED','ACCEPTED','REJECTED')),
+      created_at TEXT NOT NULL
+    );
+    -- Live AppLink OTP transactions, persisted so a server restart does
+    -- not lose the otpTransactionId a verification needs.
+    CREATE TABLE IF NOT EXISTS OtpTransaction (
+      phone TEXT NOT NULL,
+      purpose TEXT NOT NULL,
+      otp_transaction_id TEXT NOT NULL,
+      sent_at TEXT NOT NULL,
+      PRIMARY KEY (phone, purpose)
+    );
     CREATE INDEX IF NOT EXISTS idx_bidjob_hirer ON BidJob(hirer_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_bidjob_status ON BidJob(status, created_at);
     CREATE INDEX IF NOT EXISTS idx_bid_job ON Bid(bid_job_id, amount);
@@ -250,7 +276,7 @@ function now() {
 }
 
 function clearAllTables() {
-  const tables = ['Bid', 'BidJobPhoto', 'BidJob', 'LocationTrail', 'LocationShare', 'PassportEntry', 'Billing', 'WorkerToken', 'Session', 'Otp',
+  const tables = ['OtpTransaction', 'DisputeResolution', 'PassportProfile', 'Bid', 'BidJobPhoto', 'BidJob', 'LocationTrail', 'LocationShare', 'PassportEntry', 'Billing', 'WorkerToken', 'Session', 'Otp',
     'ChangeProposal', 'DisputeStatement', 'Dispute', 'Photo', 'Payment',
     'Event', 'JobVersion', 'Job', 'User'];
   for (const t of tables) db.prepare(`DELETE FROM ${t}`).run();
