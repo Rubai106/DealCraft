@@ -628,3 +628,32 @@ h1.hero-title .hl-2{--ld:.22s}
   .hero [data-henter],.hero-visual,.rchip,h1.hero-title .hl-line{animation:none;opacity:1;transform:none}
   html.js [data-stagger]>*{opacity:1;transform:none}
 }
+
+/* ---- landing: live location + find a repairer (2026-11-26) ----
+   Matte solid surfaces only — flat black/white/orange, no gradients,
+   no glass. The map and bid card reuse the app's own visual language. */
+#live-map{height:340px;border:1px solid #2A2A2A;background:#111;z-index:0}
+.live-map-wrap{margin:24px 0 8px}
+.live-nomap{margin:12px 0}
+.live-pills{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px}
+.live-pills[hidden]{display:none} /* author display:flex beats the UA [hidden] rule */
+.live-pills .pill{border-color:#fff;color:#fff;background:#000}
+.live-pills .pill.arrived{border-color:var(--orange);color:var(--orange)}
+.live-site-pin{background:#FF5A1F;border:2px solid #fff;transform:rotate(45deg)}
+/* Quiet text link on white sections: the hero link is white text, which
+   is invisible on white — dark ink here, dark orange on hover. */
+.section-white .hero-demo-link{color:#111}
+.section-white .hero-demo-link:hover{color:#c23c00}
+/* .small is pale grey for black sections; on white it needs dark ink. */
+.section-white .small{color:#555}
+.bid-demo{border:1px solid var(--line-light);background:#fff;color:#111;box-shadow:0 12px 32px rgba(0,0,0,.08);margin:24px 0 8px}
+.bid-job{display:flex;gap:16px;padding:20px;align-items:flex-start}
+.bid-photo{flex:none;width:96px;height:96px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.bid-job-trade{font-family:var(--display);font-size:20px;text-transform:uppercase}
+.bid-job-desc{margin:6px 0}
+.bid-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 20px;border-top:1px solid var(--line-light)}
+.bid-price{font-family:var(--display);font-size:24px;white-space:nowrap}
+.bid-row.best .bid-price{color:#c23c00}
+.bid-lowest{margin-left:8px;vertical-align:middle}
+.bid-example{padding:12px 20px;border-top:1px solid var(--line-light);margin:0}
+@media(max-width:700px){#live-map{height:260px}.bid-photo{width:72px;height:72px}}

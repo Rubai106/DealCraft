@@ -110,6 +110,27 @@ var I18N={
 'site.me':{bn:'আমার বর্তমান লোকেশন ব্যবহার করুন',en:'Use my current location'},
 'site.clear':{bn:'জায়গা মুছুন',en:'Clear site'},
 'nav.bid':{bn:'মিস্ত্রি খুঁজুন',en:'Find a repairer'},
+'nav.live':{bn:'লাইভ লোকেশন',en:'Live'},
+'live.title':{bn:'মিস্ত্রি কোথায়, চোখের সামনে।',en:'See your repairer on the way.'},
+'live.sub':{bn:'কাজ শুরু হলে মিস্ত্রি লাইভ লোকেশন শেয়ার করেন — আপনি ম্যাপে দেখেন।',en:'Once work starts, your repairer shares live location — you watch it on the map.'},
+'live.cta':{bn:'অ্যাপে লাইভ লোকেশন দেখুন →',en:'See live location in the app →'},
+'live.privacy':{bn:'শুধু শেয়ার চলাকালীন, শুধু এই কাজের Hirer দেখেন।',en:'Only while sharing, and only for that job’s hirer.'},
+'find.title':{bn:'ছবি দিন। দাম আসবে।',en:'Send a photo. Prices come back.'},
+'find.sub':{bn:'সমস্যার ছবি তুলুন — কাছের মিস্ত্রিরা দাম দেবেন, আপনি বেছে নিন।',en:'Photograph the problem — nearby repairers bid a price, you choose.'},
+'find.cta':{bn:'ছবি দিয়ে কাজ দিন →',en:'Post a job with a photo →'},
+'find.example':{bn:'উদাহরণ',en:'Example'},
+'find.honest':{bn:'দর দিলেই চুক্তি হয় না — রেকর্ড হয় দুই পক্ষের OTP-তে।',en:'A bid is not an agreement — the record is made by both sides’ OTP.'},
+'find.jobPhoto':{bn:'ছবি',en:'Photo'},
+'find.jobTrade':{bn:'ইলেকট্রিশিয়ান',en:'Electrician'},
+'find.jobDesc':{bn:'বাথরুমের পাইপ ফেটে পানি পড়ছে',en:'Bathroom pipe burst — water leaking'},
+'find.jobSite':{bn:'ধানমন্ডি, ঢাকা',en:'Dhanmondi, Dhaka'},
+'find.lowest':{bn:'সবচেয়ে কম',en:'Lowest'},
+'find.b1':{bn:'ইলেকট্রিশিয়ান · ২.১ কিমি',en:'Electrician · 2.1 km'},
+'find.b1f':{bn:'১২টি কাজ শেষ · ইলেকট্রিশিয়ান',en:'12 jobs done · Electrician'},
+'find.b2':{bn:'ইলেকট্রিশিয়ান · ৩.৪ কিমি',en:'Electrician · 3.4 km'},
+'find.b2f':{bn:'৮টি কাজ শেষ · ইলেকট্রিশিয়ান',en:'8 jobs done · Electrician'},
+'find.b3':{bn:'ইলেকট্রিশিয়ান · ৫.০ কিমি',en:'Electrician · 5.0 km'},
+'find.b3f':{bn:'২৩টি কাজ শেষ · ইলেকট্রিশিয়ান',en:'23 jobs done · Electrician'},
 'bid.postBtn':{bn:'মিস্ত্রি খুঁজুন — ছবি দিয়ে কাজ দিন',en:'Find a repairer — post with a photo'},
 'bid.findBtn':{bn:'কাজ খুঁজুন — দর দিন',en:'Find work — bid on jobs'},
 'bid.back':{bn:'← সব কাজ',en:'← All jobs'},
@@ -138,7 +159,7 @@ function applyI18n(){document.documentElement.lang=lang;
  if(b)b.setAttribute('aria-pressed',lang==='bn'?'true':'false');
  if(e)e.setAttribute('aria-pressed',lang==='en'?'true':'false');
  localStorage.setItem('dc_lang',lang);}
-function setLang(l){lang=l;applyI18n();renderFairScope();if(currentJob)renderDetail(currentJob);}
+function setLang(l){lang=l;applyI18n();renderFairScope();if(currentJob)renderDetail(currentJob);if(liveMap)liveRender(liveP<0?liveProgress():liveP);}
 
 /* ---------- dotted Bangladesh map ---------- */
 /* Approximate border polygon as [lon,lat] pairs. */
@@ -573,6 +594,67 @@ function locStartPolling(){
  locStopAll(); locWasSharing=false; locLastPos=null;
  if(!currentJob||currentJob.status!=='ACTIVE'){var b=$('loc-box');if(b)b.hidden=true;return;}
  $('loc-box').hidden=false; locPoll(); locTimer=setInterval(locPoll,10000);
+}
+
+/* ---------- landing: live location demo map ----------
+   Real Leaflet map of the demo job's site (23.8103, 90.4125 — "Demo flat,
+   Dhaka", the same site the demo seed creates). A worker dot travels a
+   fixed demo route toward the site, scrubbed by scroll position: p=0 when
+   the section top reaches the bottom of the viewport, p=1 when its bottom
+   leaves the top. Reduced motion: the dot sits at the site (arrived).
+   If the Leaflet CDN never loads, the existing text fallback shows. */
+var LIVE_SITE=[23.8103,90.4125];
+var LIVE_START=[23.8310,90.4280];
+var LIVE_MID=[23.8210,90.4230]; /* slight bend so the route is not a straight line */
+var liveMap=null, liveDot=null, liveTrail=null, liveP=-1;
+function liveProgress(){
+ var s=document.getElementById('live'); if(!s)return 0;
+ var r=s.getBoundingClientRect(), vh=window.innerHeight||800;
+ return Math.max(0,Math.min(1,(vh-r.top)/(vh+r.height)));
+}
+function livePointAt(p){
+ var a=[LIVE_START[0]+(LIVE_MID[0]-LIVE_START[0])*p, LIVE_START[1]+(LIVE_MID[1]-LIVE_START[1])*p];
+ var b=[LIVE_MID[0]+(LIVE_SITE[0]-LIVE_MID[0])*p, LIVE_MID[1]+(LIVE_SITE[1]-LIVE_MID[1])*p];
+ return [a[0]+(b[0]-a[0])*p, a[1]+(b[1]-a[1])*p];
+}
+function liveRender(p){
+ if(!liveMap)return;
+ var pt=livePointAt(p);
+ if(liveDot)liveDot.setLatLng(pt);
+ var n=Math.max(2,Math.round(p*24)+1), pts=[];
+ for(var i=0;i<n;i++)pts.push(livePointAt(i/(n-1)));
+ if(liveTrail)liveTrail.setLatLngs(pts);
+ var pill=$('live-status-pill');
+ var st=p>=0.97?'loc.arrived':(p>=0.6?'loc.arriving':'loc.enRoute');
+ if(pill){pill.textContent=t(st);pill.classList.toggle('arrived',p>=0.97);}
+ var d=$('live-dist');
+ if(d){
+  if(p>=0.97){d.textContent=t('loc.onSite');}
+  else{
+   var km=L.latLng(pt[0],pt[1]).distanceTo(L.latLng(LIVE_SITE[0],LIVE_SITE[1]))/1000;
+   d.textContent=t('loc.away')+': '+km.toFixed(1)+' km · '+t('loc.eta')+': ~'+Math.max(1,Math.round(km/20*60))+' min';
+  }
+ }
+ liveP=p;
+}
+function initLiveMap(){
+ var el=$('live-map'); if(!el)return;
+ if(typeof L==='undefined'){el.hidden=true;var f=$('live-nomap');if(f)f.hidden=false;var pl=$('live-pills');if(pl)pl.hidden=true;return;}
+ liveMap=L.map(el,{scrollWheelZoom:false}).setView(LIVE_SITE,14);
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(liveMap);
+ var routePts=[];for(var i=0;i<=24;i++)routePts.push(livePointAt(i/24));
+ L.polyline(routePts,{color:'#888888',weight:2,dashArray:'6 6'}).addTo(liveMap);
+ liveTrail=L.polyline([],{color:'#FF5A1F',weight:3}).addTo(liveMap);
+ L.marker(LIVE_SITE,{icon:L.divIcon({className:'live-site-pin',html:'',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(liveMap).bindPopup('Demo flat, Dhaka');
+ liveDot=L.marker(LIVE_START,{icon:L.divIcon({className:'loc-dot',html:'<span class="loc-dot-in"></span>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(liveMap);
+ liveMap.fitBounds(L.latLngBounds(routePts).pad(0.25));
+ setTimeout(function(){liveMap.invalidateSize();},100);
+ if(RM){liveRender(1);return;}
+ var ticking=false;
+ function onScroll(){if(ticking)return;ticking=true;requestAnimationFrame(function(){ticking=false;liveRender(liveProgress());});}
+ window.addEventListener('scroll',onScroll,{passive:true});
+ window.addEventListener('resize',onScroll);
+ liveRender(liveProgress());
 }
 
 /* ---------- auth ---------- */
@@ -1143,7 +1225,7 @@ function initNavSpy(){
  var obs=new IntersectionObserver(function(entries){
   entries.forEach(function(en){ if(en.isIntersecting){ var a=map[en.target.id]; if(a){ links.forEach(function(x){x.removeAttribute('aria-current');}); a.setAttribute('aria-current','true'); } } });
  },{rootMargin:'-40% 0px -55% 0px'});
- ['journey','price','why','faq','app'].forEach(function(id){var el=document.getElementById(id);if(el)obs.observe(el);});
+ ['journey','price','why','live','find','faq','app'].forEach(function(id){var el=document.getElementById(id);if(el)obs.observe(el);});
 }
 
 /* ---------- boot ---------- */
@@ -1169,7 +1251,7 @@ document.addEventListener('DOMContentLoaded',function(){
  initHeroTilt(); initPriceMotion(); initLightbox();
  /* Motion gaps: FAQ accordion, sliding tab indicator, hero-entrance
     cancel, scroll-reveal stagger. */
- initFaq(); initTabInd(); initHeroEntrance(); initStagger();
+ initFaq(); initTabInd(); initHeroEntrance(); initStagger(); initLiveMap();
  $('cta-demo').addEventListener('click',loadDemo);
  $('cta-start').addEventListener('click',function(){ if(token){showView('view-jobs');loadJobs();} });
  if(token){

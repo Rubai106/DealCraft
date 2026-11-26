@@ -33,9 +33,10 @@
     <a href="#journey" data-i18n="nav.how">কীভাবে কাজ করে</a>
     <a href="#price" data-i18n="nav.price">খরচ</a>
     <a href="#why" data-i18n="nav.why">কেন</a>
+    <a href="#live" data-i18n="nav.live">লাইভ লোকেশন</a>
     <a href="#faq" data-i18n="nav.faq">প্রশ্ন</a>
     <a href="#app" data-i18n="nav.app">অ্যাপ</a>
-    <a href="#bid" data-i18n="nav.bid">মিস্ত্রি খুঁজুন</a>
+    <a href="#find" data-i18n="nav.bid">মিস্ত্রি খুঁজুন</a>
   </nav>
   <div class="lang-toggle" role="group" aria-label="Language / ভাষা">
     <button type="button" id="lang-bn" aria-pressed="true">বাংলা</button>
@@ -151,6 +152,57 @@
     <div class="why-row"><div class="n">03</div><div><h3 data-i18n="w3t">টাকার হিসাব সবসময় পরিষ্কার</h3><p data-i18n="w3p">মোট কত, কত দেওয়া হয়েছে, কত বাকি — তিনটি সংখ্যা সবসময় একসাথে।</p></div></div>
     <div class="why-row"><div class="n">04</div><div><h3 data-i18n="w4t">বদল হলে লিখিত প্রস্তাব</h3><p data-i18n="w4p">দাম বা সময় বদলাতে হলে ChangeLock প্রস্তাব লাগে।</p></div></div>
     <div class="btn-row"><a class="btn btn-dark" href="#app">Start a record</a></div>
+  </div>
+</div></section>
+
+<!-- LIVE LOCATION -->
+<section class="section section-black" id="live"><div class="wrap">
+  <div class="sec-head"><h2 class="sec-title" data-i18n="live.title">মিস্ত্রি কোথায়, চোখের সামনে।</h2></div>
+  <p class="lede" data-i18n="live.sub">কাজ শুরু হলে মিস্ত্রি লাইভ লোকেশন শেয়ার করেন — আপনি ম্যাপে দেখেন।</p>
+  <div data-stagger>
+    <div class="live-map-wrap">
+      <div id="live-map" role="img" aria-label="Live map — repairer travelling to the demo job site in Dhaka"></div>
+      <p class="small live-nomap" id="live-nomap" hidden>Map did not load — showing text only. / ম্যাপ লোড হয়নি — শুধু লেখা দেখানো হচ্ছে।</p>
+      <div class="live-pills" id="live-pills">
+        <span class="pill" id="live-status-pill">En route</span>
+        <span class="pill" id="live-dist">—</span>
+      </div>
+    </div>
+    <p class="small" data-i18n="live.privacy">শুধু শেয়ার চলাকালীন, শুধু এই কাজের Hirer দেখেন।</p>
+    <div class="btn-row"><a class="hero-demo-link" href="#app" data-i18n="live.cta">অ্যাপে লাইভ লোকেশন দেখুন →</a></div>
+  </div>
+</div></section>
+
+<!-- FIND A REPAIRER -->
+<section class="section section-white" id="find"><div class="wrap">
+  <div class="sec-head"><h2 class="sec-title" data-i18n="find.title">ছবি দিন। দাম আসবে।</h2></div>
+  <p class="lede" data-i18n="find.sub">সমস্যার ছবি তুলুন — কাছের মিস্ত্রিরা দাম দেবেন, আপনি বেছে নিন।</p>
+  <div data-stagger>
+    <div class="bid-demo">
+      <div class="bid-job">
+        <div class="bid-photo" aria-hidden="true"><span data-i18n="find.jobPhoto">ছবি</span></div>
+        <div>
+          <div class="bid-job-trade" data-i18n="find.jobTrade">ইলেকট্রিশিয়ান</div>
+          <p class="bid-job-desc" data-i18n="find.jobDesc">বাথরুমের পাইপ ফেটে পানি পড়ছে</p>
+          <p class="mono grey" data-i18n="find.jobSite">ধানমন্ডি, ঢাকা</p>
+        </div>
+      </div>
+      <div class="bid-row best">
+        <div><div class="bid-who" data-i18n="find.b1">ইলেকট্রিশিয়ান · ২.১ কিমি</div><div class="mono grey" data-i18n="find.b1f">১২টি কাজ শেষ · ইলেকট্রিশিয়ান</div></div>
+        <b class="bid-price">৳1,800 <span class="pill pill-orange bid-lowest" data-i18n="find.lowest">সবচেয়ে কম</span></b>
+      </div>
+      <div class="bid-row">
+        <div><div class="bid-who" data-i18n="find.b2">ইলেকট্রিশিয়ান · ৩.৪ কিমি</div><div class="mono grey" data-i18n="find.b2f">৮টি কাজ শেষ · ইলেকট্রিশিয়ান</div></div>
+        <b class="bid-price">৳2,200</b>
+      </div>
+      <div class="bid-row">
+        <div><div class="bid-who" data-i18n="find.b3">ইলেকট্রিশিয়ান · ৫.০ কিমি</div><div class="mono grey" data-i18n="find.b3f">২৩টি কাজ শেষ · ইলেকট্রিশিয়ান</div></div>
+        <b class="bid-price">৳2,500</b>
+      </div>
+      <p class="mono grey bid-example" data-i18n="find.example">উদাহরণ / Example</p>
+    </div>
+    <p class="small" data-i18n="find.honest">দর দিলেই চুক্তি হয় না — রেকর্ড হয় দুই পক্ষের OTP-তে।</p>
+    <div class="btn-row"><a class="hero-demo-link" href="#app" data-i18n="find.cta">ছবি দিয়ে কাজ দিন →</a></div>
   </div>
 </div></section>
 
