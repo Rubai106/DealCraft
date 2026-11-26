@@ -19,6 +19,8 @@
   <p class="mono" style="color:#666">ONE ACTION PER SCREEN · এক স্ক্রিনে এক কাজ</p>
   <h1 id="w-title" data-i18n="w.title" style="font-family:'Oswald','Noto Sans Bengali',sans-serif;font-size:34px;line-height:1.1;text-transform:uppercase;margin:8px 0">কাজের রেকর্ড</h1>
   <div id="w-err" class="error" hidden></div>
+  <!-- P4: success checkmark only — no card stacks, tilt or heavy shadows here. -->
+  <div id="w-check" class="success-check" hidden aria-hidden="true"></div>
   <div id="w-sandbox" class="sandbox" hidden><b>SANDBOX — not a live AppLink call.</b><br><span id="w-sandbox-text"></span></div>
 
   <section id="w-record" hidden>
@@ -172,6 +174,11 @@ var jobId=null, disputeId=null;
 function $(id){return document.getElementById(id);}
 function err(m){var e=$('w-err');e.hidden=false;e.textContent=m;}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+/* P4: success checkmark — SVG circle draws itself (400ms), then hides. */
+function wShowCheck(){var box=$('w-check'); if(!box)return;
+ box.innerHTML='<svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="25"/><path d="M14 27l8 8 16-16"/></svg>';
+ box.hidden=false;
+ setTimeout(function(){box.hidden=true;box.innerHTML='';},1500);}
 function taka(n){return n==null?'—':'৳'+Number(n).toLocaleString('en-IN');}
 function wt(){return '?token='+encodeURIComponent(token);}
 /* The backend reads the worker token from ?token= (or x-worker-token header). */
@@ -288,7 +295,7 @@ window.addEventListener('online',locFlush);
 
 $('w-confirm').addEventListener('click',async function(){try{await requestOtp('worker-confirm');$('w-otp-box').hidden=false;$('w-otp').focus();}catch(e){err(e.message);}});
 $('w-confirm-send').addEventListener('click',async function(){try{await api('/api/worker/'+encodeURIComponent(token)+'/confirm',{method:'POST',body:JSON.stringify({otpCode:$('w-otp').value.trim()})});
-  $('w-confirm').disabled=true;$('w-confirm').textContent='নিশ্চিত হয়েছে — Confirmed';}catch(e){err(e.message);}});
+  wShowCheck();$('w-confirm').disabled=true;$('w-confirm').textContent='নিশ্চিত হয়েছে — Confirmed';}catch(e){err(e.message);}});
 /* Change response: accept/reject need an OTP (purpose change-approve); clarify does not. */
 function startChange(decision){return async function(){
  changeDecision=decision;
@@ -308,7 +315,7 @@ function payAck(dec){return async function(){payDecision=dec;
 $('w-pay-ok').addEventListener('click',payAck('received'));
 $('w-pay-bad').addEventListener('click',payAck('incorrect'));
 $('w-pay-send').addEventListener('click',async function(){try{await api('/api/payments/'+encodeURIComponent(payId)+'/ack'+wt(),{method:'POST',body:JSON.stringify({decision:payDecision,otpCode:$('w-pay-otp').value.trim()})});
-  $('w-pay').hidden=true;}catch(e){err(e.message);}});
+  wShowCheck();$('w-pay').hidden=true;}catch(e){err(e.message);}});
 $('w-photo-send').addEventListener('click',async function(){var f=$('w-photo').files[0];if(!f){err('একটি ছবি বেছে নিন। / Choose a photo first.');return;}
  var fd=new FormData();fd.append('photo',f);
  var pk=$('w-photo-kind'); if(pk)fd.append('kind',pk.value);

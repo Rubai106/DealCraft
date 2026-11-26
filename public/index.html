@@ -51,7 +51,7 @@
     <h1 class="hero-title"><span class="bn" data-i18n="hero.title">ফোনে কাজ শুরু হয়। কাজের রেকর্ড লিখিত থাকুক।</span></h1>
     <p class="hero-sub" data-i18n="hero.sub">Electrician, painter, plumber — কাজের আগে দুই পক্ষ একসাথে লিখে নিন: কী কাজ, কত টাকা, কবে শেষ। দুজনেই OTP দিয়ে নিশ্চিত করলে রেকর্ড তৈরি হয়। DealCraft কোনো টাকা রাখে না — শুধু টাকা দেওয়ার স্বীকৃতি লিখে রাখে।</p>
     <div class="btn-row">
-      <a class="btn" href="#app" id="cta-start" data-i18n="hero.cta1">Start a record</a>
+      <a class="btn btn-hero" href="#app" id="cta-start" data-i18n="hero.cta1">Start a record</a>
       <button class="btn btn-ghost" type="button" id="cta-demo" data-i18n="hero.cta2">See demo job</button>
     </div>
     <div class="hero-meta">
@@ -59,18 +59,37 @@
       <span class="mono grey" data-i18n="hero.meta2">Hirer — ৳10 / record · ৳70 / month</span>
       <span class="live-pill" data-i18n="hero.meta3">Sandbox — demo</span>
     </div>
-    <div class="hero-life" aria-label="How a record changes over time">
-      <div class="hero-life-step"><b>V1</b><span>ELECTRICIAN · ৳18,000 · BOTH SIDES OTP-CONFIRMED</span></div>
-      <div class="hero-life-arrow" aria-hidden="true">→</div>
-      <div class="hero-life-step"><b>+৳2,000</b><span>TWO EXTRA POINTS · PROPOSED, NOT FORCED</span></div>
-      <div class="hero-life-arrow" aria-hidden="true">→</div>
-      <div class="hero-life-step"><b>V2</b><span>৳20,000 · V1 KEPT INTACT · SHA-256 FINGERPRINT</span></div>
-    </div>
     <p class="small hero-life-note">A record is not a fixed document — it is a history of what both sides accepted. That is the whole product.</p>
   </div>
-</div>
-<div class="map-box hero-map-bg" aria-label="Dotted map of Bangladesh">
-  <div id="map-hero"></div>
+  <div class="hero-visual">
+    <div class="hero-dots" aria-hidden="true"><span class="pulse-dot"></span></div>
+    <div class="map-box hero-map-small" aria-label="Dotted map of Bangladesh"><div id="map-hero"></div></div>
+    <div class="rcard-scene" id="hero-scene">
+      <div class="rcard-tilt" id="hero-tilt">
+        <div class="rcard rcard-ghost" aria-hidden="true">
+          <div class="rcard-top"><span>V1 · SUPERSEDED</span><span>SHA-256 FINGERPRINT</span></div>
+          <h3 class="rcard-trade">ELECTRICIAN</h3>
+          <p class="rcard-scope">পুরো ফ্ল্যাটের রিওয়্যারিং · ১২ পয়েন্ট</p>
+          <div class="rcard-rows"><div><span>মোট</span><b>৳18,000</b></div></div>
+        </div>
+        <article class="rcard rcard-main" aria-label="Active work record, version 2">
+          <div class="rcard-top"><span class="rcard-ver">V2 · ACTIVE</span><span>SHA-256 FINGERPRINT</span></div>
+          <h3 class="rcard-trade">ELECTRICIAN</h3>
+          <p class="rcard-scope">পুরো ফ্ল্যাটের রিওয়্যারিং · ১২ পয়েন্ট</p>
+          <div class="rcard-rows">
+            <div><span>মোট</span><b>৳20,000</b></div>
+            <div><span>স্বীকৃত</span><b>৳5,000</b></div>
+            <div><span>বাকি</span><b>৳15,000</b></div>
+          </div>
+          <div class="rcard-bar"><i></i></div>
+          <p class="rcard-foot mono">V1 KEPT INTACT · OTP-CONFIRMED</p>
+        </article>
+        <div class="rchip rchip-otp">✓ দুজনেই OTP নিশ্চিত করেছেন</div>
+        <div class="rchip rchip-pay">৳5,000 পেয়েছি — Worker · PayProof</div>
+        <div class="rchip rchip-change">⇄ +৳2,000 প্রস্তাব গৃহীত · ChangeLock V1→V2</div>
+      </div>
+    </div>
+  </div>
 </div>
 </section>
 
@@ -91,7 +110,22 @@
       <div class="btn-row"><a class="btn" href="#app">Start a record</a></div>
     </div>
     <div class="journey-visual">
-  <div class="frag" aria-label="Work record fragment, version 1 to version 2"><b>V1</b> <span class="dim">· ELECTRICIAN · ৳18,000 · 2026-12-05 · SHA-256 FINGERPRINT</span><br><b>V2</b> <span class="dim">· +৳2,000 TWO EXTRA POINTS · ৳20,000 · BOTH SIDES CONFIRMED</span><br><span class="dim">PAID ACKNOWLEDGED ৳5,000 / REMAINING ৳15,000</span></div>
+  <div class="jcard" id="journey-card" data-state="0" aria-label="Work record, version 1 to version 2">
+    <div class="jcard-top"><span class="jcard-ver" id="jc-ver">V1 · AGREED</span><span>SHA-256 FINGERPRINT</span></div>
+    <div class="jcard-trade">ELECTRICIAN</div>
+    <div class="jcard-scope">পুরো ফ্ল্যাটের রিওয়্যারিং · ১২ পয়েন্ট</div>
+    <div class="jcard-rows">
+      <div><span>মোট / AGREED</span><b id="jc-agreed">৳18,000</b></div>
+      <div><span>স্বীকৃত / PAID</span><b id="jc-paid">৳0</b></div>
+      <div><span>বাকি / REMAINING</span><b id="jc-rem">৳18,000</b></div>
+    </div>
+    <div class="jcard-bar"><i id="jc-bar"></i></div>
+    <div class="jcard-chip jc-otp" id="jc-otp" hidden>✓ OTP — দুজনেই নিশ্চিত করেছেন</div>
+    <div class="jcard-photo" id="jc-photo" hidden><span class="thumb" aria-hidden="true"></span><span><span class="pill pill-orange">AFTER</span> <span class="mono grey">PHOTO · MILESTONE COMPLETE</span></span></div>
+    <div class="jcard-change" id="jc-change" hidden>⇄ +৳2,000 · ChangeLock — TWO EXTRA POINTS · PROPOSED, NOT FORCED</div>
+    <div class="jcard-pack" id="jc-pack" hidden><span class="pill pill-blue">RESOLVEPACK PDF</span> <span class="mono grey">FULL RECORD · TIMELINE + PHOTOS</span></div>
+    <div class="jcard-ghost" id="jc-ghost" hidden>V1 · ৳18,000 · KEPT INTACT</div>
+  </div>
   <svg class="dotstrip" viewBox="0 0 240 24" aria-hidden="true"><defs><pattern id="dots1" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="2" fill="currentColor"/></pattern></defs><rect width="240" height="24" fill="url(#dots1)"/></svg>
   <div class="journey-track">
     <span class="mono" id="journey-label">V1 — ৳18,000 · AGREED</span>
@@ -99,12 +133,6 @@
     <span class="mono orange" id="journey-pct-label">SCROLL — 0%</span>
   </div>
   <div id="map-journey"></div>
-  <div class="visual-card">
-    <p class="mono orange">PAYPROOF — টাকার হিসাব</p>
-    <div class="vnum">৳20,000</div>
-    <p class="mono grey">AGREED · V2</p>
-    <div class="vrows"><div><span>ACKNOWLEDGED PAID</span><b>৳5,000</b></div><div><span>REMAINING</span><b>৳15,000</b></div></div>
-  </div>
     </div>
   </div>
 </div></section>
@@ -114,13 +142,17 @@
   <div class="sec-head"><span class="sec-num">03 / PRICE</span><h2 class="sec-title" data-i18n="price.title">সহজ খরচ। লুকানো কিছু নেই।</h2></div>
   <svg class="dotstrip" viewBox="0 0 240 24" aria-hidden="true"><defs><pattern id="dots2" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="2" fill="currentColor"/></pattern></defs><rect width="240" height="24" fill="url(#dots2)"/></svg>
   <div class="stats">
-    <div class="stat"><div class="stat-num"><small>৳</small>10</div><p class="mono" data-i18n="price.p1">Per record — pay as you go</p><p data-i18n="price.p1b">একটি কাজের রেকর্ডের জন্য একবার। OTP দিয়ে যাচাই করলেই কার্যকর হয়।</p></div>
-    <div class="stat"><div class="stat-num"><small>৳</small>70</div><p class="mono" data-i18n="price.p2">Per month — unlimited records</p><p data-i18n="price.p2b">মাসে যত খুশি রেকর্ড। যাঁরা নিয়মিত কাজ করান, তাঁদের জন্য।</p></div>
-    <div class="stat"><div class="stat-num"><small>৳</small>0</div><p class="mono" data-i18n="price.p3">Workers — free, always</p><p data-i18n="price.p3b">Worker-এর জন্য DealCraft সবসময় ফ্রি। তাঁদের কোনো চার্জ নেই।</p></div>
+    <div class="stat"><div class="stat-num" data-count="10"><small>৳</small>10</div><p class="mono" data-i18n="price.p1">Per record — pay as you go</p><p data-i18n="price.p1b">একটি কাজের রেকর্ডের জন্য একবার। OTP দিয়ে যাচাই করলেই কার্যকর হয়।</p></div>
+    <div class="stat"><div class="stat-num" data-count="70"><small>৳</small>70</div><p class="mono" data-i18n="price.p2">Per month — unlimited records</p><p data-i18n="price.p2b">মাসে যত খুশি রেকর্ড। যাঁরা নিয়মিত কাজ করান, তাঁদের জন্য।</p></div>
+    <div class="stat"><div class="stat-num" data-count="0"><small>৳</small>0</div><p class="mono" data-i18n="price.p3">Workers — free, always</p><p data-i18n="price.p3b">Worker-এর জন্য DealCraft সবসময় ফ্রি। তাঁদের কোনো চার্জ নেই।</p></div>
   </div>
   <div class="visual-card">
     <p class="mono">12 RECORDS — তুলনা</p>
     <div class="vrows"><div><span>12 × ৳10 PAY-AS-YOU-GO</span><b>৳120</b></div><div><span>12 RECORDS AT ৳70 / MONTH</span><b>৳70</b></div><div><span>YOU SAVE</span><b>৳50</b></div></div>
+    <div class="price-bars" id="price-bars">
+      <div class="pb-row"><span>12 × ৳10</span><div class="pb-bar"><i class="pb-fill" data-w="100"></i></div><b>৳120</b></div>
+      <div class="pb-row"><span>৳70 / MONTH</span><div class="pb-bar"><i class="pb-fill" data-w="58"></i></div><b>৳70</b></div>
+    </div>
   </div>
 </div></section>
 
@@ -311,15 +343,16 @@
   </div>
 
   <!-- JOB DETAIL -->
-  <div class="app-card view" id="view-detail" hidden>
+  <div class="app-card view detail-sheet" id="view-detail" hidden>
     <button class="btn btn-dark-ghost btn-sm" type="button" id="btn-back-jobs" data-i18n="detail.back">← All jobs</button>
+    <div id="success-check" class="success-check" hidden aria-hidden="true"></div>
     <h2 id="detail-title" style="margin-top:16px">—</h2>
     <p id="detail-meta" class="mono grey"></p>
     <div id="detail-pills" style="display:flex;gap:8px;flex-wrap:wrap"></div>
     <div class="balance" id="balance-box">
-      <div><div class="amt" id="bal-agreed">৳0</div><div class="lbl" data-i18n="bal.agreed">Agreed</div></div>
-      <div><div class="amt" id="bal-paid">৳0</div><div class="lbl" data-i18n="bal.paid">Acknowledged paid</div></div>
-      <div><div class="amt" id="bal-rem">৳0</div><div class="lbl" data-i18n="bal.rem">Remaining</div></div>
+      <div class="tile-dark"><div class="amt" id="bal-agreed">৳0</div><div class="lbl" data-i18n="bal.agreed">Agreed</div></div>
+      <div class="tile-paid"><div class="amt" id="bal-paid">৳0</div><div class="lbl" data-i18n="bal.paid">Acknowledged paid</div></div>
+      <div class="tile-rem"><div class="amt" id="bal-rem">৳0</div><div class="lbl" data-i18n="bal.rem">Remaining</div></div>
     </div>
     <div class="bar" aria-hidden="true"><i id="bar-paid" style="width:0%"></i><em id="bar-agreed" style="width:0%"></em></div>
     <div id="loc-box" class="notice" hidden>
@@ -451,5 +484,6 @@
 </div>
 </div></footer>
 <script src="app.js"></script>
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer" hidden><button type="button" id="lightbox-close" aria-label="Close photo viewer">✕</button><img id="lightbox-img" alt="Job photo, enlarged"></div>
 </body>
 </html>

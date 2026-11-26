@@ -205,6 +205,9 @@ function initJourney(){
   if(rp)rp.textContent=pct+'%'; if(pl)pl.textContent='SCROLL — '+pct+'%';
   if(jl)jl.textContent=pct<70?'V1 — ৳18,000 · AGREED':'V2 — ৳20,000 · CHANGELOCK';
   steps.forEach(function(s,i){s.classList.toggle('active', p*(steps.length)>i);});
+  /* P1: the journey card follows the same scroll state. */
+  var activeCount=0; steps.forEach(function(s){if(s.classList.contains('active'))activeCount++;});
+  setJourneyState(Math.max(0,Math.min(5,activeCount-1)));
  }
  window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
 }
@@ -230,7 +233,121 @@ async function api(path,opts){
  if(!res.ok){var m=(data&&(data.error||data.message))||('HTTP '+res.status);throw new Error(m);}
  return data;
 }
-function showView(id){['view-login','view-jobs','view-new','view-detail','view-bid-post','view-find-work','view-bid-detail'].forEach(function(v){var el=$(v);if(el)el.hidden=(v!==id);});}
+function showView(id){['view-login','view-jobs','view-new','view-detail','view-bid-post','view-find-work','view-bid-detail'].forEach(function(v){var el=$(v);if(el)el.hidden=(v!==id);});
+ /* P4: 200ms fade + 8px slide on view switch (CSS .view-enter). */
+ var show=$(id); if(show){show.classList.remove('view-enter');void show.offsetWidth;show.classList.add('view-enter');}
+ /* P2: detail sheet sits on a very light grey section background. */
+ var appSec=$('app'); if(appSec)appSec.classList.toggle('app-grey',id==='view-detail');}
+
+/* ---------- motion helpers (P0–P4; transform/opacity only) ---------- */
+var RM=(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)||false;
+function tweenNum(el,from,to,dur,fmt){
+ if(!el)return;
+ if(RM||from===to){el.textContent=fmt(to);return;}
+ var start=null;
+ function step(now){if(start===null)start=now;var p=Math.min(1,(now-start)/dur);var e=1-Math.pow(1-p,3);
+  el.textContent=fmt(Math.round(from+(to-from)*e));
+  if(p<1)requestAnimationFrame(step);}
+ requestAnimationFrame(step);
+}
+function showSuccessCheck(){
+ var box=$('success-check'); if(!box)return;
+ box.innerHTML='<svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="25"/><path d="M14 27l8 8 16-16"/></svg>';
+ box.hidden=false;
+ setTimeout(function(){box.hidden=true;box.innerHTML='';},1500);
+}
+/* P0: hero card tilt — pointer follows with lagged tilt (max ±6° extra),
+   transform only, rAF-throttled. Touch devices get the slow idle float. */
+function initHeroTilt(){
+ var scene=$('hero-scene'), tilt=$('hero-tilt'); if(!scene||!tilt)return;
+ if(RM)return;
+ if(window.matchMedia('(pointer: fine)').matches){
+  var tx=0,ty=0,cx=0,cy=0,raf=null;
+  document.querySelector('.hero').addEventListener('pointermove',function(ev){
+   var r=scene.getBoundingClientRect();
+   tx=Math.max(-6,Math.min(6,((ev.clientX-(r.left+r.width/2))/r.width)*12));
+   ty=Math.max(-6,Math.min(6,((ev.clientY-(r.top+r.height/2))/r.height)*12));
+   if(!raf)raf=requestAnimationFrame(function loop(){
+    cx+=(tx-cx)*0.12; cy+=(ty-cy)*0.12;
+    tilt.style.transform='rotateY('+(-14+cx).toFixed(2)+'deg) rotateX('+(6-cy).toFixed(2)+'deg)';
+    if(Math.abs(tx-cx)>0.05||Math.abs(ty-cy)>0.05)raf=requestAnimationFrame(loop);else raf=null;
+   });
+  });
+  scene.addEventListener('pointerleave',function(){tx=0;ty=0;});
+ }else{
+  tilt.classList.add('idle-float');
+ }
+}
+/* P1: journey card state machine — driven by the existing scroll logic. */
+var journeyState=-1;
+function setJourneyState(s){
+ if(s===journeyState)return;
+ var card=$('journey-card'); if(!card)return;
+ var prev=journeyState; journeyState=s; card.setAttribute('data-state',String(s));
+ var agreed=s>=4?20000:18000, paid=s>=3?5000:0, rem=agreed-paid;
+ $('jc-ver').textContent=s>=4?'V2 · BOTH SIDES CONFIRMED':'V1 · AGREED';
+ $('jc-agreed').textContent=taka(agreed);
+ $('jc-rem').textContent=taka(rem);
+ tweenNum($('jc-paid'),prev>=3?5000:0,paid,500,taka);
+ $('jc-bar').style.width=(s>=3?25:0)+'%';
+ var otp=$('jc-otp'); otp.hidden=s<1;
+ if(s===1){otp.classList.remove('stamp');void otp.offsetWidth;otp.classList.add('stamp');}
+ $('jc-photo').hidden=s<2;
+ $('jc-change').hidden=s<4;
+ $('jc-pack').hidden=s<5;
+ $('jc-ghost').hidden=s<4;
+ if(s===4&&prev===3){card.classList.remove('flipping');void card.offsetWidth;card.classList.add('flipping');}
+}
+/* P4: price numerals count up + comparison bars, once, when in view. */
+function initPriceMotion(){
+ var stats=document.querySelectorAll('.stat-num[data-count]');
+ if(!('IntersectionObserver' in window)||RM){
+  /* Reduced motion / no observer: final values are already in the HTML. */
+  document.querySelectorAll('.pb-fill').forEach(function(f){f.style.width=f.getAttribute('data-w')+'%';});
+  return;
+ }
+ var obs=new IntersectionObserver(function(entries){
+  entries.forEach(function(en){
+   if(!en.isIntersecting)return;
+   var el=en.target; obs.unobserve(el);
+   if(el.classList.contains('stat-num')){
+    var target=+el.getAttribute('data-count'), small=el.querySelector('small');
+    tweenNum(el,0,target,700,function(n){return (small?small.outerHTML:'')+n.toLocaleString('en-IN');});
+   }else if(el.classList.contains('price-bars')){
+    el.querySelectorAll('.pb-fill').forEach(function(f){f.style.width=f.getAttribute('data-w')+'%';});
+   }
+  });
+ },{threshold:0.4});
+ stats.forEach(function(el){obs.observe(el);});
+ var bars=$('price-bars'); if(bars)obs.observe(bars);
+}
+/* P2: photo lightbox (fade + slight zoom, CSS) + BEFORE/AFTER compare. */
+function initLightbox(){
+ var lb=$('lightbox'), img=$('lightbox-img'); if(!lb)return;
+ function close(){lb.classList.remove('open');setTimeout(function(){lb.hidden=true;},250);}
+ $('lightbox-close').addEventListener('click',close);
+ lb.addEventListener('click',function(ev){if(ev.target===lb)close();});
+ document.addEventListener('keydown',function(ev){if(ev.key==='Escape'&&!lb.hidden)close();});
+ document.addEventListener('click',function(ev){
+  var t=ev.target.closest?ev.target.closest('[data-lightbox]'):null;
+  if(!t)return;
+  img.src=t.getAttribute('data-lightbox'); img.alt=t.getAttribute('data-alt')||'Job photo';
+  lb.hidden=false; requestAnimationFrame(function(){lb.classList.add('open');});
+ });
+}
+/* Compare slider: drag or keyboard range input moves the split. */
+function initCompare(el){
+ var range=el.querySelector('input[type="range"]'); if(!range)return;
+ function set(v){el.style.setProperty('--pos',v+'%');}
+ range.addEventListener('input',function(){set(range.value);});
+ el.addEventListener('pointerdown',function(ev){
+  var r=el.getBoundingClientRect();
+  function move(e){var p=Math.max(2,Math.min(98,((e.clientX-r.left)/r.width)*100));set(p);range.value=Math.round(p);}
+  move(ev);
+  function up(){window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);}
+  window.addEventListener('pointermove',move);window.addEventListener('pointerup',up);
+ });
+}
 
 /* ---------- FairScope ---------- */
 var FAIRSCOPE={
@@ -277,12 +394,20 @@ function renderFairScope(){
  }).join('');
  box.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){
   var qi=+b.getAttribute('data-q');
-  draft.answers[qi]=b.getAttribute('data-v');
-  // Answering a question un-skips it: a term is skipped only while the
-  // hirer deliberately left it that way, one term at a time.
+  /* P4: resolving a missing term ticks + strikes it before the box
+     collapses — the term was unresolved, now it has an answer. */
+  var wasMissing=draft.answers[qi]==null||draft.answers[qi]==='Not decided';
   var qEn=(FAIRSCOPE[draft.trade]||[])[qi];
-  if(qEn) draft.skipped=draft.skipped.filter(function(s){return s!==qEn.q.en;});
-  renderFairScope(); updateMissingWarn(); });});
+  function apply(){
+   draft.answers[qi]=b.getAttribute('data-v');
+   if(qEn) draft.skipped=draft.skipped.filter(function(s){return s!==qEn.q.en;});
+   renderFairScope(); updateMissingWarn();
+  }
+  if(wasMissing&&qEn&&!RM){
+   var li=document.querySelector('#missing-list li span')&&Array.prototype.slice.call(document.querySelectorAll('#missing-list li')).filter(function(li){return li.textContent.indexOf(qEn.q.en)>=0;})[0];
+   if(li){li.classList.add('resolved');setTimeout(apply,320);return;}
+  }
+  apply(); });});
  updateMissingWarn();
 }
 /* Three states, never bulk auto-skip: a missing term is UNRESOLVED until
@@ -290,7 +415,10 @@ function renderFairScope(){
    server refuses creation while any term is unresolved. */
 function updateMissingWarn(){
  var miss=missingTerms(); var w=$('missing-warn'); if(!w)return;
+ /* P4: one soft pulse when the warning first appears — never looping. */
+ var wasHidden=w.hidden;
  w.hidden=miss.length===0;
+ if(wasHidden&&miss.length&&!RM){w.classList.remove('pulse-once');void w.offsetWidth;w.classList.add('pulse-once');}
  var ul=$('missing-list');
  if(ul)ul.innerHTML=miss.map(function(m){
   var skipped=draft.skipped.indexOf(m)>=0;
@@ -305,7 +433,11 @@ function updateMissingWarn(){
  });});
 }
 function newStep(n){
- [1,2,3,4].forEach(function(i){var el=$('new-step-'+i);if(el)el.hidden=(i!==n);});
+ var cur=0; [1,2,3,4].forEach(function(i){var el=$('new-step-'+i);if(el&&!el.hidden)cur=i;});
+ [1,2,3,4].forEach(function(i){var el=$('new-step-'+i);if(el){el.hidden=(i!==n);
+  /* P4: wizard steps slide horizontally in the direction of travel. */
+  if(i===n&&!RM){el.classList.remove('new-step-fwd','new-step-back');void el.offsetWidth;el.classList.add(n>=cur?'new-step-fwd':'new-step-back');}}});
+ var stepsEl=$('new-steps'); if(stepsEl)stepsEl.style.setProperty('--step',n);
  var steps=document.querySelectorAll('#new-steps span'); steps.forEach(function(s){s.classList.toggle('on',+s.getAttribute('data-step')===n);});
 }
 
@@ -536,7 +668,12 @@ function renderDetail(job){
    '</table>';
  } else if(rec){rec.hidden=true;}
  var agreed=bal.agreed!=null?bal.agreed:price||0, paid=bal.acknowledgedPaid!=null?bal.acknowledgedPaid:0, rem=bal.remaining!=null?bal.remaining:(agreed-paid);
- $('bal-agreed').textContent=taka(agreed); $('bal-paid').textContent=taka(paid); $('bal-rem').textContent=taka(rem);
+ /* P2: balance numbers count/tween to new values instead of snapping. */
+ var prev=renderDetail._prevBal||{agreed:0,paid:0,rem:0};
+ tweenNum($('bal-agreed'),prev.agreed,agreed,500,taka);
+ tweenNum($('bal-paid'),prev.paid,paid,500,taka);
+ tweenNum($('bal-rem'),prev.rem,rem,500,taka);
+ renderDetail._prevBal={agreed:agreed,paid:paid,rem:rem};
  $('bar-paid').style.width=agreed?Math.min(100,paid/agreed*100)+'%':'0%';
  $('bar-agreed').style.width='0%';
  var dw=$('detail-warn'); if(dw){dw.hidden=!miss.length;var ul=$('detail-missing');if(ul)ul.innerHTML=miss.map(function(m){return '<li>'+esc(typeof m==='string'?m:(m.question||m.name||JSON.stringify(m)))+'</li>';}).join('');}
@@ -562,21 +699,52 @@ function renderDetail(job){
  tl.innerHTML=events.length?events.map(function(ev){
   var label=ev.label||ev.type||ev.title||ev.event||''; var when=ev.createdAt||ev.created_at||ev.at||ev.date||'';
   var det=eventDetail(ev)||(ev.note||ev.detail||'');
-  return '<li><div class="when">'+esc(when?fmtDate(when):'')+' · '+esc(ev.actor||'')+'</div><div><b>'+esc(String(label).replace(/_/g,' '))+'</b></div>'+(det?'<div class="small">'+esc(det)+'</div>':'')+'</li>';
+  /* P2: coloured node dots per event type (payment=orange, change=blue,
+     confirmation=green). */
+  var t=(ev.type||ev.event||'');
+  var cls=/PAYMENT/.test(t)?'tl-pay':/CHANGE/.test(t)?'tl-change':/CONFIRM/.test(t)?'tl-confirm':'';
+  return '<li class="'+cls+'"><div class="when">'+esc(when?fmtDate(when):'')+' · '+esc(ev.actor||'')+'</div><div><b>'+esc(String(label).replace(/_/g,' '))+'</b></div>'+(det?'<div class="small">'+esc(det)+'</div>':'')+'</li>';
  }).join(''):'<li><div class="small">'+(lang==='bn'?'এখনো কোনো ঘটনা নেই।':'No events yet.')+'</div></li>';
+ /* P2: staggered fade-up on first view (transform/opacity only). */
+ tl.querySelectorAll('li').forEach(function(li,i){
+  if(RM){li.classList.add('in');return;}
+  li.style.transitionDelay=(Math.min(i,8)*60)+'ms';
+  if('IntersectionObserver' in window){
+   var o=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){li.classList.add('in');o.disconnect();}});},{threshold:0.2});
+   o.observe(li);
+  }else li.classList.add('in');
+ });
  /* photos — rows are {id, job_id, milestone, url, kind, taken_at}.
     Rendered as thumbnails with a BEFORE/AFTER kind badge (no badge when
-    kind is null, e.g. old photos) and the timestamp. */
+    kind is null, e.g. old photos) and the timestamp. BEFORE/AFTER photos
+    of the same milestone become one drag comparison slider (P2); tapping
+    any photo opens the lightbox. */
  var ph=$('photo-list');
  if(ph){var photos=full.photos||job.photos||[];
-  ph.innerHTML=photos.length?'<div class="photo-grid">'+photos.map(function(p){
-   var u=typeof p==='string'?p:(p.url||p.path||''); if(!u)return '';
-   var kind=(p&&p.kind)||null;
-   var when=(p&&(p.taken_at||p.takenAt||p.created_at||p.createdAt))||'';
-   return '<figure class="photo"><a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" alt="'+(lang==='bn'?'কাজের ছবি':'Job photo')+'" loading="lazy"></a>'+
-    (kind?'<span class="pill '+(kind==='BEFORE'?'pill-blue':'pill-orange')+'">'+esc(kind)+'</span>':'')+
-    (when?'<figcaption class="mono grey">'+esc(fmtDT(when))+'</figcaption>':'')+'</figure>';
-  }).join('')+'</div>':'—';}
+  if(!photos.length){ph.innerHTML='—';}
+  else{
+   /* group by milestone; a pair (BEFORE+AFTER) renders as a slider */
+   var groups={}; photos.forEach(function(p){var k=(p&&p.milestone!=null)?String(p.milestone):'__none__';(groups[k]=groups[k]||[]).push(p);});
+   ph.innerHTML='<div class="photo-grid">'+Object.keys(groups).map(function(k){
+    var g=groups[k];
+    var before=g.filter(function(p){return p&&p.kind==='BEFORE';})[0];
+    var after=g.filter(function(p){return p&&p.kind==='AFTER';})[0];
+    if(before&&after){
+     var bu=before.url||before.path||'', au=after.url||after.path||'';
+     return '<figure class="cmp" style="grid-column:1/-1"><img src="'+esc(bu)+'" alt="'+(lang==='bn'?'আগের ছবি':'Before photo')+'" loading="lazy"><div class="cmp-after"><img src="'+esc(au)+'" alt="'+(lang==='bn'?'পরের ছবি':'After photo')+'" loading="lazy"></div><span class="cmp-tag before">BEFORE</span><span class="cmp-tag after">AFTER</span><span class="cmp-handle" aria-hidden="true"></span><button type="button" class="cmp-expand" data-lightbox="'+esc(au)+'" data-alt="'+(lang==='bn'?'পরের ছবি':'After photo')+'" aria-label="'+(lang==='bn'?'ছবি বড় করে দেখুন':'Enlarge photo')+'">⤢</button><input type="range" min="2" max="98" value="50" aria-label="Before / after comparison slider"></figure>';
+    }
+    return g.map(function(p){
+     var u=typeof p==='string'?p:(p.url||p.path||''); if(!u)return '';
+     var kind=(p&&p.kind)||null;
+     var when=(p&&(p.taken_at||p.takenAt||p.created_at||p.createdAt))||'';
+     return '<figure class="photo"><img src="'+esc(u)+'" data-lightbox="'+esc(u)+'" data-alt="'+(lang==='bn'?'কাজের ছবি':'Job photo')+'" alt="'+(lang==='bn'?'কাজের ছবি':'Job photo')+'" loading="lazy">'+
+      (kind?'<span class="pill '+(kind==='BEFORE'?'pill-blue':'pill-orange')+'">'+esc(kind)+'</span>':'')+
+      (when?'<figcaption class="mono grey">'+esc(fmtDT(when))+'</figcaption>':'')+'</figure>';
+    }).join('');
+   }).join('')+'</div>';
+   ph.querySelectorAll('.cmp').forEach(initCompare);
+  }
+ }
  /* ChangeLock journey — the clearest visual in the app: V1 -> proposed
     change -> mutual approval -> V2, as a connected strip, then the rows. */
  var cl=$('change-list');
@@ -737,7 +905,7 @@ function initDetail(){
   if(b.getAttribute('data-tab')==='billing')loadBillingStatus();
   refreshJob(); });});
  $('btn-hirer-confirm').addEventListener('click',async function(){clearErr();
-  try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/hirer-confirm',{method:'POST',body:JSON.stringify({otpCode:$('confirm-otp').value.trim()})});openJob(currentJobId);}
+  try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/hirer-confirm',{method:'POST',body:JSON.stringify({otpCode:$('confirm-otp').value.trim()})});showSuccessCheck();openJob(currentJobId);}
   catch(e){showErr(e.message);}});
  async function resendWorkerLink(){clearErr();clearNotice();
   /* POST /api/jobs/:id/worker-link — server endpoint may not exist yet;
@@ -766,7 +934,7 @@ function initDetail(){
    if(r&&r.notifyLink){clearErr();var n=$('change-list');if(n)n.insertAdjacentHTML('afterbegin','<div class="notice blue"><b>Proposal sent.</b><p class="mono">WORKER LINK: '+esc(r.notifyLink)+'</p></div>');}}
   catch(e){showErr(e.message);}});
  $('form-pay').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
-  try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/payments',{method:'POST',body:JSON.stringify({amount:Number($('pay-amount').value),method:$('pay-method').value,date:$('pay-date').value||undefined})});openJob(currentJobId);}
+  try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/payments',{method:'POST',body:JSON.stringify({amount:Number($('pay-amount').value),method:$('pay-method').value,date:$('pay-date').value||undefined})});showSuccessCheck();openJob(currentJobId);}
   catch(e){showErr(e.message);}});
  $('form-photo').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
   var f=$('photo-input').files[0]; if(!f){showErr(lang==='bn'?'একটি ছবি বেছে নিন।':'Choose a photo first.');return;}
@@ -987,6 +1155,8 @@ document.addEventListener('DOMContentLoaded',function(){
  renderDotMap($('map-footer'),{w:560,h:300,step:15});
  renderDotMap($('map-journey'),{w:520,h:360,step:16});
  initJourney(); initAuth(); initNewJob(); initDetail(); initBidding(); renderFairScope();
+ /* P0/P2/P4 motion: hero tilt, price count-ups, photo lightbox. */
+ initHeroTilt(); initPriceMotion(); initLightbox();
  $('cta-demo').addEventListener('click',loadDemo);
  $('btn-demo').addEventListener('click',loadDemo);
  $('cta-start').addEventListener('click',function(){ if(token){showView('view-jobs');loadJobs();} });
