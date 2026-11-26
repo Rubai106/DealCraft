@@ -709,6 +709,10 @@ h1.hero-title .hl-2{--ld:.22s}
 .bid-job-trade{font-family:var(--display);font-size:20px;text-transform:uppercase}
 .bid-job-desc{margin:6px 0}
 .bid-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 20px;border-top:1px solid var(--line-light)}
+/* At ≤360px the best bid row (price + "Lowest" pill) is wider than the row:
+   let the price wrap to its own line, right-aligned, instead of pushing
+   the page wider. Rows that fit stay single-line. */
+@media(max-width:360px){.bid-row{flex-wrap:wrap}.bid-row .bid-price{margin-left:auto}}
 .bid-price{font-family:var(--display);font-size:24px;white-space:nowrap}
 .bid-row.best .bid-price{color:#c23c00}
 .bid-lowest{margin-left:8px;vertical-align:middle}
