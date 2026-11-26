@@ -17,6 +17,16 @@ db.exec('PRAGMA foreign_keys = ON;');
 db.exec('PRAGMA busy_timeout = 5000;');
 
 function init() {
+  // Foreign keys: declared here for fresh databases only. CREATE TABLE
+  // IF NOT EXISTS never alters an existing table, so a database created
+  // before this change keeps its old schema untouched (no migration, no
+  // data change) — the FKs apply to new databases. Deliberately NOT
+  // constrained, because the code stores values no parent row can
+  // satisfy: Event.job_id is polymorphic (bidding events store a BidJob
+  // id, not a Job id); Job.worker_phone names a worker who may never
+  // have registered; Billing.job_id is '' for subscription rows (no
+  // job); PassportProfile/PassportEntry worker_phone and the
+  // Session/Otp/OtpTransaction phone columns may precede registration.
   db.exec(`
     CREATE TABLE IF NOT EXISTS User (
       id TEXT PRIMARY KEY,
@@ -27,7 +37,7 @@ function init() {
     );
     CREATE TABLE IF NOT EXISTS Job (
       id TEXT PRIMARY KEY,
-      hirer_id TEXT NOT NULL,
+      hirer_id TEXT NOT NULL REFERENCES User(id),
       worker_phone TEXT NOT NULL,
       worker_name TEXT,
       trade TEXT NOT NULL,
@@ -39,7 +49,7 @@ function init() {
     );
     CREATE TABLE IF NOT EXISTS JobVersion (
       id TEXT PRIMARY KEY,
-      job_id TEXT NOT NULL,
+      job_id TEXT NOT NULL REFERENCES Job(id),
       version_no INTEGER NOT NULL,
       scope_json TEXT NOT NULL,
       price INTEGER NOT NULL,
@@ -57,7 +67,7 @@ function init() {
     );
     CREATE TABLE IF NOT EXISTS Payment (
       id TEXT PRIMARY KEY,
-      job_id TEXT NOT NULL,
+      job_id TEXT NOT NULL REFERENCES Job(id),
       amount INTEGER NOT NULL,
       method TEXT CHECK (method IN ('Cash','bKash','Nagad')),
       recorded_by TEXT,
@@ -68,27 +78,27 @@ function init() {
     );
     CREATE TABLE IF NOT EXISTS Photo (
       id TEXT PRIMARY KEY,
-      job_id TEXT NOT NULL,
+      job_id TEXT NOT NULL REFERENCES Job(id),
       milestone INTEGER,
       url TEXT NOT NULL,
       taken_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS Dispute (
       id TEXT PRIMARY KEY,
-      job_id TEXT NOT NULL,
+      job_id TEXT NOT NULL REFERENCES Job(id),
       category TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS DisputeStatement (
       id TEXT PRIMARY KEY,
-      dispute_id TEXT NOT NULL,
+      dispute_id TEXT NOT NULL REFERENCES Dispute(id),
       side TEXT CHECK (side IN ('hirer','worker')),
       text TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS ChangeProposal (
       id TEXT PRIMARY KEY,
-      job_id TEXT NOT NULL,
+      job_id TEXT NOT NULL REFERENCES Job(id),
       proposed_by TEXT,
       price_delta INTEGER NOT NULL DEFAULT 0,
       deadline TEXT,
@@ -115,7 +125,7 @@ function init() {
     CREATE TABLE IF NOT EXISTS WorkerToken (
       id TEXT PRIMARY KEY,
       token TEXT NOT NULL,
-      job_id TEXT NOT NULL,
+      job_id TEXT NOT NULL REFERENCES Job(id),
       action TEXT NOT NULL,
       expires_at TEXT NOT NULL
     );
@@ -131,14 +141,14 @@ function init() {
     CREATE TABLE IF NOT EXISTS PassportEntry (
       id TEXT PRIMARY KEY,
       worker_phone TEXT NOT NULL,
-      job_id TEXT NOT NULL,
+      job_id TEXT NOT NULL REFERENCES Job(id),
       show_amounts INTEGER NOT NULL DEFAULT 0,
       show_client INTEGER NOT NULL DEFAULT 0,
       show_photos INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS LocationShare (
-      job_id TEXT PRIMARY KEY,
+      job_id TEXT PRIMARY KEY REFERENCES Job(id),
       lat REAL NOT NULL,
       lng REAL NOT NULL,
       accuracy REAL,
@@ -150,7 +160,7 @@ function init() {
     );
     CREATE TABLE IF NOT EXISTS LocationTrail (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      job_id TEXT NOT NULL,
+      job_id TEXT NOT NULL REFERENCES Job(id),
       lat REAL NOT NULL,
       lng REAL NOT NULL,
       accuracy REAL,
@@ -159,7 +169,7 @@ function init() {
     );
     CREATE TABLE IF NOT EXISTS BidJob (
       id TEXT PRIMARY KEY,
-      hirer_id TEXT NOT NULL,
+      hirer_id TEXT NOT NULL REFERENCES User(id),
       trade TEXT NOT NULL,
       description TEXT NOT NULL,
       site_lat REAL,
@@ -167,13 +177,13 @@ function init() {
       site_address TEXT,
       status TEXT NOT NULL DEFAULT 'OPEN'
         CHECK (status IN ('OPEN','ACCEPTED','CLOSED_NO_HIRE')),
-      job_id TEXT,
+      job_id TEXT REFERENCES Job(id),
       created_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS Bid (
       id TEXT PRIMARY KEY,
-      bid_job_id TEXT NOT NULL,
-      worker_phone TEXT NOT NULL,
+      bid_job_id TEXT NOT NULL REFERENCES BidJob(id),
+      worker_phone TEXT NOT NULL REFERENCES User(phone),
       worker_name TEXT,
       amount INTEGER NOT NULL,
       note TEXT,
@@ -187,7 +197,7 @@ function init() {
     );
     CREATE TABLE IF NOT EXISTS BidJobPhoto (
       id TEXT PRIMARY KEY,
-      bid_job_id TEXT NOT NULL,
+      bid_job_id TEXT NOT NULL REFERENCES BidJob(id),
       url TEXT NOT NULL,
       taken_at TEXT NOT NULL
     );
@@ -201,7 +211,7 @@ function init() {
     -- rejects. A job returns to ACTIVE only after the worker accepts.
     CREATE TABLE IF NOT EXISTS DisputeResolution (
       id TEXT PRIMARY KEY,
-      dispute_id TEXT NOT NULL,
+      dispute_id TEXT NOT NULL REFERENCES Dispute(id),
       proposed_by TEXT NOT NULL,
       proposal TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'PROPOSED'
@@ -216,6 +226,18 @@ function init() {
       otp_transaction_id TEXT NOT NULL,
       sent_at TEXT NOT NULL,
       PRIMARY KEY (phone, purpose)
+    );
+    -- Name/role supplied at OTP request time, held until the code is
+    -- verified — the User row is created/updated ONLY after a successful
+    -- verification, never before. Persisted (not an in-memory Map) so a
+    -- profile started before a restart still completes after it. There
+    -- is no expiry: entries live until the matching verify consumes
+    -- them, exactly as the Map behaved (get-then-delete, no timestamp,
+    -- no stale-entry cleanup).
+    CREATE TABLE IF NOT EXISTS pending_profiles (
+      phone TEXT PRIMARY KEY,
+      name TEXT,
+      role TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_bidjob_hirer ON BidJob(hirer_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_bidjob_status ON BidJob(status, created_at);
@@ -276,11 +298,29 @@ function now() {
   return new Date().toISOString();
 }
 
+// Pending profiles (Item 2): name/role captured at OTP request time.
+// setPendingProfile overwrites any earlier entry for the phone, exactly
+// like Map.set; takePendingProfile returns the entry (or {} when there
+// is none) and deletes it, exactly like Map get-then-delete on verify.
+// Both statements run synchronously back-to-back with no await between,
+// so no other request can interleave.
+function setPendingProfile(phone, name, role) {
+  db.prepare(`INSERT INTO pending_profiles (phone, name, role) VALUES (?, ?, ?)
+    ON CONFLICT(phone) DO UPDATE SET name = excluded.name, role = excluded.role`)
+    .run(phone, name, role);
+}
+
+function takePendingProfile(phone) {
+  const row = db.prepare('SELECT name, role FROM pending_profiles WHERE phone = ?').get(phone);
+  db.prepare('DELETE FROM pending_profiles WHERE phone = ?').run(phone);
+  return row || {};
+}
+
 function clearAllTables() {
-  const tables = ['OtpTransaction', 'DisputeResolution', 'PassportProfile', 'Bid', 'BidJobPhoto', 'BidJob', 'LocationTrail', 'LocationShare', 'PassportEntry', 'Billing', 'WorkerToken', 'Session', 'Otp',
+  const tables = ['pending_profiles', 'OtpTransaction', 'DisputeResolution', 'PassportProfile', 'Bid', 'BidJobPhoto', 'BidJob', 'LocationTrail', 'LocationShare', 'PassportEntry', 'Billing', 'WorkerToken', 'Session', 'Otp',
     'ChangeProposal', 'DisputeStatement', 'Dispute', 'Photo', 'Payment',
     'Event', 'JobVersion', 'Job', 'User'];
   for (const t of tables) db.prepare(`DELETE FROM ${t}`).run();
 }
 
-module.exports = { db, init, now, clearAllTables, DATA_DIR, DB_PATH };
+module.exports = { db, init, now, setPendingProfile, takePendingProfile, clearAllTables, DATA_DIR, DB_PATH };

@@ -785,6 +785,193 @@ try {
   const manifest = await req('/manifest.json');
   check(manifest.status === 200, 'PWA manifest serves');
 
+
+  console.log('== hardening: route inventory snapshot (split must not add/drop/rename a route) ==');
+  {
+    // The 64 routes that existed before the route split (method + path,
+    // sorted), from the pre-split inventory. Rebuilt from the current code
+    // the same way: every app./router./callbacksRouter. get/post/put/
+    // delete/patch registration in server.js + server/routes/*.js.
+    const EXPECTED_ROUTES = [
+      'GET /API/APPLINK/LOG',
+      'GET /API/APPLINK/MODE',
+      'GET /API/BID-JOBS/:ID',
+      'GET /API/BID-JOBS/:ID/BIDS',
+      'GET /API/BID-JOBS/MINE',
+      'GET /API/BID-JOBS/OPEN',
+      'GET /API/BILLING/STATUS',
+      'GET /API/CONFIG',
+      'GET /API/DEMO/SCRIPT',
+      'GET /API/FAIRSCOPE',
+      'GET /API/HEALTH',
+      'GET /API/JOBS',
+      'GET /API/JOBS/:ID',
+      'GET /API/JOBS/:ID/LOCATION',
+      'GET /API/JOBS/:ID/RESOLVEPACK',
+      'GET /API/JOBS/:ID/RESOLVEPACK.JSON',
+      'GET /API/ME',
+      'GET /API/PASSPORT/:PROFILEID',
+      'GET /API/PASSPORT/:PROFILEID/QR.PNG',
+      'GET /API/VERIFY',
+      'GET /API/WORKER/:TOKEN',
+      'GET /PASSPORT/:PROFILEID',
+      'GET /UPLOADS/:FILE',
+      'GET /VERIFY',
+      'POST /API/APPLINK/CAAS-NOTIFY',
+      'POST /API/APPLINK/MO-SMS',
+      'POST /API/APPLINK/SMS-REPORT',
+      'POST /API/APPLINK/SUBSCRIPTION-NOTIFY',
+      'POST /API/AUTH/REQUEST-OTP',
+      'POST /API/AUTH/VERIFY-OTP',
+      'POST /API/BID-JOBS',
+      'POST /API/BID-JOBS/:ID/BIDS',
+      'POST /API/BID-JOBS/:ID/BIDS/:BIDID/ACCEPT',
+      'POST /API/BID-JOBS/:ID/CLOSE',
+      'POST /API/BID-JOBS/:ID/PHOTOS',
+      'POST /API/BILLING/CAAS',
+      'POST /API/BILLING/CAAS/:CHARGEID/VERIFY',
+      'POST /API/BILLING/SUBSCRIBE',
+      'POST /API/BILLING/UNSUBSCRIBE',
+      'POST /API/CHANGES/:CHANGEID/RESPOND',
+      'POST /API/DEMO/RESET',
+      'POST /API/DEMO/SEED',
+      'POST /API/DISPUTES/:DISPUTEID/RESOLVE-PROPOSAL',
+      'POST /API/DISPUTES/:DISPUTEID/RESOLVE-RESPONSE',
+      'POST /API/DISPUTES/:DISPUTEID/STATEMENTS',
+      'POST /API/JOBS',
+      'POST /API/JOBS/:ID/CHANGES',
+      'POST /API/JOBS/:ID/CLOSE',
+      'POST /API/JOBS/:ID/DISPUTES',
+      'POST /API/JOBS/:ID/HIRER-CONFIRM',
+      'POST /API/JOBS/:ID/MILESTONES/:INDEX/APPROVE',
+      'POST /API/JOBS/:ID/MILESTONES/:INDEX/COMPLETE',
+      'POST /API/JOBS/:ID/PAYMENTS',
+      'POST /API/JOBS/:ID/PHOTOS',
+      'POST /API/JOBS/:ID/WORKER-LINK',
+      'POST /API/PASSPORT/ADD',
+      'POST /API/PAYMENTS/:PAYMENTID/ACK',
+      'POST /API/WORKER/:TOKEN/CONFIRM',
+      'POST /API/WORKER/:TOKEN/LOCATION',
+      'POST /API/WORKER/:TOKEN/LOCATION/PAUSE',
+      'POST /API/WORKER/:TOKEN/LOCATION/RESUME',
+      'POST /API/WORKER/:TOKEN/LOCATION/START',
+      'POST /API/WORKER/:TOKEN/LOCATION/STOP',
+      'POST /API/WORKER/:TOKEN/REQUEST-OTP',
+    ];
+    const routeFiles = ['server.js', ...fs.readdirSync(path.resolve(import.meta.dirname, '..', '..', 'server', 'routes')).filter((f) => f.endsWith('.js')).sort().map((f) => 'routes/' + f)];
+    const routeRe = /^\s*(?:app|router|callbacksRouter)\.(get|post|put|delete|patch)\('([^']+)'/;
+    const foundRoutes = [];
+    for (const rel of routeFiles) {
+      const src = fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'server', rel), 'utf8');
+      for (const line of src.split('\n')) {
+        const m = routeRe.exec(line);
+        if (m) foundRoutes.push(m[1].toUpperCase() + ' ' + m[2].toUpperCase());
+      }
+    }
+    foundRoutes.sort();
+    check(foundRoutes.length === 64, 'route inventory still has exactly 64 routes after the split');
+    check(JSON.stringify(foundRoutes) === JSON.stringify(EXPECTED_ROUTES), 'every pre-split route exists after the split, same method + path (no add, drop or rename)');
+  }
+
+  console.log('== hardening: CSRF origin check + security headers (scratch server) ==');
+  const PORT3 = 3458;
+  const BASE3 = `http://127.0.0.1:${PORT3}`;
+  async function req3(p, opts = {}) {
+    const res = await fetch(BASE3 + p, opts);
+    const text = await res.text();
+    let body = null;
+    try { body = JSON.parse(text); } catch { /* non-JSON */ }
+    return { status: res.status, body, text, headers: res.headers };
+  }
+  function spawnScratch(port) {
+    return spawn(process.execPath, ['server/server.js'], {
+      cwd: path.resolve(import.meta.dirname, '..', '..'),
+      env: { ...process.env, PORT: String(port), APPLINK_MODE: 'sandbox', DEALCRAFT_DEMO_TOKEN: 'test-demo-token', DEMO_MODE: 'true', FEATURE_BIDDING: 'true' },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  }
+  async function waitUp(base) {
+    for (let i = 0; i < 40; i++) {
+      try { const r = await fetch(base + '/api/health'); if (r.status === 200) return true; } catch { /* not up yet */ }
+      await sleep(250);
+    }
+    return false;
+  }
+  let server3 = spawnScratch(PORT3);
+  try {
+    check(await waitUp(BASE3), 'hardening scratch server boots');
+    const evil = await req3('/api/auth/request-otp', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'https://evil.example' }, body: JSON.stringify({ phone: '12345' }) });
+    check(evil.status === 403 && evil.body?.error === 'cross-site request rejected', 'cross-site Origin on a mutating route is rejected (403, { error } shape)');
+    const same = await req3('/api/auth/request-otp', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: BASE3 }, body: JSON.stringify({ phone: '12345' }) });
+    check(same.status === 400, 'same-origin POST passes the origin check (reaches phone validation, 400)');
+    const noHdr = await req3('/api/auth/request-otp', j({ phone: '12345' }));
+    check(noHdr.status === 400, 'mutating request with no Origin/Referer is allowed through by design (400 from validation)');
+    const badRef = await req3('/api/auth/request-otp', { method: 'POST', headers: { 'Content-Type': 'application/json', Referer: 'https://evil.example/x' }, body: JSON.stringify({ phone: '12345' }) });
+    check(badRef.status === 403 && badRef.body?.error === 'cross-site request rejected', 'cross-site Referer (no Origin) on a mutating route is rejected (403)');
+    const nullOrigin = await req3('/api/auth/request-otp', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'null' }, body: JSON.stringify({ phone: '12345' }) });
+    check(nullOrigin.status === 403 && nullOrigin.body?.error === 'cross-site request rejected', 'Origin "null" (sandboxed/file context) is rejected (403)');
+    const cbEvil = await req3('/api/applink/sms-report', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'https://evil.example' }, body: JSON.stringify({ requestId: 'hardening-cb', deliveryStatus: 'DELIVERED' }) });
+    check(cbEvil.status === 200 && cbEvil.body?.ok === true, 'AppLink callback with an evil Origin is exempt and accepted (200)');
+    const getEvil = await req3('/api/health', { headers: { Origin: 'https://evil.example' } });
+    check(getEvil.status === 200, 'GET with a cross-site Origin is not a mutating request (200)');
+    const h3 = await req3('/api/health');
+    check(h3.headers.get('x-content-type-options') === 'nosniff', 'X-Content-Type-Options: nosniff');
+    check(h3.headers.get('x-frame-options') === 'DENY', 'X-Frame-Options: DENY');
+    check(h3.headers.get('referrer-policy') === 'no-referrer', 'Referrer-Policy: no-referrer');
+    const secMod = await import(path.resolve(import.meta.dirname, '..', '..', 'server', 'src', 'security-headers.js'));
+    const sec = secMod.default || secMod;
+    check(h3.headers.get('content-security-policy') === sec.CSP, 'Content-Security-Policy is exactly the inventoried policy string');
+
+    console.log('== hardening: pending profile survives a server restart ==');
+    const restartPhone = '01700000031';
+    const begin = await req3('/api/auth/request-otp', j({ phone: restartPhone, name: 'Restart Test', role: 'worker' }));
+    check(begin.status === 200 && begin.body?.sandbox?.otp, 'profile begun on the scratch server (OTP issued)');
+    const restartOtp = begin.body.sandbox.otp;
+    server3.kill('SIGTERM');
+    await sleep(500);
+    server3 = spawnScratch(PORT3);
+    check(await waitUp(BASE3), 'scratch server restarts on the same port');
+    const finish = await req3('/api/auth/verify-otp', j({ phone: restartPhone, code: restartOtp }));
+    check(finish.status === 200 && finish.body?.token, 'profile started before the restart still verifies after it');
+    check(finish.body?.user?.name === 'Restart Test', 'restarted server still has the pending name (SQLite, not memory)');
+    check(finish.body?.user?.role === 'worker', 'restarted server still has the pending role (SQLite, not memory)');
+  } finally {
+    server3.kill('SIGTERM');
+    await sleep(300);
+  }
+
+  console.log('== hardening: general write rate limit (1000 / 15 min / IP, fresh server) ==');
+  // A fresh scratch server, so its in-memory counter starts at zero: the
+  // first 1000 mutating /api requests are allowed, the 1001st is 429 in
+  // the existing { error } shape. POST /api/demo/reset without the demo
+  // token is refused (403) before any state change, so the flood is
+  // side-effect free; the limiter has no test hook, so this exercises
+  // the real 1000-request window end to end (a few seconds locally).
+  const PORT4 = 3460;
+  const BASE4 = `http://127.0.0.1:${PORT4}`;
+  const server4 = spawnScratch(PORT4);
+  try {
+    check(await waitUp(BASE4), 'rate-limit scratch server boots');
+    let allowed = 0;
+    let first429At = null;
+    for (let i = 0; i < 1001; i++) {
+      const r = await fetch(BASE4 + '/api/demo/reset', j({}));
+      if (r.status === 429) { first429At = i + 1; break; }
+      if (r.status !== 403) throw new Error('rate-limit probe got unexpected status ' + r.status + ' at request ' + (i + 1));
+      allowed++;
+    }
+    check(allowed === 1000, 'first 1000 mutating /api requests from one IP are allowed');
+    check(first429At === 1001, '1001st mutating /api request in 15 minutes is 429');
+    const over = await fetch(BASE4 + '/api/demo/reset', j({}));
+    const overText = await over.text();
+    let overBody = null;
+    try { overBody = JSON.parse(overText); } catch { /* non-JSON */ }
+    check(over.status === 429 && typeof overBody?.error === 'string', 'over-limit request is 429 in the existing { error } shape');
+  } finally {
+    server4.kill('SIGTERM');
+    await sleep(300);
+  }
+
   console.log(`REGRESSION: PASS (${passed} assertions)`);
   code = 0;
 } catch (e) {

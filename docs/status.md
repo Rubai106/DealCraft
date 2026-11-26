@@ -30,6 +30,10 @@ sandbox; the text fallback is verified), service-worker offline re-visit,
 photo retention/deletion pass, withdraw-bid endpoint, SMS-reply actions
 (`dealcraft YES/NO` by plain SMS).
 
+## Concurrency
+
+The server uses node:sqlite's synchronous DatabaseSync with WAL mode and a 5-second busy timeout, so every query runs on the event loop and concurrent writers queue instead of failing. That keeps the single-process demo correct, but it caps throughput at what one Node process can serialise — under sustained parallel write load, requests queue behind the slowest query and there is no connection pool or replica to absorb it.
+
 ## External review
 
 An independent review of the repo (26 Nov 2026) scored it **71/100**;

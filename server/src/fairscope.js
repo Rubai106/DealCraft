@@ -73,21 +73,19 @@ function termStates(trade, answers = {}, skippedTerms = []) {
 // Returns { unresolved, invalid }: unresolved terms block creation;
 // invalid terms are skippedTerms that are not questions of this trade
 // (or are already answered — an answered term needs no skip).
+// The answered / skipped / unresolved classification lives in exactly
+// one place — termStates() — so the gate cannot drift from it.
 function validateSkippedTerms(trade, answers = {}, skippedTerms = []) {
   const qs = questionsFor(trade);
-  const ans = answers || {};
   const skipped = Array.isArray(skippedTerms) ? skippedTerms.map(String) : [];
   const invalid = skipped.filter((q) => !qs.includes(q));
-  const unresolved = qs.filter((q) => {
-    const a = ans[q];
-    const answered = a !== undefined && a !== null && a !== '' && a !== 'Not decided';
-    return !answered && !skipped.includes(q);
-  });
-  // Only genuinely skipped (unanswered) terms are recorded as skipped.
-  const effectiveSkipped = skipped.filter((q) => qs.includes(q) && !(() => {
-    const a = ans[q];
-    return a !== undefined && a !== null && a !== '' && a !== 'Not decided';
-  })());
+  const states = termStates(trade, answers, skipped);
+  const unresolved = states.filter((s) => s.state === 'unresolved').map((s) => s.question);
+  // Only genuinely skipped (unanswered) terms are recorded as skipped,
+  // in the caller's order: stored skippedTerms feed the fingerprint and
+  // the ResolvePack PDF, so order (and duplicates) must not change.
+  const skippedSet = new Set(states.filter((s) => s.state === 'skipped').map((s) => s.question));
+  const effectiveSkipped = skipped.filter((q) => skippedSet.has(q));
   return { unresolved, invalid, effectiveSkipped };
 }
 
