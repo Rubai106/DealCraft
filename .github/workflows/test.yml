@@ -14,5 +14,12 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      - name: Install system tools (pdftotext + Bengali font)
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils fonts-noto-core fonts-beng
+      - name: Install Chrome for the PDF + hit-test checks
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v1
       - run: npm ci
       - run: npm test
+        env:
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
