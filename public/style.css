@@ -140,7 +140,7 @@ html[lang="bn"] .hero-title .hl-2{font-size:clamp(24px,15.6cqi,130px)}
 .hero-corner-tr{top:20px;right:40px}
 .hero-corner-bl{bottom:24px;left:40px;max-width:200px;line-height:1.6}
 .hero-sub{color:#1a1a1a;font-size:15px;max-width:52ch;margin:0 0 20px}
-.hero-panel .btn-row{justify-content:flex-start}
+.hero-panel .btn-row{justify-content:flex-start;position:relative;z-index:3}
 /* Secondary CTA — a quiet text link with an arrow, not a second button.
    One dominant action per premium pattern. */
 .hero-demo-link{background:none;border:0;padding:0 4px;min-height:52px;display:inline-flex;align-items:center;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#fff;text-decoration:none;transition:color 220ms var(--ease-out)}

@@ -1,6 +1,6 @@
 # Security & privacy
 
-All items below are covered by the regression suite (`npm test`, 610
+All items below are covered by the regression suite (`npm test`, 611
 assertions, PASS — the count grows as coverage is added).
 
 ## Billing

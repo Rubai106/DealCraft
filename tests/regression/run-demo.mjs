@@ -1879,10 +1879,11 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     check(fs.readFileSync(path.resolve(ROOT_P1, '.gitignore'), 'utf8').split('\n').some((l) => l.trim() === '.taste-skill/'), 'part 1: .gitignore covers .taste-skill/');
     // Item 8 (docs show the TRUE count): the README must carry the exact
     // number this run reports. EXPECTED_COUNT is the FINAL suite total
-    // (610 at the ceiling-pass verification run); this check runs
+    // (611 after the demo-CTA hit-test fix; 610 at the ceiling-pass
+    // verification run); this check runs
     // mid-suite (live count here was 526 before it), so it pins only
     // that the README states the final total, not the live count.
-    const EXPECTED_COUNT = 610; // final measured total, ceiling pass (was 533 pre-pass)
+    const EXPECTED_COUNT = 611; // final measured total, demo-CTA hit-test fix (was 610 pre-fix)
     const p1Readme = fs.readFileSync(path.resolve(ROOT_P1, 'README.md'), 'utf8');
     check(p1Readme.includes(EXPECTED_COUNT + ' assertions'), 'part 1: README shows the true assertion count (live count at this point: ' + passed + ', final suite total: ' + EXPECTED_COUNT + ')');
   }
@@ -2259,6 +2260,113 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     await sleep(300);
   }
 }
+
+  // =====================================================================
+  // Demo CTA hit-test (2026-11-27): at desktop widths the hero record-card
+  // stack (.rcard-scene, z-index 2) is pulled up over the bottom of the
+  // orange panel and paints above the panel's btn-row, so real clicks on
+  // "See the demo →" (#cta-demo) landed on the scene, not the button —
+  // the handler was attached and the seed endpoint worked, but no click
+  // ever reached it. The fix is one rule in public/style.css:
+  // .hero-panel .btn-row{position:relative;z-index:3}. This block proves
+  // it in a real headless browser over CDP (built-in WebSocket, no new
+  // dependency): hit-test the button centre at 1440px, real-click it, and
+  // require the seed to return 200 and the seeded job's detail view to
+  // open. It runs against its own scratch production server (DEMO_MODE
+  // on, no demo token — the browser sends no x-demo-token, so a token
+  // would 403 the click). Chromium is located from CHROME_PATH, the
+  // Playwright cache, or /opt/meta-chromium/chrome; if no binary exists
+  // the check fails loudly instead of silently passing.
+  {
+    console.log('== demo CTA hit-test: #cta-demo receives clicks at 1440px ==');
+    const PORT_CTA = 3464;
+    const BASE_CTA = `http://127.0.0.1:${PORT_CTA}`;
+    const ROOT_CTA = path.resolve(import.meta.dirname, '..', '..');
+    const chromeCandidates = [
+      process.env.CHROME_PATH || '',
+      path.join(os.homedir(), '.cache', 'ms-playwright', 'chromium-1248', 'chrome-linux64', 'chrome'),
+      path.join(os.homedir(), 'workspace', 'bin', 'chrome-no-sandbox.sh'),
+      '/opt/meta-chromium/chrome',
+    ].filter(Boolean);
+    const chromeBin = chromeCandidates.find((p) => { try { return fs.existsSync(p); } catch { return false; } });
+    if (!chromeBin) throw new Error('demo CTA hit-test needs a Chromium binary (set CHROME_PATH) — none of ' + chromeCandidates.join(', ') + ' exists');
+    let serverCTA = spawn(process.execPath, ['server/server.js'], {
+      cwd: ROOT_CTA,
+      env: { ...process.env, PORT: String(PORT_CTA), NODE_ENV: 'production', DEMO_MODE: 'true', APPLINK_MODE: 'sandbox', PUBLIC_BASE_URL: 'https://dealcraft.example.test', TRUST_PROXY: 'true' },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let chromeCTA = null;
+    let wsCTA = null;
+    try {
+      let upCTA = false;
+      for (let i = 0; i < 40; i++) {
+        try { const r = await fetch(BASE_CTA + '/api/health'); if (r.status === 200) { upCTA = true; break; } } catch { /* not up yet */ }
+        await sleep(250);
+      }
+      if (!upCTA) throw new Error('demo CTA hit-test: scratch server did not start');
+      const profileCTA = path.join(os.tmpdir(), 'dc-regression-cta');
+      try { fs.rmSync(profileCTA, { recursive: true, force: true }); } catch { /* fresh profile is best-effort */ }
+      chromeCTA = spawn(chromeBin, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage',
+        '--remote-debugging-port=9224', '--user-data-dir=' + profileCTA, '--window-size=1440,900', 'about:blank'],
+        { stdio: 'ignore' });
+      let devtoolsCTA = false;
+      for (let i = 0; i < 40; i++) {
+        try { const r = await fetch('http://127.0.0.1:9224/json/version'); if (r.status === 200) { devtoolsCTA = true; break; } } catch { /* not up yet */ }
+        await sleep(250);
+      }
+      if (!devtoolsCTA) throw new Error('demo CTA hit-test: Chrome DevTools endpoint did not come up');
+      const newTarget = await fetch('http://127.0.0.1:9224/json/new?about:blank', { method: 'PUT' });
+      const targetCTA = await newTarget.json();
+      wsCTA = new WebSocket(targetCTA.webSocketDebuggerUrl);
+      await new Promise((res, rej) => { wsCTA.onopen = res; wsCTA.onerror = rej; });
+      let ctaMsgId = 0;
+      const ctaPending = new Map();
+      const seedStatuses = [];
+      wsCTA.onmessage = (ev) => {
+        const m = JSON.parse(ev.data);
+        if (m.id && ctaPending.has(m.id)) { const p = ctaPending.get(m.id); ctaPending.delete(m.id); m.error ? p.reject(new Error(JSON.stringify(m.error))) : p.resolve(m.result); }
+        if (m.method === 'Network.responseReceived' && m.params?.response?.url?.includes('/api/demo/seed')) seedStatuses.push(m.params.response.status);
+      };
+      const cdpCTA = (method, params = {}) => new Promise((resolve, reject) => {
+        const id = ++ctaMsgId;
+        ctaPending.set(id, { resolve, reject });
+        wsCTA.send(JSON.stringify({ id, method, params }));
+        setTimeout(() => { if (ctaPending.has(id)) { ctaPending.delete(id); reject(new Error('CDP timeout: ' + method)); } }, 20000);
+      });
+      const evalCTA = async (expression) => {
+        const r = await cdpCTA('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
+        if (r.exceptionDetails) throw new Error('page JS error: ' + JSON.stringify(r.exceptionDetails).slice(0, 300));
+        return r.result?.value;
+      };
+      await cdpCTA('Page.enable');
+      await cdpCTA('Runtime.enable');
+      await cdpCTA('Network.enable');
+      await cdpCTA('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+      await cdpCTA('Page.navigate', { url: BASE_CTA + '/' });
+      for (let i = 0; i < 60; i++) { // wait for load, then let the hero entrance settle
+        try { if (await evalCTA('document.readyState') === 'complete') break; } catch { /* not ready yet */ }
+        await sleep(250);
+      }
+      await sleep(2000);
+      const hitCTA = JSON.parse(await evalCTA(`(() => { const el = document.getElementById('cta-demo'); if (!el) return JSON.stringify({ hit: 'MISSING' }); const r = el.getBoundingClientRect(); const cx = r.left + r.width / 2, cy = r.top + r.height / 2; const hit = document.elementFromPoint(cx, cy); return JSON.stringify({ cx: Math.round(cx), cy: Math.round(cy), hit: hit ? (hit.id || hit.tagName) : 'null' }); })()`));
+      await cdpCTA('Input.dispatchMouseEvent', { type: 'mousePressed', x: hitCTA.cx, y: hitCTA.cy, button: 'left', clickCount: 1 });
+      await cdpCTA('Input.dispatchMouseEvent', { type: 'mouseReleased', x: hitCTA.cx, y: hitCTA.cy, button: 'left', clickCount: 1 });
+      let landedCTA = null;
+      for (let i = 0; i < 20; i++) {
+        await sleep(500);
+        landedCTA = JSON.parse(await evalCTA(`(() => { const d = document.getElementById('view-detail'); const t = document.getElementById('detail-title'); return JSON.stringify({ detailHidden: d ? d.hidden : true, title: t ? t.textContent.trim() : '' }); })()`));
+        if (!landedCTA.detailHidden && landedCTA.title && landedCTA.title !== '—') break;
+      }
+      check(hitCTA.hit === 'cta-demo' && seedStatuses.includes(200) && !landedCTA.detailHidden && landedCTA.title.includes('ELECTRICIAN'),
+        'demo CTA hit-test (1440px): elementFromPoint at #cta-demo centre is #cta-demo, real click seeds (POST /api/demo/seed → 200) and lands in the seeded job detail',
+        JSON.stringify({ hit: hitCTA.hit, seedStatuses, landed: landedCTA }));
+    } finally {
+      try { wsCTA?.close(); } catch { /* already closed */ }
+      try { chromeCTA?.kill('SIGKILL'); } catch { /* already dead */ }
+      serverCTA.kill('SIGTERM');
+      await sleep(300);
+    }
+  }
 
 
   console.log(`REGRESSION: PASS (${passed} assertions)`);
