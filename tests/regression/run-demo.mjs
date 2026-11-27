@@ -1879,11 +1879,11 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     check(fs.readFileSync(path.resolve(ROOT_P1, '.gitignore'), 'utf8').split('\n').some((l) => l.trim() === '.taste-skill/'), 'part 1: .gitignore covers .taste-skill/');
     // Item 8 (docs show the TRUE count): the README must carry the exact
     // number this run reports. EXPECTED_COUNT is the FINAL suite total
-    // (611 after the demo-CTA hit-test fix; 610 at the ceiling-pass
-    // verification run); this check runs
+    // (612 after the dotenv fix; 611 after the demo-CTA hit-test fix);
+    // this check runs
     // mid-suite (live count here was 526 before it), so it pins only
     // that the README states the final total, not the live count.
-    const EXPECTED_COUNT = 611; // final measured total, demo-CTA hit-test fix (was 610 pre-fix)
+    const EXPECTED_COUNT = 612; // final measured total, dotenv fix (was 611 pre-fix)
     const p1Readme = fs.readFileSync(path.resolve(ROOT_P1, 'README.md'), 'utf8');
     check(p1Readme.includes(EXPECTED_COUNT + ' assertions'), 'part 1: README shows the true assertion count (live count at this point: ' + passed + ', final suite total: ' + EXPECTED_COUNT + ')');
   }
@@ -2365,6 +2365,53 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       try { chromeCTA?.kill('SIGKILL'); } catch { /* already dead */ }
       serverCTA.kill('SIGTERM');
       await sleep(300);
+    }
+  }
+
+  // dotenv: a repo-root .env file is honoured. The server loads dotenv
+  // first (server/server.js), so DEMO_MODE=true from a .env enables the
+  // demo seed even when the process environment has no DEMO_MODE at all.
+  // The temp .env lives in /tmp, never in the repo, and is removed after.
+  {
+    console.log('== dotenv: .env file is honoured ==');
+    const PORT_ENV = 3465;
+    const BASE_ENV = `http://127.0.0.1:${PORT_ENV}`;
+    const ROOT_ENV = path.resolve(import.meta.dirname, '..', '..');
+    const VENV = 'cccccccccccccccccccccccccccccccc';
+    const envDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dc-dotenv-'));
+    fs.writeFileSync(path.join(envDir, '.env'), 'DEMO_MODE=true\n', 'utf8');
+    const envClean = { ...process.env };
+    delete envClean.DEMO_MODE;
+    delete envClean.DEALCRAFT_DEMO_TOKEN;
+    const envServer = spawn(process.execPath, [path.resolve(ROOT_ENV, 'server', 'server.js')], {
+      cwd: envDir,
+      env: { ...envClean, PORT: String(PORT_ENV), APPLINK_MODE: 'sandbox' },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const reqE = async (p, opts = {}) => {
+      const res = await fetch(BASE_ENV + p, opts);
+      const text = await res.text();
+      let body = null;
+      try { body = JSON.parse(text); } catch { /* non-JSON */ }
+      return { status: res.status, body, text };
+    };
+    const waitUpE = async () => {
+      for (let i = 0; i < 40; i++) {
+        try { const r = await reqE('/api/health'); if (r.status === 200) return true; } catch { /* not up yet */ }
+        await sleep(250);
+      }
+      return false;
+    };
+    try {
+      if (!await waitUpE()) throw new Error('dotenv: server did not boot from a temp cwd holding a DEMO_MODE=true .env');
+      const envSeed = await reqE('/api/demo/seed', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-demo-visitor': VENV }, body: '{}' });
+      check(envSeed.status === 200, 'dotenv: DEMO_MODE=true from .env enables the demo seed (no DEMO_MODE in process env)');
+      // Clean up the seeded visitor rows; no assertion — the suite ends here.
+      try { await reqE('/api/demo/reset', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-demo-visitor': VENV }, body: '{}' }); } catch { /* cleanup only */ }
+    } finally {
+      envServer.kill('SIGTERM');
+      await sleep(300);
+      try { fs.rmSync(envDir, { recursive: true, force: true }); } catch { /* temp cleanup */ }
     }
   }
 

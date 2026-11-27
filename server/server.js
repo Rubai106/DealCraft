@@ -1,11 +1,17 @@
 // DealCraft backend — Express + built-in node:sqlite.
 //
+// dotenv first: values from a repo-root .env file (DEMO_MODE,
+// DEALCRAFT_DEMO_TOKEN, APPLINK_* …) reach process.env before any other
+// module is loaded. Real environment variables always win — dotenv never
+// overrides a variable that is already set — so production stays safe
+// and a missing .env changes nothing.
+require('dotenv').config();
+const express = require('express');
 // DealCraft is a mutually confirmed digital work record for informal jobs
 // in Bangladesh (electrician / painter / plumber). It is NOT a contract
 // service: DealCraft holds no money, does not guarantee payment, and this
 // record is not a legal document. Payment entries here are acknowledgements
 // only. AppLink reaches Banglalink subscribers only.
-const express = require('express');
 const fs = require('node:fs');
 const path = require('node:path');
 const {
