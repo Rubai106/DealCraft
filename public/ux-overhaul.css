@@ -121,7 +121,7 @@ button:disabled, input:disabled, select:disabled, textarea:disabled {
 .view-scroll {
   scrollbar-gutter: stable;
   overscroll-behavior-y: contain;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   padding: 8px 2px max(20px, env(safe-area-inset-bottom));
 }
 .view-head {
