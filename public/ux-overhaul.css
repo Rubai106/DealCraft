@@ -203,7 +203,7 @@ button:disabled, input:disabled, select:disabled, textarea:disabled {
 }
 @media (max-width: 520px) {
   #view-new .view-head { align-items: flex-start; }
-  #view-new .view-head h2 { flex-basis: 100%; order: -1; }
+  #view-new .view-head h2 { flex-basis: 100%; order: 1; }
   #view-new .chat-q-row { flex-direction: column; }
   #view-new .chat-q-row .btn { width: 100%; }
   #view-new .field-grid { grid-template-columns: minmax(0,1fr); }
@@ -420,7 +420,7 @@ button:disabled, input:disabled, select:disabled, textarea:disabled {
 @media (max-width: 520px) {
   #view-detail .view-head { flex-wrap: wrap; }
   #view-detail .view-head > button { min-height: 40px; }
-  #view-detail .view-head h2 { flex: 1 1 100%; order: -1; }
+  #view-detail .view-head h2 { flex: 1 1 100%; order: 1; }
   #view-detail .balance > div { padding: 12px 7px; }
   #view-detail .stepper button { padding-inline: 10px; font-size: 9px; }
   #view-detail .fab-bar { gap: 6px; }
