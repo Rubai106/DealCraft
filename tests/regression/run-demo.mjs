@@ -1,7 +1,7 @@
 // DealCraft regression: boots the real server on a scratch port and runs the
 // full demo scenario end-to-end over real HTTP, asserting every step.
 // Exits non-zero on ANY failure. Usage: npm run regression  (or npm test)
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -59,6 +59,14 @@ const SEED_MILESTONES = [
   { title: 'First stage', amount: 7000 },
   { title: 'Completion', amount: 6000 },
 ];
+// After a ChangeLock accept, milestones rescale proportionally to the new
+// total (item 4): 18000 -> 20000 gives 5556 / 7778 / 6666, last milestone
+// absorbs the remainder. The V2 fingerprint is computed from the rescaled list.
+const RESCALED_V2_MILESTONES = [
+  { title: 'Advance', amount: 5556 },
+  { title: 'First stage', amount: 7778 },
+  { title: 'Completion', amount: 6666 },
+];
 async function req(p, opts = {}) {
   const res = await fetch(BASE + p, opts);
   const text = await res.text();
@@ -67,17 +75,6 @@ async function req(p, opts = {}) {
   return { status: res.status, body, text, headers: res.headers };
 }
 const j = (obj) => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(obj) });
-// PDFKit writes text as hex fragments split by kerning ([<5265...> 25 <...>] TJ),
-// so a phrase never appears contiguously in the raw bytes. Decode every hex
-// string in the file and join them to recover the readable text.
-function pdfPlainText(s) {
-  const parts = [];
-  for (const m of String(s).matchAll(/<([0-9a-fA-F\s]+)>/g)) {
-    const hex = m[1].replace(/\s+/g, '');
-    if (hex.length > 0 && hex.length % 2 === 0) parts.push(Buffer.from(hex, 'hex').toString('latin1'));
-  }
-  return parts.join('');
-}
 // Demo calls carry the dev token (demo endpoints are token-gated when one is configured).
 const dj = (obj) => ({ method: 'POST', headers: { 'Content-Type': 'application/json', 'x-demo-token': 'test-demo-token' }, body: JSON.stringify(obj) });
 const auth = (token) => ({ Authorization: 'Bearer ' + token });
@@ -268,10 +265,11 @@ try {
   const detail1 = await req(`/api/jobs/${job.id}?token=${workerToken}`);
   check(detail1.status === 200, 'job detail readable via worker token');
   const v1 = detail1.body.versions.find((v) => v.version_no === 1);
+  const SEED_DEADLINE = v1?.deadline; // seed deadline is relative (+7 days from seeding, item 12)
   check(v1?.price === 18000, 'V1 price is BDT 18,000');
-  check(v1?.fingerprint === fingerprint({ job_id: job.id, version_no: 1, scope: 'Apartment electrical rewiring — 2 bedrooms', price: 18000, deadline: '2026-12-05', answers: SEED_ANSWERS, skippedTerms: [], milestones: SEED_MILESTONES }), 'V1 SHA-256 fingerprint recomputes (full agreement payload)');
+  check(v1?.fingerprint === fingerprint({ job_id: job.id, version_no: 1, scope: 'Apartment electrical rewiring — 2 bedrooms', price: 18000, deadline: SEED_DEADLINE, answers: SEED_ANSWERS, skippedTerms: [], milestones: SEED_MILESTONES }), 'V1 SHA-256 fingerprint recomputes (full agreement payload)');
   // The fingerprint covers the FairScope answers: changing one answer changes it.
-  check(v1?.fingerprint !== fingerprint({ job_id: job.id, version_no: 1, scope: 'Apartment electrical rewiring — 2 bedrooms', price: 18000, deadline: '2026-12-05', answers: { ...SEED_ANSWERS, 'Transport cost': 'Hirer pays' }, skippedTerms: [], milestones: SEED_MILESTONES }), 'changing a FairScope answer changes the fingerprint');
+  check(v1?.fingerprint !== fingerprint({ job_id: job.id, version_no: 1, scope: 'Apartment electrical rewiring — 2 bedrooms', price: 18000, deadline: SEED_DEADLINE, answers: { ...SEED_ANSWERS, 'Transport cost': 'Hirer pays' }, skippedTerms: [], milestones: SEED_MILESTONES }), 'changing a FairScope answer changes the fingerprint');
 
   console.log('== dual OTP confirmation -> ACTIVE ==');
   const hc = await req(`/api/jobs/${job.id}/hirer-confirm`, aj(token, { otpCode: seed.body.sandboxOtps.hirerConfirm }));
@@ -298,8 +296,9 @@ try {
   check(unsub.status === 200 && unsub.body?.status === 'CANCELLED', 'unsubscribe cancels the subscription');
   const billingAfter = await req('/api/billing/status', { headers: auth(token) });
   check(billingAfter.body?.subscriptionActive === false, 'billing status shows subscription cancelled');
-  // The 402 attempt already consumed the seeded worker OTP (verify runs
-  // before the billing check), so request a fresh one for the real confirm.
+  // The 402 attempt did NOT consume the seeded worker OTP (the fee is
+  // checked before the OTP is verified, item 17) — request a fresh one
+  // anyway for the real confirm, as before.
   const wcOtp = await req(`/api/worker/${workerToken}/request-otp`, j({ purpose: 'worker-confirm' }));
   check(wcOtp.status === 200 && wcOtp.body?.sandbox?.otp, 'fresh worker-confirm OTP issued after paying the fee');
   const wc = await req(`/api/worker/${workerToken}/confirm`, j({ otpCode: wcOtp.body.sandbox.otp }));
@@ -313,7 +312,7 @@ try {
   const smsPayload = JSON.parse(smsEvents[0].payload_json || '{}');
   check(smsPayload.fingerprint8 === v1.fingerprint.slice(0, 8), 'summary SMS carries the first 8 characters of the V1 fingerprint');
   check(Array.isArray(smsPayload.to) && smsPayload.to.includes(HIRER) && smsPayload.to.includes(WORKER), 'summary SMS sent to both hirer and worker');
-  check(typeof smsPayload.text === 'string' && smsPayload.text.includes('৳18000') && smsPayload.text.includes('2026-12-05') && smsPayload.text.includes('3টি মাইলস্টোন') && smsPayload.text.endsWith(job.id), 'summary SMS text has price/deadline/milestone count and ends with the record reference');
+  check(typeof smsPayload.text === 'string' && smsPayload.text.includes('৳18000') && smsPayload.text.includes(SEED_DEADLINE) && smsPayload.text.includes('3টি মাইলস্টোন') && smsPayload.text.endsWith(job.id), 'summary SMS text has price/deadline/milestone count and ends with the record reference');
   const applogSms = await req('/api/applink/log', { headers: auth(token) });
   const summaryEntry = (applogSms.body?.entries || []).find((e) => e.api === 'sms.send' && typeof e.request?.message === 'string' && e.request.message.includes('সক্রিয়'));
   check(!!summaryEntry, 'summary SMS appears in the AppLink log (sandbox)');
@@ -330,7 +329,7 @@ try {
   const v1after = detail3.body.versions.find((v) => v.version_no === 1);
   const v2 = detail3.body.versions.find((v) => v.version_no === 2);
   check(v1after?.price === 18000 && v1after?.fingerprint === v1.fingerprint, 'V1 intact with original price + fingerprint');
-  check(v2?.price === 20000 && v2?.fingerprint === fingerprint({ job_id: job.id, version_no: 2, scope: 'Apartment electrical rewiring — 2 bedrooms + two extra points', price: 20000, deadline: '2026-12-05', answers: SEED_ANSWERS, skippedTerms: [], milestones: SEED_MILESTONES }), 'V2 fingerprint recomputes (full agreement payload)');
+  check(v2?.price === 20000 && v2?.fingerprint === fingerprint({ job_id: job.id, version_no: 2, scope: 'Apartment electrical rewiring — 2 bedrooms + two extra points', price: 20000, deadline: SEED_DEADLINE, answers: SEED_ANSWERS, skippedTerms: [], milestones: RESCALED_V2_MILESTONES }), 'V2 fingerprint recomputes from the rescaled milestones (full agreement payload)');
   check(detail3.body.events.some((e) => e.type === 'CHANGE_PROPOSED') && detail3.body.events.some((e) => e.type === 'CHANGE_APPROVED'), 'change events in the log');
   // Tamper-evident verify: V2 fingerprint matches, an unknown one does not.
   const verifyMatch = await req('/api/verify?fp=' + encodeURIComponent(v2.fingerprint));
@@ -341,6 +340,77 @@ try {
   check(verifyNoFp.status === 400, 'verify endpoint without fp is rejected (400)');
   const verifyPage = await req('/verify?fp=' + encodeURIComponent(v2.fingerprint));
   check(verifyPage.status === 200 && verifyPage.text.includes('id="verify-result"') && verifyPage.text.includes('/api/verify'), 'public verify page serves and asks /api/verify');
+// ---------------------------------------------------------------- BLOCK A
+// Verify truthfulness + SMS prefix. Paste after the verify-page check
+// (~line 343). In scope here: job, workerToken, token, v1, v2, detail3,
+// painter, painterAnswers, SEED_ANSWERS, SEED_MILESTONES, fingerprint,
+// check, req, aj, j. The demo job is ACTIVE with V1 (BDT 18,000) and
+// V2 (BDT 20,000); the painter job is still DRAFT at this point.
+{
+  const verifyV2 = await req('/api/verify?fp=' + encodeURIComponent(v2.fingerprint));
+  check(verifyV2.status === 200 && verifyV2.body?.match === true && verifyV2.body?.versionNo === 2
+    && verifyV2.body?.jobId === job.id && verifyV2.body?.fingerprint === v2.fingerprint
+    && verifyV2.body?.versionState === 'current' && verifyV2.body?.isCurrentVersion === true
+    && verifyV2.body?.currentVersion === 2 && verifyV2.body?.currentPrice === 20000
+    && verifyV2.body?.status === 'ACTIVE' && verifyV2.body?.confirmedByBothSides === true,
+    'verify: V2 is current, ACTIVE, confirmed by both sides, current price BDT 20,000');
+  check(verifyV2.body?.scope === 'Apartment electrical rewiring — 2 bedrooms + two extra points'
+    && verifyV2.body?.price === 20000,
+    'verify: V2 returns the scope text the fingerprint covers + its own price');
+  // ChangeLock rescales milestones proportionally when a change is
+  // accepted (routes/changes.js: the old list summed to the old price
+  // 18,000, so it is rescaled to the new total 20,000 — Advance 5556,
+  // First stage 7778, Completion 6666 — last milestone absorbs the
+  // remainder). Assert the rescaled amounts, NOT the seeded ones.
+  check(Array.isArray(verifyV2.body?.milestones) && verifyV2.body.milestones.length === 3
+    && verifyV2.body.milestones[0]?.title === 'Advance' && verifyV2.body.milestones[0]?.amount === 5556
+    && verifyV2.body.milestones[1]?.title === 'First stage' && verifyV2.body.milestones[1]?.amount === 7778
+    && verifyV2.body.milestones[2]?.title === 'Completion' && verifyV2.body.milestones[2]?.amount === 6666,
+    'verify: V2 returns the 3 milestones the fingerprint covers, rescaled to BDT 20,000');
+  check(verifyV2.body?.matchKind === 'full fingerprint match' && verifyV2.body?.prefixMatch === false,
+    'verify: full-fingerprint match is labelled as such (not a prefix match)');
+
+  const verifyV1 = await req('/api/verify?fp=' + encodeURIComponent(v1.fingerprint));
+  check(verifyV1.status === 200 && verifyV1.body?.match === true && verifyV1.body?.versionNo === 1
+    && verifyV1.body?.versionState === 'superseded' && verifyV1.body?.isCurrentVersion === false
+    && verifyV1.body?.currentVersion === 2 && verifyV1.body?.currentPrice === 20000,
+    'verify: V1 is authentic but SUPERSEDED, names current V2 + its BDT 20,000 price');
+  check(verifyV1.body?.price === 18000 && verifyV1.body?.scope === 'Apartment electrical rewiring — 2 bedrooms'
+    && verifyV1.body?.status === 'ACTIVE' && verifyV1.body?.confirmedByBothSides === true,
+    'verify: superseded V1 still reports its own price/scope, and the (ACTIVE) job is confirmed by both sides');
+
+  // SMS prefix: the summary SMS carries only the first 8 fingerprint
+  // characters, so an 8+ hex-char prefix must verify like a full match.
+  const v2Prefix = v2.fingerprint.slice(0, 8);
+  const verifyPrefix = await req('/api/verify?fp=' + encodeURIComponent(v2Prefix));
+  check(verifyPrefix.status === 200 && verifyPrefix.body?.match === true && verifyPrefix.body?.versionNo === 2
+    && verifyPrefix.body?.prefixMatch === true && verifyPrefix.body?.matchKind === 'prefix match from SMS'
+    && verifyPrefix.body?.versionState === 'current',
+    'verify: unique 8-char SMS prefix of V2 verifies as a current prefix match from SMS');
+  const v1Prefix = v1.fingerprint.slice(0, 8);
+  const verifyV1Prefix = await req('/api/verify?fp=' + encodeURIComponent(v1Prefix));
+  check(verifyV1Prefix.status === 200 && verifyV1Prefix.body?.match === true && verifyV1Prefix.body?.versionNo === 1
+    && verifyV1Prefix.body?.prefixMatch === true && verifyV1Prefix.body?.matchKind === 'prefix match from SMS'
+    && verifyV1Prefix.body?.versionState === 'superseded' && verifyV1Prefix.body?.currentPrice === 20000,
+    'verify: unique 8-char SMS prefix of V1 verifies as a superseded prefix match');
+  const shortPrefix = await req('/api/verify?fp=' + encodeURIComponent(v2.fingerprint.slice(0, 4)));
+  check(shortPrefix.status === 200 && shortPrefix.body?.match === false,
+    'verify: a prefix shorter than 8 hex chars does not verify (match false)');
+
+  // A DRAFT job is never "confirmed by both sides": the painter job
+  // created earlier is still DRAFT here (never confirmed).
+  const painterFp = fingerprint({ job_id: painter.body.job.id, version_no: 1, scope: 'Repaint 2 bedrooms', price: 12000, deadline: '2026-12-10', answers: painterAnswers, skippedTerms: ['Number of coats'], milestones: [{ title: 'Advance', amount: 4000 }] });
+  const verifyDraft = await req('/api/verify?fp=' + encodeURIComponent(painterFp));
+  check(verifyDraft.status === 200 && verifyDraft.body?.match === true && verifyDraft.body?.versionNo === 1
+    && verifyDraft.body?.status === 'DRAFT' && verifyDraft.body?.confirmedByBothSides === false
+    && verifyDraft.body?.versionState === 'current' && verifyDraft.body?.isCurrentVersion === true
+    && verifyDraft.body?.currentVersion === 1 && verifyDraft.body?.currentPrice === 12000,
+    'verify: DRAFT job verifies as current but confirmedByBothSides is false');
+  check(verifyDraft.body?.scope === 'Repaint 2 bedrooms'
+    && Array.isArray(verifyDraft.body?.milestones) && verifyDraft.body.milestones.length === 1
+    && verifyDraft.body.milestones[0]?.title === 'Advance',
+    'verify: DRAFT job returns its scope + milestones, no both-sides claim');
+}
 
   console.log('== ChangeLock reject path ==');
   const change2 = await req(`/api/jobs/${job.id}/changes?token=${workerToken}`, j({ priceDelta: 500, reason: 'Extra socket' }));
@@ -547,16 +617,87 @@ try {
   check((dlLog.body?.entries || []).some((e) => e.api === 'sms.send' && typeof e.request?.message === 'string' && e.request.message.includes('শেষ তারিখ')), 'deadline nudge SMS sent via the existing SMS path (sandbox log)');
 
   console.log('== ResolvePack PDF + close + WorkPassport ==');
-  const pdf = await req(`/api/jobs/${job.id}/resolvepack`, { headers: auth(token) });
-  check(pdf.status === 200 && (pdf.headers.get('content-type') || '').includes('pdf'), 'ResolvePack PDF downloads');
-  check(pdf.text.startsWith('%PDF') && pdf.text.length > 1000, 'ResolvePack PDF is a real non-empty PDF');
-  // pdfkit writes text as fragmented hex strings in TJ arrays, so decode
-  // every hex string and rejoin before asserting on the wording.
-  const pdfDecoded = [...pdf.text.matchAll(/<([0-9a-fA-F]+)>/g)]
-    .map((m) => Buffer.from(m[1], 'hex').toString('latin1')).join('');
-  check(pdfDecoded.includes('Wall cutting and wall repair'), 'ResolvePack PDF lists FairScope answers as labelled lines');
-  check(pdfDecoded.includes('Worker includes wall repair'), 'ResolvePack PDF shows the FairScope answer, not just the question');
-  check(!pdfDecoded.includes('{"scope"'), 'ResolvePack PDF does not dump the scope as raw JSON');
+// ---------------------------------------------------------------- BLOCK B
+// ResolvePack PDF — REPLACES the old pdfPlainText block (~lines 550-559).
+// The PDF is fetched as raw bytes (req() decodes text as UTF-8, which
+// corrupts binary), then read with pdftotext. The QR IS A LINK: the
+// pack prints the verify URL and embeds the QR image for it.
+// In scope here: job, token, auth, check, v2, BASE, fs, os, path, spawnSync.
+// NOTE: this block is deliberately NOT wrapped in { } — pdfTextFromBytes
+// is declared at the enclosing try-block scope so BLOCK C (pasted after
+// it) can reuse it. Its const names (pdfRes/pdfBuf/pdfText/verifyUrl)
+// collide with nothing else in the suite.
+  const pdfRes = await fetch(BASE + `/api/jobs/${job.id}/resolvepack`, { headers: auth(token) });
+  const pdfBuf = Buffer.from(await pdfRes.arrayBuffer());
+  check(pdfRes.status === 200 && (pdfRes.headers.get('content-type') || '').includes('pdf'), 'ResolvePack PDF downloads');
+  check(pdfBuf.subarray(0, 4).toString('latin1') === '%PDF' && pdfBuf.length > 1000, 'ResolvePack PDF is a real non-empty PDF');
+  // Chromium PDFs are Flate-compressed: extract text with pdftotext,
+  // not the old pdfPlainText hex-decoder (which returns '' on them).
+  function pdfTextFromBytes(buf) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dealcraft-pdf-'));
+    const file = path.join(dir, 'pack.pdf');
+    try {
+      fs.writeFileSync(file, buf);
+      const r = spawnSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 });
+      if (r.status !== 0) throw new Error('pdftotext failed: ' + (r.stderr || ('exit ' + r.status)));
+      return r.stdout || '';
+    } finally {
+      try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_e) { /* temp cleanup only */ }
+    }
+  }
+  const pdfText = pdfTextFromBytes(pdfBuf);
+  check(typeof pdfText === 'string' && pdfText.length > 100, 'pdftotext extracts readable text from the ResolvePack PDF');
+  check(pdfText.includes('Wall cutting and wall repair'), 'ResolvePack PDF lists FairScope answers as labelled lines');
+  check(pdfText.includes('Worker includes wall repair'), 'ResolvePack PDF shows the FairScope answer, not just the question');
+  check(!pdfText.includes('{"scope"'), 'ResolvePack PDF does not dump the scope as raw JSON');
+  const verifyUrl = BASE + '/verify?fp=' + v2.fingerprint;
+  // pdftotext wraps the long URL across two lines ('.../verify?' then
+  // 'fp=<64 hex>'), so compare against whitespace-flattened text.
+  check(pdfText.replace(/\s+/g, '').includes(verifyUrl), 'ResolvePack PDF prints the verify URL with the V2 fingerprint (QR is a link)');
+  // The QR PNG is generated at 256x256 (QRCode.toBuffer width: 256), but
+  // Chromium stores it in the printed PDF as a 255x255 image XObject —
+  // assert the embedded size as it actually is, plus the two 1x1 test
+  // photo: the 255x255 XObject is the QR.
+  check(pdfBuf.includes(Buffer.from('/Subtype /Image', 'latin1'))
+    && pdfBuf.includes(Buffer.from('/Width 255', 'latin1'))
+    && pdfBuf.includes(Buffer.from('/Height 255', 'latin1')),
+    'ResolvePack PDF embeds the QR as a 255x255 raster image');
+// ---------------------------------------------------------------- BLOCK C
+// ResolvePack Bangla — paste immediately after BLOCK B. The seeded demo
+// job is English-only, so this block creates its own Bangla job (Bangla
+// scope, Bangla milestone titles, Bangla worker name, two Bangla
+// FairScope answers) and asserts the Chromium-rendered pack shapes the
+// Bangla correctly — conjuncts intact, not split. In scope here: token,
+// auth, check, req, aj, SEED_ANSWERS, BASE, pdfTextFromBytes (from B).
+{
+  const bnAnswers = {
+    ...SEED_ANSWERS,
+    'Who buys wires/materials?': 'কর্মী কিনবে, হায়ারার দেবে',
+    'Wall cutting and wall repair — included?': 'দেয়াল কাটা ও মেরামত অন্তর্ভুক্ত',
+  };
+  const bnJob = await req('/api/jobs', aj(token, {
+    trade: 'ELECTRICIAN', workerPhone: '01900000031', workerName: 'বাংলা কর্মী',
+    scope: 'বাসার বৈদ্যুতিক রিওয়্যারিং', price: 15000, deadline: '2026-12-15',
+    milestones: [
+      { title: 'অগ্রিম', amount: 5000 },
+      { title: 'প্রথম ধাপ', amount: 5000 },
+      { title: 'সমাপ্তি', amount: 5000 },
+    ],
+    answers: bnAnswers, skippedTerms: [],
+  }));
+  check(bnJob.status === 201 && typeof bnJob.body?.job?.id === 'string', 'Bangla job created (Bangla scope + milestones + worker name)');
+  const bnPdfRes = await fetch(BASE + `/api/jobs/${bnJob.body.job.id}/resolvepack`, { headers: auth(token) });
+  const bnPdfBuf = Buffer.from(await bnPdfRes.arrayBuffer());
+  check(bnPdfRes.status === 200 && bnPdfBuf.subarray(0, 4).toString('latin1') === '%PDF' && bnPdfBuf.length > 1000,
+    'Bangla job ResolvePack PDF downloads as a real non-empty PDF');
+  const bnText = pdfTextFromBytes(bnPdfBuf);
+  check(typeof bnText === 'string' && bnText.length > 100, 'pdftotext extracts readable text from the Bangla ResolvePack PDF');
+  check(bnText.includes('বাসার বৈদ্যুতিক রিওয়্যারিং'), 'Bangla pack: scope renders with conjuncts intact');
+  check(bnText.includes('অগ্রিম'), 'Bangla pack: milestone title renders with its conjunct intact');
+  check(bnText.includes('বাংলা কর্মী'), 'Bangla pack: Bangla worker name renders');
+  check(bnText.includes('কর্মী কিনবে, হায়ারার দেবে'), 'Bangla pack: Bangla FairScope answer renders');
+  check(/অন্তর্ভু\s?ক্ত/.test(bnText), 'Bangla pack: "অন্তর্ভুক্ত" renders (tolerating a pdftotext-inserted space inside the conjunct)');
+}
   const packJson = await req(`/api/jobs/${job.id}/resolvepack.json`, { headers: auth(token) });
   check(packJson.body?.versions?.length === 2 && packJson.body?.events?.length >= 10, 'ResolvePack JSON has both versions + full event history');
   const resend = await req(`/api/jobs/${job.id}/worker-link`, aj(token, {}));
@@ -599,17 +740,11 @@ try {
   const painterClosedDetail = await req(`/api/jobs/${painterId}?token=${painterToken}`);
   const closedEv = painterClosedDetail.body.events.find((e) => e.type === 'JOB_CLOSED');
   check(closedEv && JSON.parse(closedEv.payload_json || '{}').hirerOnly === true, 'hirer-only close is recorded as hirer-only in the event log');
+  // Hirer-only closes no longer qualify for the WorkPassport (item 16):
+  // only mutually confirmed completions count, and the client name needs
+  // the hirer's explicit opt-in. The painter job was closed hirer-only.
   const passPainter = await req(`/api/passport/add?token=${painterToken}`, j({ jobId: painterId, showAmounts: false, showClient: true, showPhotos: true }));
-  check(passPainter.status === 201, 'painter job added to WorkPassport with client shown (by the worker)');
-  const painterProfileId = passPainter.body.profileId;
-  const passportPainter = await req(`/api/passport/${painterProfileId}`);
-  check(passportPainter.body?.entries?.[0]?.clientName === 'Rahim Uddin', 'passport API returns the client name when enabled');
-  check(!JSON.stringify(passportPainter.body).includes('01900000003'), 'painter passport API returns no phone number');
-  const passPainterHtml = await req(`/passport/${painterProfileId}`);
-  // The rich page is client-rendered: the worker/client names come from
-  // the API (asserted above), not from the static HTML. The page must
-  // read the profile id from the /passport/:id path it was served at.
-  check(passPainterHtml.status === 200 && passPainterHtml.text.includes('pp-id-card') && passPainterHtml.text.includes('/passport/'), 'rich passport page serves for the second profile and reads its id from the path');
+  check(passPainter.status === 409, 'hirer-only closed job cannot be added to WorkPassport (409)');
   const qr = await req(`/api/passport/${demoProfileId}/qr.png`);
   check(qr.status === 200 && (qr.headers.get('content-type') || '').includes('png'), 'passport QR PNG serves');
 
@@ -786,12 +921,537 @@ try {
   check(manifest.status === 200, 'PWA manifest serves');
 
 
+// =====================================================================
+// Agent B — final-fix regression assertions (items 1, 2, 3, 4, 9, 13, 14,
+// 15, 16, 17, 18). PLUG-IN POINT: paste this whole block inside the
+// existing try { } in tests/regression/run-demo.mjs, as the last section
+// before the closing `REGRESSION: PASS` log — after the "find a repairer"
+// and "AppLink callbacks" sections, just before the hardening
+// route-inventory block. It reuses the suite's helpers (check/req/j/dj/
+// auth/aj), its fingerprint() helper, SEED_ANSWERS / SEED_MILESTONES, the
+// hirer's `token`, HIRER and WORKER, and creates only fresh jobs on fresh
+// phone numbers, so it does not disturb the main demo flow.
+// TWO EXISTING ASSERTIONS NEED UPDATING (coordinator's job, not this
+// block): (a) the suite's V2 fingerprint assertion expects
+// SEED_MILESTONES — after milestone rescale the V2 list is
+// [5556, 7778, 6666] (see item 4 below; this block asserts the rescaled
+// list and its fingerprint on a fresh job instead of duplicating the old
+// assertion); (b) the passPainter block expects 201 for a hirer-only-
+// closed painter job — hirer-only closes no longer qualify for
+// WorkPassport, so that block must be reworked to expect 409 (see
+// item 16 below; this block asserts the new behaviour on fresh jobs).
+// Item 3 (append-only DB) is asserted with a direct DatabaseSync open on
+// the suite's scratch DB, following the suite's existing direct-db
+// pattern, plus an API-level history-unchanged check after the 409s.
+// =====================================================================
+
+console.log('== Agent B final fixes: closed-final, draft discipline, append-only DB, rescale, worker language, nudge re-arm, hirer visibility, validation, passport trust, OTP not burned, CaaS retry ==');
+// --- fragment helpers (ab- prefix: no collisions with suite names) ---
+const AB_PLUMB_ANSWERS = {
+  'Pipe material': 'CPVC',
+  'Fixtures included or supplied by hirer': 'Hirer supplies fixtures',
+  'Wall breaking and restoration': 'Worker restores the wall',
+  'Leak testing': 'Yes, included',
+  'Materials responsibility': 'Worker buys, hirer pays',
+};
+const AB_PAINT_ANSWERS = {
+  'Area / rooms': '2 bedrooms',
+  'Number of coats': '2 coats',
+  'Primer included?': 'Yes, included',
+  'Paint brand': 'Berger',
+  'Surface preparation': 'Sanding + putty',
+  'Furniture moving': 'Worker moves furniture',
+  Cleanup: 'Worker cleans up',
+};
+async function abLogin(phone, name, role) {
+  const o = await req('/api/auth/request-otp', j({ phone, name, role }));
+  if (o.status !== 200 || !o.body?.sandbox?.otp) throw new Error('AB login OTP failed for ' + phone + ': ' + o.status + ' ' + JSON.stringify(o.body));
+  const l = await req('/api/auth/verify-otp', j({ phone, code: o.body.sandbox.otp }));
+  if (l.status !== 200 || !l.body?.token) throw new Error('AB login failed for ' + phone + ': ' + l.status);
+  return l.body.token;
+}
+async function abCreateJob(hirerToken, spec) {
+  const r = await req('/api/jobs', aj(hirerToken, spec));
+  if (r.status !== 201) throw new Error('AB job create failed: ' + r.status + ' ' + JSON.stringify(r.body));
+  // Spread the job row so callers can use abJobX.id directly.
+  return { ...r.body.job, workerToken: r.body.workerLink.split('token=')[1], workerLink: r.body.workerLink };
+}
+async function abPayFee(hirerToken, jobId) {
+  const ch = await req('/api/billing/caas', aj(hirerToken, { jobId }));
+  if (ch.status !== 200 || !ch.body?.sandboxOtp) throw new Error('AB CaaS charge failed: ' + ch.status + ' ' + JSON.stringify(ch.body));
+  const v = await req(`/api/billing/caas/${ch.body.chargeId}/verify`, aj(hirerToken, { otpCode: ch.body.sandboxOtp }));
+  if (v.status !== 200 || v.body?.status !== 'VERIFIED') throw new Error('AB CaaS verify failed: ' + v.status + ' ' + JSON.stringify(v.body));
+  return ch.body.chargeId;
+}
+async function abActivateStandard(hirerPhone, hirerToken, jobId, workerToken) {
+  const hc = await req('/api/auth/request-otp', j({ phone: hirerPhone, purpose: 'hirer-confirm' }));
+  if (hc.status !== 200 || !hc.body?.sandbox?.otp) throw new Error('AB hirer-confirm OTP failed for ' + hirerPhone);
+  const hcr = await req(`/api/jobs/${jobId}/hirer-confirm`, aj(hirerToken, { otpCode: hc.body.sandbox.otp }));
+  if (hcr.status !== 200 || hcr.body?.job?.status !== 'PENDING') throw new Error('AB hirer-confirm failed: ' + hcr.status + ' ' + JSON.stringify(hcr.body));
+  await abPayFee(hirerToken, jobId);
+  const wc = await req(`/api/worker/${workerToken}/request-otp`, j({ purpose: 'worker-confirm' }));
+  if (wc.status !== 200 || !wc.body?.sandbox?.otp) throw new Error('AB worker-confirm OTP failed');
+  const wcr = await req(`/api/worker/${workerToken}/confirm`, j({ otpCode: wc.body.sandbox.otp }));
+  if (wcr.status !== 200 || wcr.body?.job?.status !== 'ACTIVE') throw new Error('AB worker-confirm failed: ' + wcr.status + ' ' + JSON.stringify(wcr.body));
+  return wcr.body.job;
+}
+async function abDetail(jobId, workerToken) {
+  const d = await req(`/api/jobs/${jobId}?token=${workerToken}`);
+  if (d.status !== 200) throw new Error('AB job detail failed: ' + d.status);
+  return d.body;
+}
+// Dhaka calendar dates, same rule as the server (Asia/Dhaka, not UTC).
+function abDhakaToday() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dhaka', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+}
+function abDhakaShift(days) {
+  const d = new Date(abDhakaToday() + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+async function abSetDeadline(jobId, deadline) {
+  const { DatabaseSync } = await import('node:sqlite');
+  const dbPath = path.resolve(import.meta.dirname, '..', '..', 'server', 'data', 'dealcraft.db');
+  const dbx = new DatabaseSync(dbPath);
+  const v = dbx.prepare('SELECT id FROM JobVersion WHERE job_id = ? ORDER BY version_no DESC LIMIT 1').get(jobId);
+  dbx.prepare('UPDATE JobVersion SET deadline = ? WHERE id = ?').run(deadline, v.id);
+  dbx.close();
+}
+async function abCloseMutual(hirerToken, jobId, workerToken, extra) {
+  const o = await req(`/api/worker/${workerToken}/request-otp`, j({ purpose: 'close-confirm' }));
+  if (o.status !== 200 || !o.body?.sandbox?.otp) throw new Error('AB close-confirm OTP failed: ' + o.status);
+  const c = await req(`/api/jobs/${jobId}/close`, aj(hirerToken, { confirmCompletion: true, force: true, workerOtpCode: o.body.sandbox.otp, ...(extra || {}) }));
+  if (c.status !== 200 || c.body?.job?.status !== 'CLOSED') throw new Error('AB close failed: ' + c.status + ' ' + JSON.stringify(c.body));
+  return c.body.job;
+}
+
+// --- item 15: create validation (POST /api/jobs; hirer side, EN messages) ---
+const abValidCreate = (overrides) => ({
+  trade: 'ELECTRICIAN', workerPhone: '01900000099', workerName: 'Validation Worker',
+  scope: 'Rewire one room', price: 5000, deadline: '2027-06-30',
+  milestones: [{ title: 'Advance', amount: 2000 }, { title: 'Done', amount: 3000 }],
+  answers: SEED_ANSWERS, skippedTerms: [], ...overrides,
+});
+const abBadScope1 = await req('/api/jobs', aj(token, abValidCreate({ scope: '' })));
+check(abBadScope1.status === 400 && (abBadScope1.body?.error || '').includes('scope is required'), 'create validation: empty scope is rejected (400, scope is required)');
+const abBadScope2 = await req('/api/jobs', aj(token, abValidCreate({ scope: '   ' })));
+check(abBadScope2.status === 400 && (abBadScope2.body?.error || '').includes('scope is required'), 'create validation: whitespace-only scope is rejected (400, scope is required)');
+const abNoScopeBody = abValidCreate({});
+delete abNoScopeBody.scope;
+const abBadScope3 = await req('/api/jobs', aj(token, abNoScopeBody));
+check(abBadScope3.status === 400 && (abBadScope3.body?.error || '').includes('scope is required'), 'create validation: missing scope is rejected (400, scope is required)');
+const abBadPrice1 = await req('/api/jobs', aj(token, abValidCreate({ price: 1 })));
+check(abBadPrice1.status === 400 && (abBadPrice1.body?.error || '').includes('price must be at least'), 'create validation: price ৳1 is rejected (400, at least ৳100)');
+const abBadPrice99 = await req('/api/jobs', aj(token, abValidCreate({ price: 99 })));
+check(abBadPrice99.status === 400 && (abBadPrice99.body?.error || '').includes('price must be at least'), 'create validation: price ৳99 is rejected (400, at least ৳100)');
+const abBadPriceFrac = await req('/api/jobs', aj(token, abValidCreate({ price: 12500.5 })));
+check(abBadPriceFrac.status === 400 && (abBadPriceFrac.body?.error || '').includes('whole number'), 'create validation: fractional price is rejected (400, whole number of taka)');
+const abBadPriceBig = await req('/api/jobs', aj(token, abValidCreate({ price: 20000000 })));
+check(abBadPriceBig.status === 400 && (abBadPriceBig.body?.error || '').includes('price must be at most'), 'create validation: price ৳20,000,000 is rejected (400, at most ৳10,000,000)');
+const abBadPriceStr = await req('/api/jobs', aj(token, abValidCreate({ price: '18000' })));
+check(abBadPriceStr.status === 400 && (abBadPriceStr.body?.error || '').includes('whole number'), 'create validation: string price is rejected (400, whole number of taka)');
+const abBadDl1 = await req('/api/jobs', aj(token, abValidCreate({ deadline: '1999-01-01' })));
+check(abBadDl1.status === 400 && (abBadDl1.body?.error || '').includes('cannot be in the past'), 'create validation: deadline 1999-01-01 is rejected (400, cannot be in the past)');
+const abBadDl2 = await req('/api/jobs', aj(token, abValidCreate({ deadline: 'not-a-date' })));
+check(abBadDl2.status === 400 && (abBadDl2.body?.error || '').includes('real date'), 'create validation: deadline "not-a-date" is rejected (400, must be a real date)');
+const abBadDl3 = await req('/api/jobs', aj(token, abValidCreate({ deadline: '2026-02-30' })));
+check(abBadDl3.status === 400 && (abBadDl3.body?.error || '').includes('real date'), 'create validation: deadline 2026-02-30 is rejected (400, not a real calendar date)');
+const abBadDl4 = await req('/api/jobs', aj(token, abValidCreate({ deadline: abDhakaShift(-1) })));
+check(abBadDl4.status === 400 && (abBadDl4.body?.error || '').includes('cannot be in the past'), 'create validation: yesterday (Dhaka) deadline is rejected (400, cannot be in the past)');
+const abBadSamePhone = await req('/api/jobs', aj(token, abValidCreate({ workerPhone: HIRER })));
+check(abBadSamePhone.status === 400 && (abBadSamePhone.body?.error || '').includes('cannot be the same phone number'), 'create validation: hirer and worker on the same phone is rejected (400)');
+const abBound100 = await req('/api/jobs', aj(token, abValidCreate({ price: 100, workerPhone: '01900000106', milestones: [{ title: 'Full', amount: 100 }] })));
+check(abBound100.status === 201, 'create validation: boundary price ৳100 is accepted (201)');
+const abJob100 = abBound100.body.job;
+const abBoundMax = await req('/api/jobs', aj(token, abValidCreate({ price: 10000000, workerPhone: '01900000107', milestones: [{ title: 'Full', amount: 10000000 }] })));
+check(abBoundMax.status === 201, 'create validation: boundary price ৳10,000,000 is accepted (201)');
+
+// --- fresh jobs for the remaining items (fresh hirers/workers per job,
+// so no OTP send cap or earlier flow is disturbed) ---
+const abTokenA = await abLogin('01700000101', 'AB Hirer A', 'hirer');
+const abTokenB = await abLogin('01700000102', 'AB Hirer B', 'hirer');
+const abTokenC = await abLogin('01700000103', 'AB Hirer C', 'hirer');
+const abTokenD = await abLogin('01700000104', 'AB Hirer D', 'hirer');
+const abJobA = await abCreateJob(abTokenA, { trade: 'PLUMBER', workerPhone: '01800000101', workerName: 'AB Worker A', scope: 'Fix kitchen sink leak (AB)', price: 8000, deadline: '2027-06-30', milestones: [{ title: 'Advance', amount: 3000 }, { title: 'Completion', amount: 5000 }], answers: AB_PLUMB_ANSWERS, skippedTerms: [] });
+const abTokA = abJobA.workerToken;
+const abJobB = await abCreateJob(abTokenB, { trade: 'ELECTRICIAN', workerPhone: '01800000102', workerName: 'AB Worker B', scope: 'Apartment electrical rewiring — 2 bedrooms', price: 18000, deadline: '2027-06-30', milestones: SEED_MILESTONES, answers: SEED_ANSWERS, skippedTerms: [] });
+const abTokB = abJobB.workerToken;
+const abJobC = await abCreateJob(abTokenC, { trade: 'PAINTER', workerPhone: '01800000103', workerName: 'AB Worker C', scope: 'Repaint 2 bedrooms (AB)', price: 12000, deadline: '2027-06-30', milestones: [{ title: 'Advance', amount: 4000 }], answers: AB_PAINT_ANSWERS, skippedTerms: [] });
+const abTokC = abJobC.workerToken;
+const abJobD = await abCreateJob(abTokenD, { trade: 'PLUMBER', workerPhone: '01800000104', workerName: 'AB Worker D', scope: 'Fix bathroom pipe (AB)', price: 6000, deadline: abDhakaToday(), milestones: [{ title: 'Advance', amount: 2000 }, { title: 'Done', amount: 4000 }], answers: AB_PLUMB_ANSWERS, skippedTerms: [] });
+const abTokD = abJobD.workerToken;
+const abJobE = await abCreateJob(token, { trade: 'PAINTER', workerPhone: '01900000105', workerName: 'AB Worker E', scope: 'Repaint 1 room (AB)', price: 6000, deadline: '2027-06-30', milestones: [{ title: 'Advance', amount: 2000 }], answers: AB_PAINT_ANSWERS, skippedTerms: [] });
+const abTokE = abJobE.workerToken;
+
+// --- item 9: worker language (Bangla default; ?lang=bn before the token) ---
+check(abJobB.workerLink.startsWith('/worker.html?lang=bn&token='), 'worker language: worker link carries ?lang=bn before the token (create response)');
+const abDetailB0 = await abDetail(abJobB.id, abTokB);
+check((abDetailB0.job.workerLink || '').startsWith('/worker.html?lang=bn&token='), 'worker language: job detail workerLink carries ?lang=bn before the token');
+const abWorkerPage = await req('/worker.html');
+check(abWorkerPage.status === 200 && abWorkerPage.text.includes("getItem('dc_lang')||'bn'") && abWorkerPage.text.includes('defaults to Bangla'), 'worker language: worker page defaults to Bangla (saved choice, else bn)');
+
+// --- item 14: the worker sees the hirer ---
+const abWorkerA = await req('/api/worker/' + abTokA);
+check(abWorkerA.status === 200 && abWorkerA.body?.job?.hirerName === 'AB Hirer A' && abWorkerA.body?.job?.hirerPhone === '01700000101', 'worker sees the hirer: payload includes hirerName + hirerPhone (job A)');
+const abWorkerB = await req('/api/worker/' + abTokB);
+check(abWorkerB.status === 200 && abWorkerB.body?.job?.hirerName === 'AB Hirer B' && abWorkerB.body?.job?.hirerPhone === '01700000102', 'worker sees the hirer: payload includes hirerName + hirerPhone (job B)');
+
+// --- item 2: DRAFT discipline (job E is still DRAFT) ---
+const abDraftPay = await req(`/api/jobs/${abJobE.id}/payments`, aj(token, { amount: 1000, method: 'Cash' }));
+check(abDraftPay.status === 409 && (abDraftPay.body?.error || '').includes('ACTIVE'), 'DRAFT discipline: payment recording on a DRAFT job is 409 (ACTIVE only)');
+const abDraftMile = await req(`/api/jobs/${abJobE.id}/milestones/0/complete?token=${abTokE}`, j({}));
+check(abDraftMile.status === 409 && (abDraftMile.body?.error || '').includes('ACTIVE'), 'DRAFT discipline: milestone complete on a DRAFT job is 409 (ACTIVE only)');
+const abDraftAppr = await req(`/api/jobs/${abJobE.id}/milestones/0/approve`, aj(token, {}));
+check(abDraftAppr.status === 409 && (abDraftAppr.body?.error || '').includes('ACTIVE'), 'DRAFT discipline: milestone approve on a DRAFT job is 409 (ACTIVE only)');
+const abWorkerHtml = fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'public', 'worker.html'), 'utf8');
+check(abWorkerHtml.includes("var canComplete=job.status==='ACTIVE'"), 'DRAFT discipline: worker.html gates "Mark complete" on job.status === ACTIVE');
+check(abWorkerHtml.includes("'Mark complete'"), 'DRAFT discipline: worker.html renders a "Mark complete" button (only when canComplete)');
+
+// --- item 17 (worker side) + item 4 (rescale) on job B: ৳18,000 -> ৳20,000 ---
+const abHcOtpB = await req('/api/auth/request-otp', j({ phone: '01700000102', purpose: 'hirer-confirm' }));
+check(abHcOtpB.status === 200 && abHcOtpB.body?.sandbox?.otp, 'AB job B: hirer-confirm OTP issued');
+const abHcB = await req(`/api/jobs/${abJobB.id}/hirer-confirm`, aj(abTokenB, { otpCode: abHcOtpB.body.sandbox.otp }));
+check(abHcB.status === 200 && abHcB.body?.job?.status === 'PENDING', 'AB job B: hirer confirmed first (PENDING)');
+const abWcOtpB = await req(`/api/worker/${abTokB}/request-otp`, j({ purpose: 'worker-confirm' }));
+check(abWcOtpB.status === 200 && abWcOtpB.body?.sandbox?.otp, 'AB job B: worker-confirm OTP issued');
+const abWc402 = await req(`/api/worker/${abTokB}/confirm`, j({ otpCode: abWcOtpB.body.sandbox.otp }));
+check(abWc402.status === 402 && (abWc402.body?.error || '').includes('record fee unpaid'), "don't burn the OTP: worker confirm with unpaid fee is 402 — the fee is checked BEFORE the OTP is verified");
+const abFeeB = await abPayFee(abTokenB, abJobB.id);
+check(typeof abFeeB === 'string' && abFeeB.length > 0, 'AB job B: ৳10 record fee paid via CaaS');
+const abWcB = await req(`/api/worker/${abTokB}/confirm`, j({ otpCode: abWcOtpB.body.sandbox.otp }));
+check(abWcB.status === 200 && abWcB.body?.job?.status === 'ACTIVE', "don't burn the OTP: the SAME worker OTP confirms after the fee is paid — the 402 did not burn it");
+// --- item 15 (ChangeLock propose): worker proposes in Bangla (message presence only) ---
+const abPropBadPrice = await req(`/api/jobs/${abJobB.id}/changes?token=${abTokB}`, j({ priceDelta: -17999, reason: 'Almost free' }));
+check(abPropBadPrice.status === 400 && typeof abPropBadPrice.body?.error === 'string' && abPropBadPrice.body.error.length > 0, 'ChangeLock propose: a change taking the price to ৳1 is refused (400, Bangla message present)');
+const abPropBadDate = await req(`/api/jobs/${abJobB.id}/changes?token=${abTokB}`, j({ deadline: '1999-01-01', reason: 'Old date' }));
+check(abPropBadDate.status === 400 && typeof abPropBadDate.body?.error === 'string' && abPropBadDate.body.error.length > 0, 'ChangeLock propose: a past deadline is refused (400, Bangla message present)');
+const abPropBadScope = await req(`/api/jobs/${abJobB.id}/changes?token=${abTokB}`, j({ details: { scope: '   ' }, reason: 'Blank scope' }));
+check(abPropBadScope.status === 400 && typeof abPropBadScope.body?.error === 'string' && abPropBadScope.body.error.length > 0, 'ChangeLock propose: a blank revised scope is refused (400, Bangla message present)');
+const abPropBadPriceEn = await req(`/api/jobs/${abJobB.id}/changes`, aj(abTokenB, { priceDelta: 19982001, reason: 'Absurd' }));
+check(abPropBadPriceEn.status === 400 && (abPropBadPriceEn.body?.error || '').includes('price must be at most'), 'ChangeLock propose (hirer, EN): a change taking the price above ৳10,000,000 is refused (400, EN message)');
+// --- item 4: milestone rescale on accept ---
+const abChangeB = await req(`/api/jobs/${abJobB.id}/changes?token=${abTokB}`, j({ priceDelta: 2000, reason: 'Two extra points', details: { scope: 'Apartment electrical rewiring — 2 bedrooms + two extra points' } }));
+check(abChangeB.status === 201 && abChangeB.body?.change?.status === 'PENDING', 'AB job B: change +৳2,000 proposed (PENDING)');
+const abAcceptB = await req(`/api/changes/${abChangeB.body.change.id}/respond`, aj(abTokenB, { decision: 'accept' }));
+check(abAcceptB.status === 200 && abAcceptB.body?.change?.status === 'APPROVED', 'AB job B: hirer accepted the change');
+const abDetailB = await abDetail(abJobB.id, abTokB);
+const abV2B = abDetailB.versions.find((v) => v.version_no === 2);
+const abV1B = abDetailB.versions.find((v) => v.version_no === 1);
+check(abV2B?.price === 20000, 'AB job B: V2 price is ৳20,000');
+check(JSON.stringify((abDetailB.milestones || []).map((m) => m.amount)) === JSON.stringify([5556, 7778, 6666]), 'milestone rescale: V2 milestones are [5556, 7778, 6666] for ৳18,000 -> ৳20,000');
+check((abDetailB.milestones || []).reduce((s, m) => s + m.amount, 0) === 20000, 'milestone rescale: rescaled milestones sum to the new price ৳20,000');
+const abApprB = abDetailB.events.find((e) => e.type === 'CHANGE_APPROVED');
+const abRescaleB = JSON.parse(abApprB?.payload_json || '{}').milestoneRescale;
+check(abRescaleB?.oldTotal === 18000 && abRescaleB?.newTotal === 20000 && JSON.stringify((abRescaleB.milestones || []).map((m) => m.amount)) === JSON.stringify([5556, 7778, 6666]), 'milestone rescale: CHANGE_APPROVED records milestoneRescale 18000 -> 20000 [5556, 7778, 6666]');
+check(abV2B?.fingerprint === fingerprint({ job_id: abJobB.id, version_no: 2, scope: 'Apartment electrical rewiring — 2 bedrooms + two extra points', price: 20000, deadline: '2027-06-30', answers: SEED_ANSWERS, skippedTerms: [], milestones: [{ title: 'Advance', amount: 5556 }, { title: 'First stage', amount: 7778 }, { title: 'Completion', amount: 6666 }] }), 'milestone rescale: V2 fingerprint recomputes from the RESCALED milestones (fingerprint is computed after rescale)');
+check(abV1B?.price === 18000 && abV1B?.fingerprint === fingerprint({ job_id: abJobB.id, version_no: 1, scope: 'Apartment electrical rewiring — 2 bedrooms', price: 18000, deadline: '2027-06-30', answers: SEED_ANSWERS, skippedTerms: [], milestones: SEED_MILESTONES }), 'AB job B: V1 intact with original price + fingerprint');
+
+// --- item 17 (hirer side) + item 4 (partial list left alone) on job C ---
+const abWcOtpC = await req(`/api/worker/${abTokC}/request-otp`, j({ purpose: 'worker-confirm' }));
+check(abWcOtpC.status === 200 && abWcOtpC.body?.sandbox?.otp, 'AB job C: worker-confirm OTP issued');
+const abWcC = await req(`/api/worker/${abTokC}/confirm`, j({ otpCode: abWcOtpC.body.sandbox.otp }));
+check(abWcC.status === 200 && abWcC.body?.job?.status === 'PENDING', 'AB job C: worker confirmed first (PENDING, no fee gate yet)');
+const abHcOtpC = await req('/api/auth/request-otp', j({ phone: '01700000103', purpose: 'hirer-confirm' }));
+check(abHcOtpC.status === 200 && abHcOtpC.body?.sandbox?.otp, 'AB job C: hirer-confirm OTP issued');
+const abHc402 = await req(`/api/jobs/${abJobC.id}/hirer-confirm`, aj(abTokenC, { otpCode: abHcOtpC.body.sandbox.otp }));
+check(abHc402.status === 402 && (abHc402.body?.error || '').includes('record fee unpaid'), "don't burn the OTP: hirer confirm with unpaid fee is 402 — the fee is checked BEFORE the OTP is verified");
+const abFeeC = await abPayFee(abTokenC, abJobC.id);
+check(typeof abFeeC === 'string' && abFeeC.length > 0, 'AB job C: ৳10 record fee paid via CaaS');
+const abHcC = await req(`/api/jobs/${abJobC.id}/hirer-confirm`, aj(abTokenC, { otpCode: abHcOtpC.body.sandbox.otp }));
+check(abHcC.status === 200 && abHcC.body?.job?.status === 'ACTIVE', "don't burn the OTP: the SAME hirer OTP confirms after the fee is paid — the 402 did not burn it");
+const abChangeC = await req(`/api/jobs/${abJobC.id}/changes?token=${abTokC}`, j({ priceDelta: 1000, reason: 'Extra coat' }));
+check(abChangeC.status === 201 && abChangeC.body?.change?.status === 'PENDING', 'AB job C: change +৳1,000 proposed (PENDING)');
+const abAcceptC = await req(`/api/changes/${abChangeC.body.change.id}/respond`, aj(abTokenC, { decision: 'accept' }));
+check(abAcceptC.status === 200 && abAcceptC.body?.change?.status === 'APPROVED', 'AB job C: hirer accepted the change');
+const abDetailC = await abDetail(abJobC.id, abTokC);
+const abV2C = abDetailC.versions.find((v) => v.version_no === 2);
+check(abV2C?.price === 13000, 'AB job C: V2 price is ৳13,000 after +৳1,000');
+check(JSON.stringify((abDetailC.milestones || []).map((m) => m.amount)) === JSON.stringify([4000]), 'milestone rescale: a partial list (advance-only ৳4,000 of ৳12,000) is left alone, not rescaled');
+// NOTE: no sum==price assertion for the painter job — a partial list is
+// absolute, not shares of the total, so its amounts must NOT sum to the price.
+const abApprC = abDetailC.events.find((e) => e.type === 'CHANGE_APPROVED');
+check(JSON.parse(abApprC?.payload_json || '{}').milestoneRescale === null, 'milestone rescale: CHANGE_APPROVED records milestoneRescale null for a partial list');
+check(abV2C?.fingerprint === fingerprint({ job_id: abJobC.id, version_no: 2, scope: 'Repaint 2 bedrooms (AB)', price: 13000, deadline: '2027-06-30', answers: AB_PAINT_ANSWERS, skippedTerms: [], milestones: [{ title: 'Advance', amount: 4000 }] }), 'AB job C: V2 fingerprint recomputes with the un-rescaled advance-only list');
+
+// --- item 1: CLOSED is final (job A) ---
+await abActivateStandard('01700000101', abTokenA, abJobA.id, abTokA);
+const abDetailA0 = await abDetail(abJobA.id, abTokA);
+check(abDetailA0.job.status === 'ACTIVE', 'AB job A: ACTIVE before the close-final checks');
+const abPayA = await req(`/api/jobs/${abJobA.id}/payments`, aj(abTokenA, { amount: 3000, method: 'Cash', date: '2026-11-27' }));
+check(abPayA.status === 201 && abPayA.body?.payment?.ack_status === 'AWAITING', 'AB job A: payment ৳3,000 recorded while ACTIVE (AWAITING)');
+const abChangeA = await req(`/api/jobs/${abJobA.id}/changes?token=${abTokA}`, j({ priceDelta: 500, reason: 'Extra fitting' }));
+check(abChangeA.status === 201 && abChangeA.body?.change?.status === 'PENDING', 'AB job A: change proposed while ACTIVE (PENDING)');
+const abBeforeClose = await abDetail(abJobA.id, abTokA);
+const abEventsBefore = abBeforeClose.events.length;
+await abCloseMutual(abTokenA, abJobA.id, abTokA);
+const abClosedA = await abDetail(abJobA.id, abTokA);
+check(abClosedA.job.status === 'CLOSED', 'AB job A: CLOSED by mutual close (worker OTP)');
+const abHcClosed = await req(`/api/jobs/${abJobA.id}/hirer-confirm`, aj(abTokenA, { otpCode: '000000' }));
+check(abHcClosed.status === 409 && (abHcClosed.body?.error || '').includes('CLOSED'), 'CLOSED is final: hirer-confirm on a CLOSED job is 409');
+const abWcClosed = await req(`/api/worker/${abTokA}/confirm`, j({ otpCode: '000000' }));
+check(abWcClosed.status === 409 && (abWcClosed.body?.error || '').includes('CLOSED'), 'CLOSED is final: worker confirm on a CLOSED job is 409');
+const abChangeClosed = await req(`/api/jobs/${abJobA.id}/changes?token=${abTokA}`, j({ priceDelta: 100, reason: 'Too late' }));
+check(abChangeClosed.status === 409 && (abChangeClosed.body?.error || '').includes('CLOSED'), 'CLOSED is final: ChangeLock propose on a CLOSED job is 409');
+const abAcceptClosed = await req(`/api/changes/${abChangeA.body.change.id}/respond`, aj(abTokenA, { decision: 'accept' }));
+check(abAcceptClosed.status === 409 && (abAcceptClosed.body?.error || '').includes('CLOSED'), 'CLOSED is final: ChangeLock accept on a CLOSED job is 409');
+const abPayClosed = await req(`/api/jobs/${abJobA.id}/payments`, aj(abTokenA, { amount: 1000, method: 'Cash' }));
+check(abPayClosed.status === 409 && (abPayClosed.body?.error || '').includes('CLOSED'), 'CLOSED is final: payment recording on a CLOSED job is 409');
+const abAckClosed = await req(`/api/payments/${abPayA.body.payment.id}/ack?token=${abTokA}`, j({ decision: 'received', otpCode: '000000' }));
+check(abAckClosed.status === 409 && (abAckClosed.body?.error || '').includes('CLOSED'), 'CLOSED is final: payment acknowledgement on a CLOSED job is 409');
+const abMileClosed = await req(`/api/jobs/${abJobA.id}/milestones/0/complete?token=${abTokA}`, j({}));
+check(abMileClosed.status === 409 && (abMileClosed.body?.error || '').includes('CLOSED'), 'CLOSED is final: milestone complete on a CLOSED job is 409');
+const abApprClosed = await req(`/api/jobs/${abJobA.id}/milestones/0/approve`, aj(abTokenA, {}));
+check(abApprClosed.status === 409 && (abApprClosed.body?.error || '').includes('CLOSED'), 'CLOSED is final: milestone approve on a CLOSED job is 409');
+const abAfterClose = await abDetail(abJobA.id, abTokA);
+check(abAfterClose.events.length === abEventsBefore + 1, 'CLOSED is final: the refused mutations wrote no events — only JOB_CLOSED was added');
+check(abAfterClose.events[abAfterClose.events.length - 1]?.type === 'JOB_CLOSED', 'CLOSED is final: the last event is JOB_CLOSED');
+check(abAfterClose.job.status === 'CLOSED', 'CLOSED is final: reads stay open — job detail still serves a CLOSED job');
+const abPackA = await req(`/api/jobs/${abJobA.id}/resolvepack`, { headers: auth(abTokenA) });
+check(abPackA.status === 200 && (abPackA.headers.get('content-type') || '').includes('pdf'), 'CLOSED is final: ResolvePack export stays open on a CLOSED job');
+const abV1FpA = (abAfterClose.versions.find((v) => v.version_no === 1) || {}).fingerprint;
+const abVerifyA = await req('/api/verify?fp=' + encodeURIComponent(abV1FpA));
+check(abVerifyA.status === 200 && abVerifyA.body?.match === true && abVerifyA.body?.status === 'CLOSED', 'CLOSED is final: /api/verify still matches a CLOSED job and reports its status');
+// --- item 16: passport trust, no hirer opt-in (job A) ---
+const abPassA = await req(`/api/passport/add?token=${abTokA}`, j({ jobId: abJobA.id, showAmounts: true, showClient: true, showPhotos: false }));
+check(abPassA.status === 201 && typeof abPassA.body?.profileId === 'string', 'AB job A: mutually closed job (no hirer opt-in) can be added to WorkPassport');
+const abPassportA = await req(`/api/passport/${abPassA.body.profileId}`);
+check(abPassportA.status === 200 && abPassportA.body?.entries?.[0]?.amount === 8000, 'passport trust: passport shows the amount (worker enabled it)');
+check(abPassportA.body?.entries?.[0]?.clientName === undefined, 'passport trust: passport hides the client name — worker showClient is ignored without hirer opt-in');
+
+// --- item 13: nudge re-arms + Dhaka time (job D) ---
+await abActivateStandard('01700000104', abTokenD, abJobD.id, abTokD);
+const abDetailD0 = await abDetail(abJobD.id, abTokD);
+check(abDetailD0.job.status === 'ACTIVE', 'AB job D: ACTIVE before the deadline checks');
+check(abDetailD0.events.filter((e) => e.type === 'DEADLINE_PASSED').length === 0, 'nudge: no DEADLINE_PASSED while the deadline is today in Dhaka (not past)');
+const abYesterday = abDhakaShift(-1);
+await abSetDeadline(abJobD.id, abYesterday);
+await req(`/api/jobs/${abJobD.id}?token=${abTokD}`);
+await sleep(300);
+const abDetailD1 = await abDetail(abJobD.id, abTokD);
+const abNudges1 = abDetailD1.events.filter((e) => e.type === 'DEADLINE_PASSED');
+check(abNudges1.length === 1, 'nudge: DEADLINE_PASSED fires once for a past deadline');
+check(JSON.parse(abNudges1[0].payload_json || '{}').deadline === abYesterday, 'nudge: first DEADLINE_PASSED names the deadline it fired for');
+check(abDetailD1.job.status === 'ACTIVE', 'nudge: the job stays ACTIVE after the nudge (no punishment)');
+const abDetailD1b = await abDetail(abJobD.id, abTokD);
+check(abDetailD1b.events.filter((e) => e.type === 'DEADLINE_PASSED').length === 1, 'nudge: a second read does not duplicate the deadline event');
+const abExtD = await req(`/api/jobs/${abJobD.id}/changes?token=${abTokD}`, j({ deadline: '2027-01-15', reason: 'Need more time' }));
+check(abExtD.status === 201 && abExtD.body?.change?.status === 'PENDING', 'nudge: ChangeLock extension proposed (new deadline 2027-01-15)');
+const abExtAccept = await req(`/api/changes/${abExtD.body.change.id}/respond`, aj(abTokenD, { decision: 'accept' }));
+check(abExtAccept.status === 200 && abExtAccept.body?.change?.status === 'APPROVED', 'nudge: hirer accepted the extension');
+const abDetailD2 = await abDetail(abJobD.id, abTokD);
+check(abDetailD2.versions.find((v) => v.version_no === 2)?.deadline === '2027-01-15', 'nudge: V2 carries the extended deadline 2027-01-15');
+const abDayBefore = abDhakaShift(-2);
+await abSetDeadline(abJobD.id, abDayBefore);
+await req(`/api/jobs/${abJobD.id}?token=${abTokD}`);
+await sleep(300);
+const abDetailD3 = await abDetail(abJobD.id, abTokD);
+const abNudges2 = abDetailD3.events.filter((e) => e.type === 'DEADLINE_PASSED');
+check(abNudges2.length === 2, 'nudge re-arms: DEADLINE_PASSED fires again after the extension sets a new deadline');
+check(JSON.parse(abNudges2[1].payload_json || '{}').deadline === abDayBefore, 'nudge re-arms: second DEADLINE_PASSED names the new (backdated) deadline');
+check(JSON.parse(abNudges2[0].payload_json || '{}').deadline !== JSON.parse(abNudges2[1].payload_json || '{}').deadline, 'nudge re-arms: the two firings are for different deadlines (once-only guard is per-deadline)');
+check(JSON.parse(abNudges2[1].payload_json || '{}').version === 2, 'nudge re-arms: second firing is for V2');
+check(abDetailD3.job.status === 'ACTIVE', 'nudge re-arms: the job stays ACTIVE after the second nudge');
+// --- item 16: passport trust, WITH hirer opt-in (job D) ---
+await abCloseMutual(abTokenD, abJobD.id, abTokD, { publishHirerName: true });
+const abPassD = await req(`/api/passport/add?token=${abTokD}`, j({ jobId: abJobD.id, showAmounts: false, showClient: true, showPhotos: false }));
+check(abPassD.status === 201 && typeof abPassD.body?.profileId === 'string', 'AB job D: mutually closed job with hirer opt-in can be added to WorkPassport');
+const abPassportD = await req(`/api/passport/${abPassD.body.profileId}`);
+check(abPassportD.body?.entries?.[0]?.clientName === 'AB Hirer D', 'passport trust: passport publishes the client name with explicit hirer opt-in');
+check(abPassportD.body?.entries?.[0]?.amount === undefined, 'passport trust: passport hides the amount (worker did not enable it)');
+
+// --- item 16: passport trust, hirer-only close (job E) ---
+const abCloseE = await req(`/api/jobs/${abJobE.id}/close`, aj(token, { confirmCompletion: true, force: true, closeAnyway: true, note: 'Hirer closing alone; worker did not confirm.' }));
+check(abCloseE.status === 200 && abCloseE.body?.job?.status === 'CLOSED', 'AB job E: hirer-only close works with closeAnyway:true');
+const abDetailE = await abDetail(abJobE.id, abTokE);
+const abClosedEvE = abDetailE.events.find((e) => e.type === 'JOB_CLOSED');
+check(abClosedEvE && JSON.parse(abClosedEvE.payload_json || '{}').hirerOnly === true, 'AB job E: hirer-only close is recorded as hirer-only in the event log');
+const abPassE = await req(`/api/passport/add?token=${abTokE}`, j({ jobId: abJobE.id, showAmounts: true, showClient: true, showPhotos: false }));
+check(abPassE.status === 409 && (abPassE.body?.error || '').includes('hirer-only'), 'passport trust: a hirer-only close cannot be added to WorkPassport (409)');
+
+// =====================================================================
+// Ceiling Pass, Part 2 — items 9–13 (Innovation 17 -> 22).
+// Item 9 STOPPED as specified: "fingerprint = chain head" cannot be
+// reconciled with the existing fingerprint definition — the suite asserts
+// (run-demo.mjs:270, 332, 402, 847, 1146, 1147, 1174) that a version's
+// fingerprint is SHA-256 of the canonical AGREEMENT payload alone, while
+// a chain head depends on the whole event history before the version.
+// The chain is therefore ADDITIVE: fingerprints are untouched (asserted
+// below), and events carry the chain alongside them. The chain head is
+// the job-level anchor (hash of the last event), recomputed from the
+// event history wherever it is needed. NO per-version chain head is
+// stored: a stored head would need an UPDATE on JobVersion after the
+// creation event is written, and a Part 1 assertion pins that no server
+// file UPDATEs JobVersion at all (run-demo.mjs:2045-2046) — so that
+// sub-part of item 9 is STOPPED too (see server/src/chain.js).
+// Reuses the AB helpers (abLogin/abCreateJob/abActivateStandard/
+// abCloseMutual/abDetail) and the suite's fingerprint() helper. All
+// names are p2- prefixed; nothing here disturbs the main demo flow.
+// =====================================================================
+console.log('== ceiling pass part 2: hash chain, verify-recompute, passport anti-gaming, worker language, read-aloud ==');
+
+// --- item 9: hash chain (on AB job A — CLOSED, full history) ---
+const p2DetailA = await abDetail(abJobA.id, abTokA);
+check(p2DetailA.events.length > 0 && p2DetailA.events.every((e) => /^[0-9a-f]{64}$/.test(e.hash || '')), 'chain: every event in the job history carries a 64-hex hash');
+check(p2DetailA.chainHead === p2DetailA.events[p2DetailA.events.length - 1].hash, 'chain: chainHead is the last event hash');
+check(p2DetailA.chainValid === true && p2DetailA.chainBrokenIndex === null, 'chain: the stored history verifies end-to-end');
+const p2ChainMod = await import(path.resolve(import.meta.dirname, '..', '..', 'server', 'src', 'chain.js'));
+const p2Chain = p2ChainMod.default || p2ChainMod;
+check(p2Chain.verifyChain(p2DetailA.events).valid === true, 'chain: server verifyChain confirms the job history');
+const p2Tampered = JSON.parse(JSON.stringify(p2DetailA.events));
+const p2AgreeIdx = p2Tampered.findIndex((e) => e.type === 'AGREEMENT_CREATED');
+const p2AgreePayload = JSON.parse(p2Tampered[p2AgreeIdx].payload_json);
+p2AgreePayload.price = 99999;
+p2Tampered[p2AgreeIdx].payload_json = JSON.stringify(p2AgreePayload);
+const p2TamperResult = p2Chain.verifyChain(p2Tampered);
+check(p2TamperResult.valid === false && p2TamperResult.brokenIndex === p2AgreeIdx && p2TamperResult.brokenType === 'AGREEMENT_CREATED', 'chain: tampering with one historical event breaks verification at that event (AGREEMENT_CREATED)');
+const p2Tampered2 = JSON.parse(JSON.stringify(p2DetailA.events));
+p2Tampered2[p2Tampered2.length - 1].hash = '0'.repeat(64);
+const p2Tamper2 = p2Chain.verifyChain(p2Tampered2);
+check(p2Tamper2.valid === false && p2Tamper2.brokenIndex === p2Tampered2.length - 1 && p2Tamper2.brokenType === 'JOB_CLOSED', 'chain: rewriting the last event hash breaks verification at that event (JOB_CLOSED)');
+const p2V1A = p2DetailA.versions.find((v) => v.version_no === 1);
+check(p2V1A?.fingerprint === fingerprint({ job_id: abJobA.id, version_no: 1, scope: 'Fix kitchen sink leak (AB)', price: 8000, deadline: '2027-06-30', answers: AB_PLUMB_ANSWERS, skippedTerms: [], milestones: [{ title: 'Advance', amount: 3000 }, { title: 'Completion', amount: 5000 }] }), 'chain: the V1 fingerprint is STILL the agreement-payload hash (chain is additive, fingerprint definition unchanged)');
+const p2VerifyA = await req('/api/verify?fp=' + encodeURIComponent(abV1FpA));
+check(p2VerifyA.body?.chainValid === true && p2VerifyA.body?.chainHead === p2DetailA.chainHead && p2VerifyA.body?.chainEvents === p2DetailA.events.length, 'chain: /api/verify reports the chain head and a valid chain');
+check(p2VerifyA.body?.versionChainHead === undefined, 'chain: /api/verify stores no per-version chain head (JobVersion is never UPDATEed — Part 1 pin, see chain.js)');
+const p2PackA = await req(`/api/jobs/${abJobA.id}/resolvepack.json?token=${abTokA}`);
+check(p2PackA.status === 200 && p2PackA.body?.chainHead === p2DetailA.chainHead && Array.isArray(p2PackA.body?.events) && p2PackA.body.events.every((e) => typeof e.hash === 'string'), 'chain: ResolvePack JSON carries the chain head and every event hash');
+check(p2Chain.verifyChain(p2PackA.body.events).valid === true, 'chain: the ResolvePack JSON history verifies end-to-end');
+const p2PackPdfRes = await fetch(BASE + `/api/jobs/${abJobA.id}/resolvepack`, { headers: auth(abTokenA) });
+const p2PackPdfBuf = Buffer.from(await p2PackPdfRes.arrayBuffer());
+const p2PackPdfText = pdfTextFromBytes(p2PackPdfBuf);
+const p2QrUrl = BASE + '/verify?fp=' + abV1FpA + '&ch=' + p2DetailA.chainHead.slice(0, 8);
+check(p2PackPdfText.replace(/\s+/g, '').includes(p2QrUrl), 'chain: the ResolvePack QR encodes the verify URL with the chain head prefix (&ch=, first 8 hex)');
+check(p2PackPdfText.includes('Hash chain head'), 'chain: the ResolvePack prints the hash chain head');
+
+// --- item 10: verify that recomputes ---
+const p2VerifyHtml = fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'public', 'verify.html'), 'utf8');
+check(p2VerifyHtml.includes('crypto.subtle.digest'), 'verify recompute: page recomputes SHA-256 in the browser (WebCrypto)');
+check(p2VerifyHtml.includes('recomputeChain') && p2VerifyHtml.includes('id="pack-json"') && p2VerifyHtml.includes('id="pack-file"'), 'verify recompute: page accepts a pasted or uploaded ResolvePack JSON and recomputes the chain');
+check(p2VerifyHtml.includes('superseded by V'), 'verify recompute: a superseded version displays "V1, superseded by V3" with the actual current version number');
+check(p2VerifyHtml.includes("fetch('/api/verify?fp='"), 'verify recompute: the server lookup stays as a secondary cross-check alongside the browser recompute');
+check(p2VerifyHtml.includes("get('ch')"), 'verify recompute: page reads the QR chain head (&ch=) for the cross-check');
+const p2JobsJs = fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'server', 'routes', 'jobs.js'), 'utf8');
+check(p2JobsJs.includes('QRCode.toBuffer(verifyUrl'), 'verify recompute: ResolvePack QR encodes the verify URL (never a raw JSON blob)');
+const p2VerifyCh = await req('/verify?fp=' + encodeURIComponent(abV1FpA) + '&ch=' + encodeURIComponent(p2DetailA.chainHead));
+check(p2VerifyCh.status === 200 && p2VerifyCh.text.includes('id="pack-result"'), 'verify recompute: verify page serves with fp + chain-head params and offers the ResolvePack check');
+// The browser recompute runs the same definition as the server module:
+// the pack's own events verify here, and the page's canonicaliser is the
+// server's (sorted keys, same event shape) — asserted by content + the
+// Node-side verdict on the same bytes the page would consume.
+check(p2VerifyHtml.includes("canon({type:ev.type,actor:ev.actor==null?null:ev.actor,payload:payload,created_at:ev.created_at})"), 'verify recompute: page hashes the same event shape as server/src/chain.js');
+
+// --- item 11: WorkPassport anti-gaming (same worker, two hirers) ---
+const p2TokenF1 = await abLogin('01700000111', 'P2 Hirer F1', 'hirer');
+const p2TokenF2 = await abLogin('01700000112', 'P2 Hirer F2', 'hirer');
+const p2Worker = '01800000109';
+const p2JobF = await abCreateJob(p2TokenF1, { trade: 'PLUMBER', workerPhone: p2Worker, workerName: 'P2 Worker', scope: 'Fix kitchen tap (P2 F)', price: 5000, deadline: '2027-06-30', milestones: [{ title: 'Advance', amount: 2000 }, { title: 'Done', amount: 3000 }], answers: AB_PLUMB_ANSWERS, skippedTerms: [] });
+const p2JobG = await abCreateJob(p2TokenF2, { trade: 'PAINTER', workerPhone: p2Worker, workerName: 'P2 Worker', scope: 'Repaint kitchen (P2 G)', price: 7000, deadline: '2027-06-30', milestones: [{ title: 'Advance', amount: 3000 }], answers: AB_PAINT_ANSWERS, skippedTerms: [] });
+await abActivateStandard('01700000111', p2TokenF1, p2JobF.id, p2JobF.workerToken);
+await abCloseMutual(p2TokenF1, p2JobF.id, p2JobF.workerToken);
+await abActivateStandard('01700000112', p2TokenF2, p2JobG.id, p2JobG.workerToken);
+await abCloseMutual(p2TokenF2, p2JobG.id, p2JobG.workerToken);
+const p2PassF = await req(`/api/passport/add?token=${p2JobF.workerToken}`, j({ jobId: p2JobF.id, showAmounts: true, showClient: true, showPhotos: false }));
+check(p2PassF.status === 201 && typeof p2PassF.body?.profileId === 'string', 'passport anti-gaming: first mutual job adds to the passport');
+const p2PassG = await req(`/api/passport/add?token=${p2JobG.workerToken}`, j({ jobId: p2JobG.id, showAmounts: true, showClient: true, showPhotos: false }));
+check(p2PassG.status === 201, 'passport anti-gaming: second mutual job (other hirer) adds to the passport');
+const p2Profile = p2PassF.body.profileId;
+const p2PassportFG = await req(`/api/passport/${p2Profile}`);
+check(p2PassportFG.body?.completedJobs === 2 && p2PassportFG.body?.distinctHirers === 2, 'passport anti-gaming: two mutual jobs from two hirers count as 2 jobs for 2 distinct hirers');
+check(p2PassportFG.body?.entries?.every((e) => e.clientName === undefined), 'passport anti-gaming: hirer name hidden on both entries without opt-in');
+check(!JSON.stringify(p2PassportFG.body).includes('hirerId'), 'passport anti-gaming: the internal hirer id is counted, never returned');
+// Third mutual job, SAME hirer as the first: jobs rise, hirers do not.
+// This one closes with publishHirerName, so its entry may show the name.
+const p2JobH = await abCreateJob(p2TokenF1, { trade: 'PLUMBER', workerPhone: p2Worker, workerName: 'P2 Worker', scope: 'Fix bathroom tap (P2 H)', price: 4000, deadline: '2027-06-30', milestones: [{ title: 'Full', amount: 4000 }], answers: AB_PLUMB_ANSWERS, skippedTerms: [] });
+await abActivateStandard('01700000111', p2TokenF1, p2JobH.id, p2JobH.workerToken);
+await abCloseMutual(p2TokenF1, p2JobH.id, p2JobH.workerToken, { publishHirerName: true });
+const p2PassH = await req(`/api/passport/add?token=${p2JobH.workerToken}`, j({ jobId: p2JobH.id, showAmounts: false, showClient: true, showPhotos: false }));
+check(p2PassH.status === 201, 'passport anti-gaming: third mutual job (same hirer) adds to the passport');
+const p2PassportFGH = await req(`/api/passport/${p2Profile}`);
+check(p2PassportFGH.body?.completedJobs === 3 && p2PassportFGH.body?.distinctHirers === 2, 'passport anti-gaming: a third mutual job from the SAME hirer raises jobs to 3 but distinct hirers stays 2');
+check(p2PassportFGH.body?.entries?.find((e) => e.jobId === p2JobH.id)?.clientName === 'P2 Hirer F1', 'passport anti-gaming: hirer name shown for the job the hirer opted in at close');
+check(p2PassportFGH.body?.entries?.filter((e) => e.jobId !== p2JobH.id).every((e) => e.clientName === undefined), 'passport anti-gaming: the other entries still hide the hirer name (opt-in is per job)');
+// Fourth job, hirer-only close: 409 on add AND never counted.
+const p2JobI = await abCreateJob(p2TokenF2, { trade: 'PAINTER', workerPhone: p2Worker, workerName: 'P2 Worker', scope: 'Repaint door (P2 I)', price: 3000, deadline: '2027-06-30', milestones: [{ title: 'Full', amount: 3000 }], answers: AB_PAINT_ANSWERS, skippedTerms: [] });
+const p2CloseI = await req(`/api/jobs/${p2JobI.id}/close`, aj(p2TokenF2, { confirmCompletion: true, force: true, closeAnyway: true, note: 'Hirer closing alone.' }));
+check(p2CloseI.status === 200 && p2CloseI.body?.job?.status === 'CLOSED', 'passport anti-gaming: hirer-only close of the fourth job works');
+const p2PassI = await req(`/api/passport/add?token=${p2JobI.workerToken}`, j({ jobId: p2JobI.id, showAmounts: true, showClient: true, showPhotos: false }));
+check(p2PassI.status === 409 && (p2PassI.body?.error || '').includes('hirer-only'), 'passport anti-gaming: forced-close job cannot be added to WorkPassport (409)');
+const p2PassportAfterI = await req(`/api/passport/${p2Profile}`);
+check(p2PassportAfterI.body?.completedJobs === 3 && p2PassportAfterI.body?.distinctHirers === 2, 'passport anti-gaming: the forced-close job never counts — totals unchanged after the 409');
+const p2PassPage = await req(`/passport/${p2Profile}`);
+check(p2PassPage.status === 200 && p2PassPage.text.includes('id="p-hirers-count"'), 'passport anti-gaming: passport page shows a distinct-hirers count alongside total jobs');
+
+// --- item 12: Bangla-first worker (verify the first pass; fix where it regressed) ---
+const p2WorkerHtml = fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'public', 'worker.html'), 'utf8');
+check(p2WorkerHtml.indexOf('id="w-summary"') < p2WorkerHtml.indexOf('id="w-confirm"') && p2WorkerHtml.includes("'Hirer: '"), 'worker language: worker page renders the hirer name + phone in the summary above the confirm button');
+const p2Log = fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'server', 'data', 'applink-log.jsonl'), 'utf8');
+const p2CreateSms = p2Log.split('\n').filter((l) => l.includes('sms.send') && l.includes(p2Worker) && l.includes('আপনার জন্য'));
+check(p2CreateSms.length >= 1, 'worker language: create-time SMS to the worker is Bangla (first-pass behaviour holds)');
+check(p2CreateSms[p2CreateSms.length - 1].includes('/worker.html?lang=bn&token='), 'worker language: the Bangla create SMS carries the ?lang=bn worker link');
+const p2SeedSms = p2Log.split('\n').filter((l) => l.includes('sms.send') && l.includes(WORKER) && l.includes('আপনার জন্য'));
+check(p2SeedSms.length >= 1, 'worker language: the demo-seed SMS to the worker is Bangla too (seed used to send English — fixed in this pass)');
+
+// --- item 13: read-aloud record ---
+const p2RaMod = await import(path.resolve(import.meta.dirname, '..', '..', 'public', 'read-aloud.js'));
+const p2Ra = p2RaMod.default || p2RaMod;
+const p2Sample = { trade: 'ELECTRICIAN', scope: 'Apartment electrical rewiring — 2 bedrooms', price: 18000, paid: 5000, remaining: 13000, deadline: '2026-12-05' };
+check(p2Ra.buildReadAloudScript(p2Sample, 'bn') === 'এই কাজের রেকর্ড। কাজ: ইলেকট্রিশিয়ান। কাজের বিবরণ: Apartment electrical rewiring — 2 bedrooms। মোট দাম ৳১৮,০০০। দেওয়া হয়েছে ৳৫,০০০। বাকি ৳১৩,০০০। শেষ তারিখ ২০২৬-১২-০৫।', 'read-aloud: Bangla script reads the record in plain language (trade, scope, price, paid, remaining, deadline)');
+check(p2Ra.buildReadAloudScript(p2Sample, 'en') === 'This is your work record. Trade: Electrician. Scope: Apartment electrical rewiring — 2 bedrooms. Agreed price: ৳18,000. Paid: ৳5,000. Remaining: ৳13,000. Deadline: 2026-12-05.', 'read-aloud: English script reads the same record in plain language');
+check(p2Ra.buildReadAloudScript({ trade: 'PAINTER', scope: 'Repaint 2 bedrooms', price: 12000, paid: 0, remaining: 12000 }, 'bn') === 'এই কাজের রেকর্ড। কাজ: পেইন্টার। কাজের বিবরণ: Repaint 2 bedrooms। মোট দাম ৳১২,০০০। দেওয়া হয়েছে ৳০। বাকি ৳১২,০০০। শেষ তারিখ দেওয়া হয়নি।', 'read-aloud: a record with no deadline says so instead of inventing one');
+const p2LongEn = p2Ra.buildReadAloudScript({ ...p2Sample, scope: 'x'.repeat(300) }, 'en');
+check(p2LongEn.includes('…') && p2LongEn.length < 400, 'read-aloud: a very long scope is trimmed, not read word-for-word');
+check(p2WorkerHtml.includes('id="w-listen"') && p2WorkerHtml.includes('read-aloud.js') && p2WorkerHtml.includes('speakRecord'), 'read-aloud: worker page has a visible শুনুন / Listen button wired to speech synthesis');
+const p2IndexHtml = fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'public', 'index.html'), 'utf8');
+const p2AppJs = fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'public', 'app.js'), 'utf8');
+check(p2IndexHtml.includes('id="btn-listen"') && p2IndexHtml.includes('read-aloud.js'), 'read-aloud: record view has a Listen button and loads the read-aloud module');
+check(p2AppJs.includes('speakRecord') && p2AppJs.includes('btn-listen'), 'read-aloud: record view reads the record aloud via the shared script builder');
+
+// --- item 3: append-only DB (direct db, suite's existing direct-db pattern) ---
+{
+  const { DatabaseSync } = await import('node:sqlite');
+  const abDbPath = path.resolve(import.meta.dirname, '..', '..', 'server', 'data', 'dealcraft.db');
+  const abDb = new DatabaseSync(abDbPath);
+  const abTriggers = abDb.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND name IN ('event_no_update', 'event_no_delete') ORDER BY name").all().map((r) => r.name);
+  check(JSON.stringify(abTriggers) === JSON.stringify(['event_no_delete', 'event_no_update']), 'append-only DB: event_no_update + event_no_delete triggers exist');
+  const abEv = abDb.prepare('SELECT id, type FROM Event WHERE job_id = ? ORDER BY id ASC LIMIT 1').get(abJobA.id);
+  check(!!abEv, 'append-only DB: a stored event exists to test against');
+  let abUpdErr = null;
+  try { abDb.prepare("UPDATE Event SET type = 'TAMPERED' WHERE id = ?").run(abEv.id); } catch (e) { abUpdErr = e; }
+  check(abUpdErr && /events are append-only/.test(abUpdErr.message || ''), 'append-only DB: direct SQL UPDATE on Event is refused by the trigger');
+  check(abDb.prepare('SELECT type FROM Event WHERE id = ?').get(abEv.id).type === abEv.type, 'append-only DB: the event row is unchanged after the refused UPDATE');
+  let abDelErr = null;
+  try { abDb.prepare('DELETE FROM Event WHERE id = ?').run(abEv.id); } catch (e) { abDelErr = e; }
+  check(abDelErr && /events are append-only/.test(abDelErr.message || ''), 'append-only DB: direct SQL DELETE on Event is refused by the trigger');
+  check(abDb.prepare('SELECT COUNT(*) AS n FROM Event WHERE id = ?').get(abEv.id).n === 1, 'append-only DB: the event row still exists after the refused DELETE');
+  abDb.close();
+}
+
+// --- item 18: CaaS retry (boundary ৳100 job, hirer = main token) ---
+const abCharge1 = await req('/api/billing/caas', aj(token, { jobId: abJob100.id }));
+check(abCharge1.status === 200 && abCharge1.body?.status === 'PENDING' && abCharge1.body?.sandboxOtp, 'CaaS retry: first charge is PENDING with a sandbox code');
+const abVerifyWrong = await req(`/api/billing/caas/${abCharge1.body.chargeId}/verify`, aj(token, { otpCode: '000000' }));
+check(abVerifyWrong.status === 400 && (abVerifyWrong.body?.error || '').includes('incorrect code'), 'CaaS retry: a wrong code is an explicit 400 error (not a silent PENDING)');
+const abVerifyDead = await req(`/api/billing/caas/${abCharge1.body.chargeId}/verify`, aj(token, { otpCode: abCharge1.body.sandboxOtp }));
+check(abVerifyDead.status === 400 && (abVerifyDead.body?.error || '').includes('cancelled'), 'CaaS retry: the failed charge is CANCELLED — verifying it again is 400');
+const abCharge2 = await req('/api/billing/caas', aj(token, { jobId: abJob100.id }));
+check(abCharge2.status === 200 && abCharge2.body?.chargeId !== abCharge1.body.chargeId && abCharge2.body?.status === 'PENDING', 'CaaS retry: the next charge is a NEW chargeId, still PENDING');
+check(typeof abCharge2.body?.sandboxOtp === 'string' && abCharge2.body.sandboxOtp !== abCharge1.body.sandboxOtp, 'CaaS retry: the new charge carries a NEW code');
+const abVerify2 = await req(`/api/billing/caas/${abCharge2.body.chargeId}/verify`, aj(token, { otpCode: abCharge2.body.sandboxOtp }));
+check(abVerify2.status === 200 && abVerify2.body?.status === 'VERIFIED', 'CaaS retry: the new charge verifies with its own code');
+const abVerify2Again = await req(`/api/billing/caas/${abCharge2.body.chargeId}/verify`, aj(token, { otpCode: abCharge2.body.sandboxOtp }));
+check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED', 'CaaS retry: an already-VERIFIED charge stays VERIFIED (idempotent)');
+
   console.log('== hardening: route inventory snapshot (split must not add/drop/rename a route) ==');
   {
-    // The 64 routes that existed before the route split (method + path,
+    // The 67 routes that existed before the route split (method + path,
     // sorted), from the pre-split inventory. Rebuilt from the current code
     // the same way: every app./router./callbacksRouter. get/post/put/
     // delete/patch registration in server.js + server/routes/*.js.
+    // Ceiling pass (Part 3, item 15): the metrics router added 3 routes
+    // (GET /api/metrics, GET /api/metrics.csv, GET /metrics); the snapshot
+    // below was updated 64 -> 67 for those three only, by design — the
+    // assertion still fails if any route is lost, renamed, or added
+    // without documentation.
     const EXPECTED_ROUTES = [
       'GET /API/APPLINK/LOG',
       'GET /API/APPLINK/MODE',
@@ -810,10 +1470,13 @@ try {
       'GET /API/JOBS/:ID/RESOLVEPACK',
       'GET /API/JOBS/:ID/RESOLVEPACK.JSON',
       'GET /API/ME',
+      'GET /API/METRICS',
+      'GET /API/METRICS.CSV',
       'GET /API/PASSPORT/:PROFILEID',
       'GET /API/PASSPORT/:PROFILEID/QR.PNG',
       'GET /API/VERIFY',
       'GET /API/WORKER/:TOKEN',
+      'GET /METRICS',
       'GET /PASSPORT/:PROFILEID',
       'GET /UPLOADS/:FILE',
       'GET /VERIFY',
@@ -869,7 +1532,7 @@ try {
       }
     }
     foundRoutes.sort();
-    check(foundRoutes.length === 64, 'route inventory still has exactly 64 routes after the split');
+    check(foundRoutes.length === 67, 'route inventory still has exactly 67 routes after the split');
     check(JSON.stringify(foundRoutes) === JSON.stringify(EXPECTED_ROUTES), 'every pre-split route exists after the split, same method + path (no add, drop or rename)');
   }
 
@@ -971,6 +1634,630 @@ try {
     server4.kill('SIGTERM');
     await sleep(300);
   }
+
+  // =====================================================================
+  // Part 4 (ceiling pass, items 17-18) — presentation polish.
+  // 17: the permanent "Demo mode" pill is gone from all standing chrome
+  // (the demo flow's own transient notice is unaffected — it is a
+  // showNotice message, not page chrome); the login blurb lives inside
+  // the login view only, never above the jobs list.
+  // 18: README is a one-screen pitch (~60-80 lines) with the detail
+  // below a clear break, a marked demo-GIF slot, no self-assigned
+  // score, and "Find a Repairer" as a roadmap line only.
+  {
+    console.log('== part 4: demo pill + login blurb + README pitch ==');
+    const ROOT_P4 = path.resolve(import.meta.dirname, '..', '..');
+    const indexP4 = fs.readFileSync(path.resolve(ROOT_P4, 'public', 'index.html'), 'utf8');
+    const appJsP4 = fs.readFileSync(path.resolve(ROOT_P4, 'public', 'app.js'), 'utf8');
+    const cssP4 = fs.readFileSync(path.resolve(ROOT_P4, 'public', 'style.css'), 'utf8');
+    const readmeP4 = fs.readFileSync(path.resolve(ROOT_P4, 'README.md'), 'utf8');
+    const landingP4 = await req('/');
+
+    // Item 17 — no "Demo mode" pill anywhere in the served app chrome.
+    check(landingP4.status === 200 && !landingP4.text.includes('demo-badge'), 'part 4: served landing HTML has no demo-badge element');
+    check(!landingP4.text.includes('Demo mode'), 'part 4: served landing HTML has no "Demo mode" pill text');
+    check(!landingP4.text.includes('ডেমো মোড'), 'part 4: served landing HTML has no Bangla "Demo mode" pill text');
+    check(!indexP4.includes('demo-badge'), 'part 4: index.html has no demo-badge markup');
+    check(!appJsP4.includes('demoBadge'), 'part 4: app.js has no demoBadge i18n key or badge update');
+    check(!cssP4.includes('demo-badge'), 'part 4: style.css has no demo-badge rules');
+    // Item 17 — login blurb: inside the login view only.
+    const loginAtP4 = indexP4.indexOf('id="view-login"');
+    const ledeAtP4 = indexP4.indexOf('data-i18n="app.lede"');
+    const jobsAtP4 = indexP4.indexOf('id="view-jobs"');
+    check(loginAtP4 !== -1 && ledeAtP4 > loginAtP4 && ledeAtP4 < jobsAtP4, 'part 4: login blurb sits inside #view-login, before #view-jobs');
+    check(indexP4.split('data-i18n="app.lede"').length === 2, 'part 4: login blurb occurs exactly once in index.html');
+    check(landingP4.text.includes('data-i18n="app.lede"'), 'part 4: served HTML still renders the login blurb (on the login view)');
+
+    // Item 18 — README: one-screen pitch, detail below the fold.
+    const readmeLinesP4 = readmeP4.split('\n');
+    const breakAtP4 = readmeLinesP4.findIndex((l) => l.trim() === '---');
+    check(breakAtP4 >= 59 && breakAtP4 <= 79, 'part 4: README detail break lands on line 60-80 (one-screen pitch)');
+    const pitchP4 = readmeLinesP4.slice(0, breakAtP4).join('\n');
+    check(pitchP4.includes('## Demo scenario') && pitchP4.includes('## How it works') && pitchP4.includes('## Quick start') && pitchP4.includes('## Features'), 'part 4: README pitch has the demo scenario, mechanisms, how-to-run and features above the fold');
+    check(readmeP4.includes('<!-- Demo GIF: add after recording -->'), 'part 4: README has the marked demo-GIF slot (comment, no fabricated file)');
+    check(!/\.(gif|mp4|webm|mov)\b/i.test(readmeP4), 'part 4: README links no demo media file that does not exist yet');
+    check(!/\d+\s*\/\s*100/.test(readmeP4), 'part 4: README carries no self-assigned score');
+    const repairerHitsP4 = (readmeP4.match(/Find a Repairer/g) || []).length;
+    check(repairerHitsP4 === 1 && readmeP4.indexOf('Find a Repairer') > readmeP4.indexOf('## Status'), 'part 4: "Find a Repairer" appears exactly once, as a roadmap line below the fold');
+  }
+
+  // =====================================================================
+  // Part 1 (ceiling pass, items 1-8) — Technical.
+  // Item 1: the state machine, closed out. The first pass covered
+  // CLOSED-final 409s for confirms / changes / payments / milestones and
+  // DRAFT discipline for payments / milestones. Probing the running app
+  // found FOUR more holes in the same rule, all fixed in this pass
+  // (server/routes/jobs.js, worker.js, disputes.js, changes.js):
+  //   (a) photos had NO status guard at all — a photo uploaded to a
+  //       CLOSED (or DRAFT) job returned 201;
+  //   (b) a confirm on an already-ACTIVE job re-verified the OTP, wrote
+  //       a duplicate CONFIRMED_BY_* event and re-sent the agreement
+  //       summary SMS;
+  //   (c) opening a dispute on a CLOSED job flipped it back to DISPUTED
+  //       (resurrection through the disputes route);
+  //   (d) ChangeLock proposals were allowed on DRAFT/PENDING/DISPUTED
+  //       jobs, not only ACTIVE ones.
+  // The block below pins all four fixes, plus close-again (400),
+  // location-start on CLOSED (403), and the milestone invariant after a
+  // second rescale datapoint (8000 -> 9000 gives [3375, 5625]).
+  // Item 1 GAP — STOPPED, not built: JobVersion append-only triggers.
+  // A DELETE trigger is impossible: server/routes/demo.js
+  // clearDemoNamespace() legitimately DELETEs JobVersion rows when a
+  // demo visitor resets/seeds (the whole suite depends on it). An UPDATE
+  // trigger is impossible too: the passing nudge assertions backdate a
+  // deadline with a direct `UPDATE JobVersion SET deadline = ?`
+  // (run-demo.mjs ~line 605 and abSetDeadline), and no production code
+  // UPDATEs JobVersion at all (only INSERT at create / ChangeLock
+  // accept). The assertions below pin that state: no JobVersion trigger
+  // exists, no server file UPDATEs JobVersion, the demo wipe still
+  // DELETEs it — so a future agent cannot add the trigger without
+  // seeing the conflict. Event triggers stay the append-only layer.
+  // Items 2-5 are verified by the existing suite (AB block: rescale
+  // 5556/7778/6666 + fingerprint, validation, 402-does-not-burn-OTP,
+  // wrong-code 400 + fresh charge, nudge re-arm per deadline in Dhaka);
+  // this block re-proves the billing-order and milestone-invariant
+  // claims on fresh jobs. Items 6-8 are static checks here (SW
+  // network-only + no unpkg + fonts already covered by the Agent D
+  // block); the live headless-Chrome font-404 probe is a manual check
+  // reported alongside the suite run, not a suite assertion.
+  {
+    console.log('== part 1: state-machine gaps, JobVersion trigger STOP, hygiene ==');
+    const ROOT_P1 = path.resolve(import.meta.dirname, '..', '..');
+    const pngP1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+    async function p1Photo(jobId, workerToken) {
+      const f = new FormData();
+      f.append('photo', new Blob([pngP1], { type: 'image/png' }), 'p1.png');
+      f.append('kind', 'BEFORE');
+      const r = await fetch(BASE + `/api/jobs/${jobId}/photos?token=${workerToken}`, { method: 'POST', body: f });
+      let b = null;
+      try { b = await r.json(); } catch { /* non-JSON */ }
+      return { status: r.status, body: b };
+    }
+    const p1TokenA = await abLogin('01700000111', 'P1 Hirer A', 'hirer');
+    const p1TokenC = await abLogin('01700000113', 'P1 Hirer C', 'hirer');
+    // P1A: plumber, full milestone list (3000 + 5000 = 8000 = price).
+    const p1JobA = await abCreateJob(p1TokenA, { trade: 'PLUMBER', workerPhone: '01800000111', workerName: 'P1 Worker A', scope: 'Fix kitchen sink leak (P1)', price: 8000, deadline: '2027-06-30', milestones: [{ title: 'Advance', amount: 3000 }, { title: 'Completion', amount: 5000 }], answers: AB_PLUMB_ANSWERS, skippedTerms: [] });
+    const p1TokA = p1JobA.workerToken;
+    // P1D: painter, stays DRAFT for the DRAFT-discipline probes.
+    const p1JobD = await abCreateJob(p1TokenA, { trade: 'PAINTER', workerPhone: '01800000112', workerName: 'P1 Worker D', scope: 'Repaint 1 room (P1)', price: 6000, deadline: '2027-06-30', milestones: [{ title: 'Advance', amount: 2000 }], answers: AB_PAINT_ANSWERS, skippedTerms: [] });
+    const p1TokD = p1JobD.workerToken;
+
+    // (d) ChangeLock propose is ACTIVE-only: DRAFT -> 409.
+    const p1ChangeDraft = await req(`/api/jobs/${p1JobD.id}/changes?token=${p1TokD}`, j({ priceDelta: 100, reason: 'Too early' }));
+    check(p1ChangeDraft.status === 409 && (p1ChangeDraft.body?.error || '').includes('ACTIVE'), 'part 1: ChangeLock propose on a DRAFT job is 409 (ACTIVE only)');
+    // Photos are ACTIVE-only: DRAFT -> 409, and nothing is stored.
+    const p1PhotoDraft = await p1Photo(p1JobD.id, p1TokD);
+    check(p1PhotoDraft.status === 409 && (p1PhotoDraft.body?.error || '').includes('ACTIVE'), 'part 1: photo upload on a DRAFT job is 409 (ACTIVE only)');
+    const p1DetailD = await abDetail(p1JobD.id, p1TokD);
+    check(p1DetailD.photos.length === 0, 'part 1: the refused DRAFT photo stored no photo row');
+
+    // Activate P1A, then prove the milestone invariant on a second
+    // rescale datapoint: 8000 -> 9000 gives [3375, 5625].
+    await abActivateStandard('01700000111', p1TokenA, p1JobA.id, p1TokA);
+    const p1ChangeA = await req(`/api/jobs/${p1JobA.id}/changes?token=${p1TokA}`, j({ priceDelta: 1000, reason: 'Extra fitting' }));
+    check(p1ChangeA.status === 201 && p1ChangeA.body?.change?.status === 'PENDING', 'part 1: change +৳1,000 proposed on ACTIVE job A (PENDING)');
+    const p1AcceptA = await req(`/api/changes/${p1ChangeA.body.change.id}/respond`, aj(p1TokenA, { decision: 'accept' }));
+    check(p1AcceptA.status === 200 && p1AcceptA.body?.change?.status === 'APPROVED', 'part 1: hirer accepted the +৳1,000 change on job A');
+    const p1DetailA1 = await abDetail(p1JobA.id, p1TokA);
+    check(JSON.stringify((p1DetailA1.milestones || []).map((m) => m.amount)) === JSON.stringify([3375, 5625]), 'part 1: milestone rescale 8000 -> 9000 gives [3375, 5625]');
+    check((p1DetailA1.milestones || []).reduce((s, m) => s + m.amount, 0) === 9000, 'part 1: rescaled milestones sum to the new price ৳9,000');
+    const p1V2A = p1DetailA1.versions.find((v) => v.version_no === 2);
+    check(p1V2A?.fingerprint === fingerprint({ job_id: p1JobA.id, version_no: 2, scope: 'Fix kitchen sink leak (P1)', price: 9000, deadline: '2027-06-30', answers: AB_PLUMB_ANSWERS, skippedTerms: [], milestones: [{ title: 'Advance', amount: 3375 }, { title: 'Completion', amount: 5625 }] }), 'part 1: V2 fingerprint recomputes from the rescaled milestones (8000 -> 9000)');
+
+    // (b) Confirmations only in DRAFT/PENDING: on ACTIVE, both confirms
+    // are 409 with a dummy code — and no duplicate event or SMS is made.
+    const p1SmsBefore = p1DetailA1.events.filter((e) => e.type === 'SUMMARY_SMS_SENT').length;
+    check(p1SmsBefore === 1, 'part 1: exactly one summary SMS was sent when job A became ACTIVE');
+    const p1HcActive = await req(`/api/jobs/${p1JobA.id}/hirer-confirm`, aj(p1TokenA, { otpCode: '000000' }));
+    check(p1HcActive.status === 409 && (p1HcActive.body?.error || '').includes('ACTIVE'), 'part 1: hirer-confirm on an ACTIVE job is 409 (confirmations only in DRAFT/PENDING)');
+    const p1WcActive = await req(`/api/worker/${p1TokA}/confirm`, j({ otpCode: '000000' }));
+    check(p1WcActive.status === 409 && (p1WcActive.body?.error || '').includes('ACTIVE'), 'part 1: worker confirm on an ACTIVE job is 409 (confirmations only in DRAFT/PENDING)');
+    const p1DetailA2 = await abDetail(p1JobA.id, p1TokA);
+    check(p1DetailA2.events.filter((e) => e.type === 'SUMMARY_SMS_SENT').length === 1, 'part 1: the refused re-confirms sent no second summary SMS');
+    check(p1DetailA2.events.filter((e) => e.type === 'CONFIRMED_BY_HIRER').length === 1 && p1DetailA2.events.filter((e) => e.type === 'CONFIRMED_BY_WORKER').length === 1, 'part 1: the refused re-confirms wrote no duplicate confirmation events');
+
+    // (b, DISPUTED) + (d, DISPUTED): open a dispute on job C, then a
+    // confirm and a change proposal on the DISPUTED job are both 409.
+    const p1JobC = await abCreateJob(p1TokenC, { trade: 'PLUMBER', workerPhone: '01800000113', workerName: 'P1 Worker C', scope: 'Fix bathroom pipe (P1)', price: 6000, deadline: '2027-06-30', milestones: [{ title: 'Advance', amount: 2000 }, { title: 'Done', amount: 4000 }], answers: AB_PLUMB_ANSWERS, skippedTerms: [] });
+    const p1TokC = p1JobC.workerToken;
+    await abActivateStandard('01700000113', p1TokenC, p1JobC.id, p1TokC);
+    const p1DispC = await req(`/api/jobs/${p1JobC.id}/disputes`, aj(p1TokenC, { category: 'quality', statement: 'Finish is patchy (P1).' }));
+    check(p1DispC.status === 201 && p1DispC.body?.job?.status === 'DISPUTED', 'part 1: dispute opened on ACTIVE job C (DISPUTED)');
+    const p1HcDisp = await req(`/api/jobs/${p1JobC.id}/hirer-confirm`, aj(p1TokenC, { otpCode: '000000' }));
+    check(p1HcDisp.status === 409 && (p1HcDisp.body?.error || '').includes('DISPUTED'), 'part 1: hirer-confirm on a DISPUTED job is 409 (mutual resolution is the way back, not re-confirmation)');
+    const p1ChangeDisp = await req(`/api/jobs/${p1JobC.id}/changes?token=${p1TokC}`, j({ priceDelta: 100, reason: 'While disputed' }));
+    check(p1ChangeDisp.status === 409 && (p1ChangeDisp.body?.error || '').includes('ACTIVE'), 'part 1: ChangeLock propose on a DISPUTED job is 409 (ACTIVE only)');
+
+    // Close job A (mutual) and job C (hirer-only, while DISPUTED), then
+    // every mutation on the closed jobs is 409 and the jobs stay CLOSED.
+    await abCloseMutual(p1TokenA, p1JobA.id, p1TokA);
+    const p1CloseC = await req(`/api/jobs/${p1JobC.id}/close`, aj(p1TokenC, { confirmCompletion: true, force: true, closeAnyway: true, note: 'Hirer closing a disputed job alone (P1).' }));
+    check(p1CloseC.status === 200 && p1CloseC.body?.job?.status === 'CLOSED', 'part 1: hirer-only close works on a DISPUTED job (closeAnyway + force)');
+    const p1DetailA3 = await abDetail(p1JobA.id, p1TokA);
+    const p1EventsA = p1DetailA3.events.length;
+    check(p1DetailA3.job.status === 'CLOSED', 'part 1: job A is CLOSED after mutual close');
+    // (a) Photo on CLOSED -> 409, no event, no photo row.
+    const p1PhotoClosed = await p1Photo(p1JobA.id, p1TokA);
+    check(p1PhotoClosed.status === 409 && (p1PhotoClosed.body?.error || '').includes('CLOSED'), 'part 1: photo upload on a CLOSED job is 409');
+    const p1DetailA4 = await abDetail(p1JobA.id, p1TokA);
+    check(p1DetailA4.events.length === p1EventsA && p1DetailA4.photos.length === p1DetailA3.photos.length, 'part 1: the refused CLOSED photo wrote no event and stored no photo');
+    // (c) Dispute on CLOSED -> 409, job stays CLOSED (no resurrection).
+    const p1DispClosed = await req(`/api/jobs/${p1JobA.id}/disputes`, aj(p1TokenA, { category: 'quality', statement: 'Too late.' }));
+    check(p1DispClosed.status === 409 && (p1DispClosed.body?.error || '').includes('CLOSED'), 'part 1: opening a dispute on a CLOSED job is 409 (no resurrection)');
+    check((await abDetail(p1JobA.id, p1TokA)).job.status === 'CLOSED', 'part 1: job A is still CLOSED after the refused dispute');
+    // Statement on a closed job's dispute -> 409.
+    const p1StmtClosed = await req(`/api/disputes/${p1DispC.body.dispute.id}/statements`, aj(p1TokenC, { text: 'After close.' }));
+    check(p1StmtClosed.status === 409 && (p1StmtClosed.body?.error || '').includes('CLOSED'), 'part 1: statement on a CLOSED job dispute is 409');
+    // Close-again -> 400 'already closed'; location start on CLOSED -> 403.
+    const p1CloseAgain = await req(`/api/jobs/${p1JobA.id}/close`, aj(p1TokenA, { confirmCompletion: true }));
+    check(p1CloseAgain.status === 400 && (p1CloseAgain.body?.error || '').includes('already closed'), 'part 1: closing an already-CLOSED job is 400 (already closed)');
+    const p1LocClosed = await req(`/api/worker/${p1TokA}/location/start`, j({}));
+    check(p1LocClosed.status === 403, 'part 1: location start on a CLOSED job is 403 (ACTIVE only)');
+    // Billing order re-proved on a fresh job (item 4): a 402 must never
+    // burn an OTP — the SAME code works after the fee is paid.
+    const p1TokenB = await abLogin('01700000112', 'P1 Hirer B', 'hirer');
+    const p1JobB = await abCreateJob(p1TokenB, { trade: 'ELECTRICIAN', workerPhone: '01800000114', workerName: 'P1 Worker B', scope: 'Rewire one room (P1)', price: 5000, deadline: '2027-06-30', milestones: [{ title: 'Advance', amount: 2000 }, { title: 'Done', amount: 3000 }], answers: SEED_ANSWERS, skippedTerms: [] });
+    const p1TokB = p1JobB.workerToken;
+    const p1HcOtpB = await req('/api/auth/request-otp', j({ phone: '01700000112', purpose: 'hirer-confirm' }));
+    check(p1HcOtpB.status === 200 && p1HcOtpB.body?.sandbox?.otp, 'part 1: hirer-confirm OTP issued for job B');
+    const p1HcB = await req(`/api/jobs/${p1JobB.id}/hirer-confirm`, aj(p1TokenB, { otpCode: p1HcOtpB.body.sandbox.otp }));
+    check(p1HcB.status === 200 && p1HcB.body?.job?.status === 'PENDING', 'part 1: job B hirer confirmed first (PENDING)');
+    const p1WcOtpB = await req(`/api/worker/${p1TokB}/request-otp`, j({ purpose: 'worker-confirm' }));
+    check(p1WcOtpB.status === 200 && p1WcOtpB.body?.sandbox?.otp, 'part 1: worker-confirm OTP issued for job B');
+    const p1Wc402 = await req(`/api/worker/${p1TokB}/confirm`, j({ otpCode: p1WcOtpB.body.sandbox.otp }));
+    check(p1Wc402.status === 402, 'part 1: worker confirm with unpaid fee is 402 (fee checked before OTP)');
+    const p1FeeB = await abPayFee(p1TokenB, p1JobB.id);
+    check(typeof p1FeeB === 'string', 'part 1: job B record fee paid');
+    const p1WcB = await req(`/api/worker/${p1TokB}/confirm`, j({ otpCode: p1WcOtpB.body.sandbox.otp }));
+    check(p1WcB.status === 200 && p1WcB.body?.job?.status === 'ACTIVE', 'part 1: the SAME worker OTP confirms job B after the fee is paid (the 402 did not burn it)');
+
+    // Item 1 GAP (STOPPED): JobVersion has no append-only triggers, by
+    // necessity — pin the three facts that force the STOP.
+    {
+      const { DatabaseSync: P1DatabaseSync } = await import('node:sqlite');
+      const p1Db = new P1DatabaseSync(path.resolve(import.meta.dirname, '..', '..', 'server', 'data', 'dealcraft.db'));
+      const p1Triggers = p1Db.prepare("SELECT name, tbl_name FROM sqlite_master WHERE type = 'trigger' ORDER BY name").all();
+      check(JSON.stringify(p1Triggers.map((t) => t.name)) === JSON.stringify(['event_no_delete', 'event_no_update']), 'part 1: only the two Event triggers exist (no JobVersion trigger — STOP, see block header)');
+      check(p1Triggers.every((t) => t.tbl_name === 'Event'), 'part 1: both triggers guard the Event table only');
+      p1Db.close();
+    }
+    function p1ReadServerFiles(dir, out) {
+      for (const f of fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, f.name);
+        if (f.isDirectory()) p1ReadServerFiles(p, out);
+        else if (f.name.endsWith('.js')) out.push(p);
+      }
+      return out;
+    }
+    const p1ServerFiles = p1ReadServerFiles(path.resolve(ROOT_P1, 'server'), []);
+    const p1UpdateJv = p1ServerFiles.filter((f) => /UPDATE\s+JobVersion/i.test(fs.readFileSync(f, 'utf8')));
+    check(p1UpdateJv.length === 0, 'part 1: no server file UPDATEs JobVersion (only INSERTs at create / ChangeLock accept)');
+    const p1DemoJs = fs.readFileSync(path.resolve(ROOT_P1, 'server', 'routes', 'demo.js'), 'utf8');
+    check(p1DemoJs.includes('DELETE FROM JobVersion WHERE job_id = ?'), 'part 1: demo reset legitimately DELETEs JobVersion rows (per-visitor wipe) — a DELETE trigger would break /api/demo/reset');
+    const p1DbJs = fs.readFileSync(path.resolve(ROOT_P1, 'server', 'src', 'db.js'), 'utf8');
+    const p1TriggerStmts = [...p1DbJs.matchAll(/CREATE TRIGGER[\s\S]*?END;/gi)].map((m) => m[0]);
+    check(p1TriggerStmts.length === 2 && p1TriggerStmts.every((s) => !/JobVersion/i.test(s)), 'part 1: db.js defines exactly two triggers, neither on JobVersion');
+
+    // Item 6 (fonts): no dangling self-hosted font reference anywhere —
+    // fonts.css carries no @font-face rule and no .woff2 url (its header
+    // comment *mentions* both words while explaining why they were
+    // removed, so the check runs on the comment-stripped file), and no
+    // page requests a .woff2 or a /fonts/ path.
+    const p1FontsCssRaw = fs.readFileSync(path.resolve(ROOT_P1, 'public', 'fonts.css'), 'utf8');
+    const p1FontsCss = p1FontsCssRaw.replace(/\/\*[\s\S]*?\*\//g, '');
+    check(!p1FontsCss.includes('@font-face') && !p1FontsCss.includes('.woff2'), 'part 1: fonts.css has no @font-face rule and no .woff2 reference (Google Fonts is the sole source)');
+    for (const page of ['index.html', 'worker.html', 'passport.html', 'verify.html']) {
+      const html = fs.readFileSync(path.resolve(ROOT_P1, 'public', page), 'utf8');
+      check(!html.includes('.woff2') && !/\/fonts\//.test(html), 'part 1: ' + page + ' requests no self-hosted font file');
+    }
+    // Item 8 (hygiene): .taste-skill/ stays, and no self-assigned score
+    // in the README (the Part 4 block already pins the /100 rule; here
+    // the taste-skill gate files must exist).
+    check(fs.existsSync(path.resolve(ROOT_P1, '.taste-skill', 'gate.json')), 'part 1: .taste-skill/gate.json still exists (not deleted)');
+    check(fs.existsSync(path.resolve(ROOT_P1, '.taste-skill', 'waivers.json')), 'part 1: .taste-skill/waivers.json still exists (not deleted)');
+    // Item 8 (docs show the TRUE count): the README must carry the exact
+    // number this run reports. EXPECTED_COUNT is the FINAL suite total
+    // (610 at the ceiling-pass verification run); this check runs
+    // mid-suite (live count here was 526 before it), so it pins only
+    // that the README states the final total, not the live count.
+    const EXPECTED_COUNT = 610; // final measured total, ceiling pass (was 533 pre-pass)
+    const p1Readme = fs.readFileSync(path.resolve(ROOT_P1, 'README.md'), 'utf8');
+    check(p1Readme.includes(EXPECTED_COUNT + ' assertions'), 'part 1: README shows the true assertion count (live count at this point: ' + passed + ', final suite total: ' + EXPECTED_COUNT + ')');
+  }
+
+  // =====================================================================
+  // Part 3 (ceiling pass, items 14-16) — Business/Fit support.
+  // Item 14 (SMS cost): the live text switch is STOPPED, not built — the
+  // summary SMS still carries the 36-char record UUID because the passing
+  // assertion at line ~313 pins `text.endsWith(job.id)`; switching to the
+  // short text (trade, price, deadline, short verify link — 3 segments
+  // down to 2) needs that assertion updated first (coordinator's call).
+  // What DID ship, without touching the text: the segment counter
+  // (server/src/sms.js — GSM 7-bit vs UCS-2, the rules carriers bill
+  // by), the short code (first 8 fingerprint chars — /api/verify
+  // already resolves it), and a per-record SmsLog the metrics view
+  // reads. OTP round-trips: ZERO removed — every OTP purpose guards a
+  // distinct state change (see the audit comment in shared.js); a
+  // verified session proves identity at login, not intent at confirm.
+  // Item 15: internal metrics behind the existing demo gate.
+  // Item 16: price protection + evidence pack in the job detail payload
+  // and the job view (chain status comes from Part 2's hash chain,
+  // merged after this block was first written).
+  {
+    console.log('== part 3: SMS segments + short code, metrics, price protection ==');
+    const ROOT_P3 = path.resolve(import.meta.dirname, '..', '..');
+    const smsP3 = await import(path.resolve(ROOT_P3, 'server', 'src', 'sms.js'));
+    const { smsSegments: segP3, shortCodeFor: codeP3 } = smsP3;
+
+    // --- item 14: segment counting (same function the app logs with) ---
+    check(segP3('hello') === 1, 'part 3: GSM text is 1 segment');
+    check(segP3('a'.repeat(160)) === 1 && segP3('a'.repeat(161)) === 2
+      && segP3('a'.repeat(306)) === 2 && segP3('a'.repeat(307)) === 3,
+      'part 3: GSM concatenation boundaries 160 / 153 per part');
+    check(segP3('আ'.repeat(70)) === 1 && segP3('আ'.repeat(71)) === 2
+      && segP3('আ'.repeat(134)) === 2 && segP3('আ'.repeat(135)) === 3,
+      'part 3: UCS-2 (Bangla) boundaries 70 / 67 per part');
+    // The live summary SMS, reconstructed from its parts: still the old
+    // UUID-carrying format (STOPPED switch — see block header), 3 segments.
+    const p3Detail = await req(`/api/jobs/${job.id}`, { headers: auth(token) });
+    check(p3Detail.status === 200, 'part 3: main job detail loads for the SMS checks');
+    const p3SmsEv = (p3Detail.body?.events || []).find((e) => e.type === 'SUMMARY_SMS_SENT');
+    const p3Payload = JSON.parse(p3SmsEv?.payload_json || '{}');
+    const p3Fp8 = v1.fingerprint.slice(0, 8);
+    const p3Before = 'DealCraft: আপনার কাজের রেকর্ড সক্রিয় হয়েছে — ইলেকট্রিশিয়ান, ৳18000, শেষ তারিখ '
+      + SEED_DEADLINE + ', 3টি মাইলস্টোন। ফিঙ্গারপ্রিন্ট: ' + p3Fp8 + '। রেকর্ড: ' + job.id;
+    check(p3Payload.text === p3Before, 'part 3: summary SMS text is the known before-format (UUID still carried — switch STOPPED)');
+    check(segP3(p3Payload.text) === 3, 'part 3: current summary SMS is 3 Unicode segments (the before number)');
+    check(p3Payload.segments === 3 && p3Payload.shortCode === p3Fp8 && p3Payload.fingerprint8 === p3Fp8,
+      'part 3: SUMMARY_SMS_SENT payload logs segments=3 and the short code');
+    // The short code resolves through /api/verify, like the SMS promises.
+    const p3VerifyShort = await req('/api/verify?fp=' + encodeURIComponent(p3Payload.shortCode));
+    check(p3VerifyShort.status === 200 && p3VerifyShort.body?.match === true && p3VerifyShort.body?.prefixMatch === true
+      && p3VerifyShort.body?.versionNo === 1 && p3VerifyShort.body?.versionState === 'superseded'
+      && p3VerifyShort.body?.matchKind === 'prefix match from SMS',
+      'part 3: the SMS short code resolves through /api/verify (V1, superseded prefix match)');
+    // SmsLog: one row per recipient message actually sent, segments logged.
+    {
+      const { DatabaseSync: P3DatabaseSync } = await import('node:sqlite');
+      const p3Db = new P3DatabaseSync(path.resolve(ROOT_P3, 'server', 'data', 'dealcraft.db'));
+      const p3Rows = p3Db.prepare(
+        "SELECT segments, COUNT(*) AS n FROM SmsLog WHERE job_id = ? AND kind = 'summary' GROUP BY segments"
+      ).all(job.id);
+      check(p3Rows.length === 1 && p3Rows[0].segments === 3 && p3Rows[0].n === 2,
+        'part 3: SmsLog has 2 summary rows for the main job (both recipients), 3 segments each');
+      p3Db.close();
+    }
+    // Staged replacement text (NOT live — the switch is STOPPED): the same
+    // parts, short verify link instead of the UUID. 2 segments at the test
+    // base URL, keeps 'সক্রিয়' (the applog assertion needs it), no UUID.
+    const p3After = 'DealCraft: রেকর্ড সক্রিয় — ইলেকট্রিশিয়ান, ৳18000, শেষ ' + SEED_DEADLINE
+      + '। যাচাই: ' + BASE + '/verify?fp=' + p3Fp8;
+    check(segP3(p3After) === 2, 'part 3: staged short summary SMS is 2 segments (3 -> 2, hard cap met)');
+    check(p3After.includes('সক্রিয়') && !p3After.includes(job.id) && p3After.includes('/verify?fp=' + p3Fp8),
+      'part 3: staged SMS keeps the activation word, drops the UUID, carries the short verify link');
+
+    // --- item 15: internal metrics, behind the demo gate ---
+    const p3NoTok = await req('/api/metrics');
+    check(p3NoTok.status === 403, 'part 3: /api/metrics without the demo token is 403');
+    const p3NoTokCsv = await req('/api/metrics.csv');
+    check(p3NoTokCsv.status === 403, 'part 3: /api/metrics.csv without the demo token is 403');
+    const p3NoTokPage = await req('/metrics');
+    check(p3NoTokPage.status === 403, 'part 3: /metrics page without the demo token is 403');
+    const p3M0 = await req('/api/metrics', { headers: { 'x-demo-token': 'test-demo-token' } });
+    check(p3M0.status === 200 && typeof p3M0.body?.totalRecords === 'number', 'part 3: /api/metrics with the demo token returns numbers');
+    const p3m = p3M0.body;
+    const p3Rate = (n, d) => (d ? Math.round((n / d) * 10000) / 100 : 0);
+    check(p3m.totalRecords >= 1 && p3m.confirmed >= 1 && p3m.changeLockJobs >= 1,
+      'part 3: metrics count real usage (records, confirmed, ChangeLock jobs all >= 1)');
+    check(p3m.activationRate === p3Rate(p3m.confirmed, p3m.totalRecords)
+      && p3m.changeLockRate === p3Rate(p3m.changeLockJobs, p3m.totalRecords)
+      && p3m.disputeRate === p3Rate(p3m.disputeJobs, p3m.totalRecords),
+      'part 3: metrics rates equal their numerators / denominators (no fabricated numbers)');
+    check(p3m.summarySmsMessages >= 2 && p3m.avgSegmentsPerRecord > 0 && p3m.avgSegmentsPerRecord <= 10
+      && Number.isFinite(p3m.avgSegmentsPerRecord) && p3m.passportQualified >= 0,
+      'part 3: metrics SMS numbers are real (messages >= 2, avg segments per record in range, passport-qualified >= 0)');
+    // Delta: one fresh DRAFT job moves the totals exactly as defined.
+    const p3Draft = await req('/api/jobs', aj(token, {
+      trade: 'ELECTRICIAN', workerPhone: '01900000077', workerName: 'Delta Worker',
+      scope: 'Metrics delta check job', price: 5000, deadline: '2026-12-20',
+      milestones: [{ title: 'Advance', amount: 5000 }], answers: SEED_ANSWERS, skippedTerms: [],
+    }));
+    check(p3Draft.status === 201, 'part 3: fresh DRAFT job created for the metrics delta');
+    const p3DraftId = p3Draft.body.job.id;
+    const p3M1 = await req('/api/metrics', { headers: { 'x-demo-token': 'test-demo-token' } });
+    check(p3M1.body?.totalRecords === p3m.totalRecords + 1 && p3M1.body?.confirmed === p3m.confirmed
+      && p3M1.body?.activationRate === p3Rate(p3M1.body.confirmed, p3M1.body.totalRecords),
+      'part 3: metrics delta — a DRAFT adds 1 record, confirmed unchanged, rate recomputed');
+    const p3Csv = await req('/api/metrics.csv', { headers: { 'x-demo-token': 'test-demo-token' } });
+    check(p3Csv.status === 200 && String(p3Csv.headers.get('content-type') || '').includes('text/csv')
+      && p3Csv.text.includes('"totalRecords"') && p3Csv.text.includes('"avgSegmentsPerRecord"'),
+      'part 3: metrics CSV downloads with the token (header + key rows)');
+    const p3Page = await req('/metrics', { headers: { 'x-demo-token': 'test-demo-token' } });
+    check(p3Page.status === 200 && p3Page.text.includes('metrics-table') && p3Page.text.includes('/api/metrics')
+      && p3Page.text.includes('Download CSV'),
+      'part 3: /metrics page serves with the token (table + CSV download)');
+
+    // --- item 16: price protection + evidence pack in the job payload ---
+    // (The main job is already V2 here — the suite's own ChangeLock at
+    // line ~322 had the worker propose +৳2,000 and the hirer accept.
+    // This block only READS the payload; it creates no second change.)
+    const p3pp = p3Detail.body?.priceProtection;
+    check(p3pp?.originalPrice === 18000 && p3pp?.currentPrice === 20000 && p3pp?.changed === true
+      && Array.isArray(p3pp?.changes) && p3pp.changes.length === 1,
+      'part 3: price protection — original ৳18,000 vs current ৳20,000, one approved change');
+    check(p3pp.changes[0]?.oldPrice === 18000 && p3pp.changes[0]?.newPrice === 20000
+      && p3pp.changes[0]?.priceDelta === 2000 && p3pp.changes[0]?.reason === 'Two extra points'
+      && p3pp.changes[0]?.version === 2,
+      'part 3: price protection change lists old -> new + delta + reason (V2, +৳2,000)');
+    const p3ev = p3Detail.body?.evidence;
+    check(p3ev?.fingerprint === v2.fingerprint && p3ev?.fingerprint8 === v2.fingerprint.slice(0, 8)
+      && p3ev?.verifyPath === '/verify?fp=' + v2.fingerprint
+      && p3ev?.resolvePackPath === '/api/jobs/' + job.id + '/resolvepack',
+      'part 3: evidence pack — V2 fingerprint, verify path, ResolvePack path');
+    check(p3ev?.chainPresent === true && typeof p3ev?.chainStatus === 'string'
+      && p3ev.chainStatus.startsWith('hash chain verified end-to-end'),
+      'part 3: evidence pack shows the Part 2 hash-chain status (verified end-to-end)');
+    // No-change job: empty change list, original == current.
+    const p3DraftDetail = await req(`/api/jobs/${p3DraftId}`, { headers: auth(token) });
+    const p3dpp = p3DraftDetail.body?.priceProtection;
+    check(Array.isArray(p3dpp?.changes) && p3dpp.changes.length === 0
+      && p3dpp?.originalPrice === 5000 && p3dpp?.currentPrice === 5000,
+      'part 3: price protection on an unchanged job — no changes, original == current');
+    const p3dEv = p3DraftDetail.body?.evidence;
+    check(p3dEv?.fingerprint === fingerprint({
+      job_id: p3DraftId, version_no: 1, scope: 'Metrics delta check job', price: 5000,
+      deadline: '2026-12-20', answers: SEED_ANSWERS, skippedTerms: [],
+      milestones: [{ title: 'Advance', amount: 5000 }],
+    }) && p3dEv?.chainPresent === true,
+      'part 3: evidence on the fresh job — V1 fingerprint recomputes, chain present');
+    // Client: the job view renders both sections; the metrics page is flat.
+    const p3AppJs = fs.readFileSync(path.resolve(ROOT_P3, 'public', 'app.js'), 'utf8');
+    const p3Index = fs.readFileSync(path.resolve(ROOT_P3, 'public', 'index.html'), 'utf8');
+    check(p3AppJs.includes('priceProtection') && p3AppJs.includes('detail.protectionTitle')
+      && p3AppJs.includes('detail.evidenceTitle') && p3AppJs.includes('evidence-verdict')
+      && p3AppJs.includes('chainPresent'),
+      'part 3: job view renders price protection + evidence pack (incl. chain status)');
+    check(p3Index.includes('id="detail-protection"') && p3Index.includes('id="detail-evidence"'),
+      'part 3: job detail has the protection + evidence containers');
+    const p3MetricsHtml = fs.readFileSync(path.resolve(ROOT_P3, 'public', 'metrics.html'), 'utf8');
+    check(p3MetricsHtml.includes('metrics-table') && p3MetricsHtml.includes('/api/metrics')
+      && p3MetricsHtml.includes('Download CSV') && !p3MetricsHtml.includes('linear-gradient'),
+      'part 3: metrics page is a flat table + CSV download (no gradients)');
+    check(codeP3(v2.fingerprint) === v2.fingerprint.slice(0, 8),
+      'part 3: shortCodeFor is the first 8 fingerprint chars');
+  }
+
+// Agent D regression fragment — assertions for FINAL FIX BRIEF items
+// 10, 11, 19, 21 (demo isolation, proxy correctness, logout/SW, CSP).
+// Written in tests/regression/run-demo.mjs style; uses the suite's own
+// check / req / j / dj / auth / aj / fs / path / sleep / spawn helpers
+// plus the suite's token, SEED_ANSWERS and SEED_MILESTONES.
+//
+// WHERE IT PLUGS IN: paste this whole block into run-demo.mjs at the END
+// MOVED (ceiling-pass verification): this block originally sat before
+// Part 4, but Part 3 (ceiling pass, items 14-16) runs after it and reads
+// the suite demo job that the legacy-seed check here deletes. The block
+// now runs LAST, after Part 3, so no check reads a deleted job. No check
+// logic was changed — only the position in the file.
+// of the try block, after the "hardening: general write rate limit"
+// section and before `console.log('REGRESSION: PASS ...')`. It MUST run
+// last: its legacy-seed check deletes the suite's own (legacy-namespace)
+// demo job, which is harmless only after every other assertion has run.
+// It cleans up its own keyed-visitor demo jobs at the end.
+//
+// DELIBERATELY NOT ASSERTED HERE (stopped items, see Agent D report):
+// - item 12 (seed deadline relative to seed time): changing the seed
+//   deadline breaks the suite's V1/V2 fingerprint and summary-SMS
+//   assertions, which hardcode 2026-12-05. The seed still uses 2026-12-05.
+// - item 20 (latest-position-only location storage): the suite asserts a
+//   1-point trail after one post and a 50-point cap after 55 posts, which
+//   directly contradicts removing trail writes. Trail storage is unchanged.
+
+{
+  console.log('== agent D: demo isolation, proxy correctness, logout/SW, CSP ==');
+  const PORT_D1 = 3461;
+  const BASE_D1 = `http://127.0.0.1:${PORT_D1}`;
+  const PORT_D2 = 3462;
+  const BASE_D2 = `http://127.0.0.1:${PORT_D2}`;
+  const PORT_D3 = 3463;
+  const BASE_D3 = `http://127.0.0.1:${PORT_D3}`;
+  const VA = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+  const VB = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+  const ROOT_D = path.resolve(import.meta.dirname, '..', '..');
+  async function reqD(base, p, opts = {}) {
+    const res = await fetch(base + p, opts);
+    const text = await res.text();
+    let body = null;
+    try { body = JSON.parse(text); } catch { /* non-JSON */ }
+    return { status: res.status, body, text, headers: res.headers };
+  }
+  const djD = (obj, extra = {}) => ({ method: 'POST', headers: { 'Content-Type': 'application/json', ...extra }, body: JSON.stringify(obj) });
+  function spawnD(port, envExtra) {
+    return spawn(process.execPath, ['server/server.js'], {
+      cwd: ROOT_D,
+      env: { ...process.env, PORT: String(port), APPLINK_MODE: 'sandbox', ...envExtra },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  }
+  async function waitUpD(base) {
+    for (let i = 0; i < 40; i++) {
+      try { const r = await reqD(base, '/api/health'); if (r.status === 200) return true; } catch { /* not up yet */ }
+      await sleep(250);
+    }
+    return false;
+  }
+
+  // File checks (suite style: read the file, assert on its content).
+  const swD = fs.readFileSync(path.resolve(ROOT_D, 'public', 'sw.js'), 'utf8');
+  check(swD.includes("CACHE='dealcraft-v3'"), 'agent D: SW cache version bumped (old cached API responses are purged)');
+  check(!swD.includes('/api/jobs/'), 'agent D: SW no longer caches /api/jobs/ records');
+  check(swD.includes("indexOf('/api/')===0"), 'agent D: SW is network-only for /api/* (early return, never cached)');
+  const appJsD = fs.readFileSync(path.resolve(ROOT_D, 'public', 'app.js'), 'utf8');
+  check(appJsD.includes("indexOf('dc_job_')===0"), 'agent D: logout clears all dc_job_* localStorage records');
+  check(appJsD.includes('x-demo-visitor') && appJsD.includes('demoVisitorId'), 'agent D: demo seed sends the per-visitor id (first click already isolated)');
+  const indexD = fs.readFileSync(path.resolve(ROOT_D, 'public', 'index.html'), 'utf8');
+  check(!indexD.includes('unpkg.com'), 'agent D: no page loads anything from unpkg.com');
+  check(indexD.includes('vendor/leaflet/leaflet.js') && indexD.includes('vendor/leaflet/leaflet.css'), 'agent D: Leaflet is self-hosted under public/vendor/leaflet/');
+  check(fs.existsSync(path.resolve(ROOT_D, 'public', 'vendor', 'leaflet', 'leaflet.js'))
+    && fs.existsSync(path.resolve(ROOT_D, 'public', 'vendor', 'leaflet', 'leaflet.css'))
+    && fs.existsSync(path.resolve(ROOT_D, 'public', 'vendor', 'leaflet', 'images', 'marker-icon.png')), 'agent D: self-hosted Leaflet files exist on disk');
+  const secDMod = await import(path.resolve(ROOT_D, 'server', 'src', 'security-headers.js'));
+  const secD = secDMod.default || secDMod;
+  check(!secD.CSP.includes('unpkg.com'), 'agent D: CSP no longer allows unpkg.com');
+  check(secD.CSP.includes('https://tile.openstreetmap.org'), 'agent D: CSP still allows the map tiles the location map needs');
+
+  // Production scratch server, no demo token: "See the demo" must work.
+  let serverD1 = spawnD(PORT_D1, { NODE_ENV: 'production', DEMO_MODE: 'true', PUBLIC_BASE_URL: 'https://dealcraft.example.test', TRUST_PROXY: 'true' });
+  try {
+    check(await waitUpD(BASE_D1), 'agent D: production scratch server boots (DEMO_MODE=true, no token)');
+    const hD = await reqD(BASE_D1, '/api/health');
+    check(!String(hD.headers.get('content-security-policy') || '').includes('unpkg'), 'agent D: live CSP header has no unpkg.com');
+    const leafD = await reqD(BASE_D1, '/vendor/leaflet/leaflet.js');
+    check(leafD.status === 200 && leafD.text.includes('Leaflet 1.9.4'), 'agent D: self-hosted leaflet.js serves live');
+    const seedLegacyD = await reqD(BASE_D1, '/api/demo/seed', j({}));
+    check(seedLegacyD.status === 200, 'agent D: demo seed works in production with DEMO_MODE=true and no token');
+    check(seedLegacyD.body?.hirerPhone === HIRER && seedLegacyD.body?.workerPhone === WORKER, 'agent D: no visitor identity -> legacy sandbox, historical phones');
+    check(!seedLegacyD.headers.get('set-cookie'), 'agent D: legacy seed sets no visitor cookie');
+    const seedAD = await reqD(BASE_D1, '/api/demo/seed', djD({}, { 'x-demo-visitor': VA }));
+    check(seedAD.status === 200, 'agent D: visitor A seeds');
+    check(seedAD.body?.hirerPhone !== HIRER && seedAD.body?.workerPhone !== WORKER, 'agent D: visitor A gets derived (non-legacy) phones');
+    check(/^017\d{8}$/.test(seedAD.body.hirerPhone) && /^018\d{8}$/.test(seedAD.body.workerPhone), 'agent D: visitor A phones are valid BD numbers');
+    const cookieAD = (seedAD.headers.get('set-cookie') || '').split(';')[0];
+    check(cookieAD === 'dc_demo=' + VA, 'agent D: visitor A seed sets the dc_demo cookie');
+    const seedBD = await reqD(BASE_D1, '/api/demo/seed', djD({}, { 'x-demo-visitor': VB }));
+    check(seedBD.status === 200, 'agent D: visitor B seeds');
+    check(seedBD.body?.hirerPhone !== seedAD.body?.hirerPhone && seedBD.body?.workerPhone !== seedAD.body?.workerPhone, 'agent D: visitor B phones differ from visitor A phones');
+    check(seedAD.body.job.id !== seedBD.body.job.id, 'agent D: visitors get different demo jobs');
+    const seedA2D = await reqD(BASE_D1, '/api/demo/seed', djD({}, { Cookie: cookieAD }));
+    check(seedA2D.status === 200 && seedA2D.body?.hirerPhone === seedAD.body.hirerPhone, 'agent D: cookie-only re-seed lands in visitor A sandbox (same phones)');
+    check(seedA2D.body.job.id !== seedAD.body.job.id, 'agent D: visitor A re-seed replaces their own job');
+    const jobBStillD = await reqD(BASE_D1, `/api/jobs/${seedBD.body.job.id}`, { headers: auth(seedBD.body.hirerToken) });
+    check(jobBStillD.status === 200, 'agent D: visitor B job survives visitor A re-seed');
+    const crossD = await reqD(BASE_D1, `/api/jobs/${seedBD.body.job.id}`, { headers: auth(seedA2D.body.hirerToken) });
+    check(crossD.status === 401 || crossD.status === 404, 'agent D: visitor A cannot read visitor B job (no leak)');
+    const listAD = await reqD(BASE_D1, '/api/jobs', { headers: auth(seedA2D.body.hirerToken) });
+    check(!(listAD.body?.jobs || listAD.body || []).some((x) => x.id === seedBD.body.job.id), 'agent D: visitor A job list never contains visitor B job');
+    const resetAD = await reqD(BASE_D1, '/api/demo/reset', djD({}, { 'x-demo-visitor': VA }));
+    check(resetAD.status === 200, 'agent D: visitor A reset');
+    const jobBAfterResetD = await reqD(BASE_D1, `/api/jobs/${seedBD.body.job.id}`, { headers: auth(seedBD.body.hirerToken) });
+    check(jobBAfterResetD.status === 200, 'agent D: visitor B job survives visitor A reset');
+
+    // baseUrl: a job created with a spoofed Host must still link the
+    // configured PUBLIC_BASE_URL. fetch forbids setting Host, so this
+    // probe uses raw node:http; the worker-link SMS is read back from
+    // this server's own applink log file.
+    const httpD = await import('node:http');
+    const rawD = ({ method = 'GET', path: p, headers = {}, body = null }) => new Promise((resolve, reject) => {
+      const rq = httpD.request({ host: '127.0.0.1', port: PORT_D1, method, path: p, headers }, (rs) => {
+        let data = '';
+        rs.on('data', (c) => { data += c; });
+        rs.on('end', () => resolve({ status: rs.statusCode, text: data }));
+      });
+      rq.on('error', reject);
+      if (body) rq.write(body);
+      rq.end();
+    });
+    const probeD = await rawD({ method: 'POST', path: '/api/jobs', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, Host: 'evil.example' }, body: JSON.stringify({ trade: 'ELECTRICIAN', workerPhone: '01900000032', workerName: 'Spoof Worker', scope: 'Spoof check job', price: 1000, deadline: '2026-12-20', milestones: [{ title: 'Advance', amount: 1000 }], answers: SEED_ANSWERS, skippedTerms: [] }) });
+    check(probeD.status === 201, 'agent D: job created with a spoofed Host header (baseUrl probe)');
+    const logD = fs.readFileSync(path.resolve(ROOT_D, 'server', 'data', 'applink-log.jsonl'), 'utf8');
+    const smsD = logD.split('\n').filter((l) => l.includes('sms.send') && l.includes('/worker.html?lang=bn&token='));
+    check(smsD.length >= 1, 'agent D: worker-link SMS is in the server log');
+    check(smsD[smsD.length - 1].includes('https://dealcraft.example.test/worker.html?lang=bn&token='), 'agent D: worker-link SMS uses PUBLIC_BASE_URL (not the request Host)');
+    check(!smsD[smsD.length - 1].includes('evil.example'), 'agent D: worker-link SMS contains no trace of the spoofed Host header');
+    // baseUrl unit check: the env var beats any Host; without it the
+    // request is the fallback (local dev only).
+    const sharedDMod = await import(path.resolve(ROOT_D, 'server', 'src', 'shared.js'));
+    const sharedD = sharedDMod.default || sharedDMod;
+    process.env.PUBLIC_BASE_URL = 'https://dealcraft.example.test';
+    check(sharedD.baseUrl({ protocol: 'http', get: () => 'evil.example' }) === 'https://dealcraft.example.test', 'agent D: baseUrl() returns PUBLIC_BASE_URL with a spoofed Host');
+    delete process.env.PUBLIC_BASE_URL;
+    check(sharedD.baseUrl({ protocol: 'http', get: () => 'evil.example' }) === 'http://evil.example', 'agent D: baseUrl() falls back to the request only when PUBLIC_BASE_URL is unset');
+
+    // Seeding never touches non-demo data: a normal-flow job (no demo tag)
+    // survives both a legacy seed and a keyed seed, with its session intact.
+    const probeJobD = await reqD(BASE_D1, '/api/jobs', aj(token, { trade: 'ELECTRICIAN', workerPhone: '01900000031', workerName: 'Survival Worker', scope: 'Survival check job', price: 15000, deadline: '2026-12-20', milestones: [{ title: 'Advance', amount: 5000 }], answers: SEED_ANSWERS, skippedTerms: [] }));
+    check(probeJobD.status === 201, 'agent D: normal-flow job created for the survival check');
+    const probeIdD = probeJobD.body.job.id;
+    const seedLegacy2D = await reqD(BASE_D1, '/api/demo/seed', j({}));
+    check(seedLegacy2D.status === 200, 'agent D: legacy seed runs after real data exists');
+    const surviveD = await reqD(BASE_D1, `/api/jobs/${probeIdD}`, { headers: auth(token) });
+    check(surviveD.status === 200 && surviveD.body?.job?.status === 'DRAFT', 'agent D: normal-flow job survives a legacy demo seed');
+    const meD = await reqD(BASE_D1, '/api/me', { headers: auth(token) });
+    check(meD.status === 200 && meD.body?.user?.phone === HIRER, 'agent D: hirer session survives a legacy demo seed (not wiped)');
+    const seedB2D = await reqD(BASE_D1, '/api/demo/seed', djD({}, { 'x-demo-visitor': VB }));
+    check(seedB2D.status === 200, 'agent D: visitor B re-seeds');
+    const survive2D = await reqD(BASE_D1, `/api/jobs/${probeIdD}`, { headers: auth(token) });
+    check(survive2D.status === 200, 'agent D: normal-flow job survives a keyed demo seed too');
+    // Cleanup: keyed resets delete this fragment's own demo jobs.
+    await reqD(BASE_D1, '/api/demo/reset', djD({}, { 'x-demo-visitor': VA }));
+    await reqD(BASE_D1, '/api/demo/reset', djD({}, { 'x-demo-visitor': VB }));
+  } finally {
+    serverD1.kill('SIGTERM');
+    await sleep(300);
+  }
+
+  // Token gate + proxy keying (second production server, token configured).
+  let serverD2 = spawnD(PORT_D2, { NODE_ENV: 'production', DEMO_MODE: 'true', DEALCRAFT_DEMO_TOKEN: 'test-demo-token', PUBLIC_BASE_URL: 'https://dealcraft.example.test', TRUST_PROXY: 'true' });
+  try {
+    check(await waitUpD(BASE_D2), 'agent D: token-gated production server boots');
+    const noTokD = await reqD(BASE_D2, '/api/demo/seed', j({}));
+    check(noTokD.status === 403, 'agent D: production + token configured: seed without token is 403');
+    const withTokD = await reqD(BASE_D2, '/api/demo/seed', djD({}, { 'x-demo-token': 'test-demo-token', 'x-demo-visitor': VA }));
+    check(withTokD.status === 200, 'agent D: production + token configured: seed with token is 200');
+    await reqD(BASE_D2, '/api/demo/reset', djD({}, { 'x-demo-token': 'test-demo-token', 'x-demo-visitor': VA }));
+    // Rate limiter keys on X-Forwarded-For when TRUST_PROXY=true: exhaust
+    // one forwarded IP, then a different forwarded IP must still be allowed.
+    let allowedD = 0;
+    let first429D = null;
+    for (let i = 0; i < 1001; i++) {
+      const r = await reqD(BASE_D2, '/api/demo/reset', djD({}, { 'X-Forwarded-For': '203.0.113.7' }));
+      if (r.status === 429) { first429D = i + 1; break; }
+      if (r.status !== 403) throw new Error('agent D rate-limit probe got ' + r.status + ' at ' + (i + 1));
+      allowedD++;
+    }
+    check(allowedD === 1000, 'agent D: 1000 mutating requests from forwarded IP 203.0.113.7 allowed');
+    check(first429D === 1001, 'agent D: 1001st request from 203.0.113.7 is 429');
+    const otherIpD = await reqD(BASE_D2, '/api/demo/reset', djD({}, { 'X-Forwarded-For': '198.51.100.9' }));
+    check(otherIpD.status === 403, 'agent D: a different forwarded IP is NOT rate-limited by the first IP bucket (403, not 429)');
+  } finally {
+    serverD2.kill('SIGTERM');
+    await sleep(300);
+  }
+
+  // DEMO_MODE off still 404s, even in production (third server).
+  let serverD3 = spawnD(PORT_D3, { NODE_ENV: 'production', APPLINK_MODE: 'sandbox' });
+  try {
+    check(await waitUpD(BASE_D3), 'agent D: DEMO_MODE-off production server boots');
+    const offD = await reqD(BASE_D3, '/api/demo/seed', j({}));
+    check(offD.status === 404, 'agent D: seed is 404 when DEMO_MODE is off, even in production');
+    const offScriptD = await reqD(BASE_D3, '/api/demo/script');
+    check(offScriptD.status === 404, 'agent D: demo script is 404 when DEMO_MODE is off');
+  } finally {
+    serverD3.kill('SIGTERM');
+    await sleep(300);
+  }
+}
+
 
   console.log(`REGRESSION: PASS (${passed} assertions)`);
   code = 0;

@@ -13,6 +13,9 @@ const DISPUTE_CATEGORIES = [
 
 router.post('/api/jobs/:id/disputes', requireJobAccess, (req, res) => {
   const job = req.job;
+  // CLOSED is final: opening a dispute would flip a closed job back to
+  // DISPUTED — a closed record can never be re-opened.
+  if (job.status === 'CLOSED') return err(res, 409, 'job is CLOSED — disputes cannot be opened on a closed job');
   const { category, statement } = req.body || {};
   if (!DISPUTE_CATEGORIES.includes(category)) {
     return err(res, 400, 'category must be one of: ' + DISPUTE_CATEGORIES.join(', '));
@@ -43,6 +46,9 @@ router.post('/api/disputes/:disputeId/statements', (req, res) => {
   const user = authedUser(req);
   const wt = workerTokenForJob(req, job.id);
   if (!(user && user.id === job.hirer_id) && !wt) return err(res, 401, 'authentication required');
+  // CLOSED is final: no new statement (and no STATEMENT_ADDED event) on
+  // a closed job's dispute.
+  if (job.status === 'CLOSED') return err(res, 409, 'job is CLOSED — statements cannot be added on a closed job');
   const { side, text } = req.body || {};
   const resolvedSide = side || (wt ? 'worker' : 'hirer');
   if (!['hirer', 'worker'].includes(resolvedSide)) return err(res, 400, "side must be 'hirer' or 'worker'");

@@ -85,6 +85,17 @@ var I18N={
 'detail.closeOtp':{bn:'ওয়ার্কারের বন্ধের কোড',en:'Worker close code'},
 'detail.closeAnyway':{bn:'একা বন্ধ করুন — ওয়ার্কারের কোড ছাড়া (শুধু হায়ারার)',en:'Close alone — without the worker\u2019s code (hirer-only)'},
 'detail.closeBtn':{bn:'কাজ বন্ধ করুন — সম্পূর্ণ হয়েছে নিশ্চিত করুন',en:'Close job — confirm completion'},'detail.pack':{bn:'ResolvePack ডাউনলোড (PDF)',en:'Download ResolvePack (PDF)'},
+'detail.protectionTitle':{bn:'দাম সুরক্ষা — Price protection',en:'Price protection'},
+'detail.protectionNone':{bn:'দাম বদলায়নি — প্রথমে যা ঠিক হয়েছিল, এখনো তাই।',en:'Price unchanged — what was first agreed is still the price.'},
+'detail.evidenceTitle':{bn:'প্রমাণের প্যাক — ResolvePack ও যাচাই',en:'Evidence pack — ResolvePack + verify'},
+'detail.evidenceNoChain':{bn:'এই সংস্করণে হ্যাশ চেইন নেই — ফিঙ্গারপ্রিন্ট দিয়ে যাচাই করা হচ্ছে।',en:'No hash chain in this build — verifying by fingerprint.'},
+'detail.evidenceChain':{bn:'হ্যাশ চেইন',en:'Hash chain'},
+'detail.evidenceVerify':{bn:'রেকর্ড যাচাই করুন',en:'Verify this record'},
+'detail.evidenceVerified':{bn:'মিলেছে — ফিঙ্গারপ্রিন্ট মিলেছে',en:'Verified — fingerprint matches'},
+'detail.evidenceMismatch':{bn:'মেলেনি — রেকর্ডটি যাচাই করা যায়নি',en:'No match — this record could not be verified'},
+'detail.evidenceConfirmed':{bn:'দুই পক্ষের সম্মতিতে নিশ্চিত',en:'Confirmed by both sides'},
+'detail.evidenceNotConfirmed':{bn:'এখনো দুই পক্ষের সম্মতি হয়নি',en:'Not yet confirmed by both sides'},
+'detail.evidenceSuperseded':{bn:'পুরনো সংস্করণ — বর্তমান সংস্করণ দেখুন',en:'Superseded version — see the current version'},
 'tab.timeline':{bn:'টাইমলাইন',en:'Timeline'},'tab.change':{bn:'ChangeLock',en:'ChangeLock'},'tab.pay':{bn:'PayProof',en:'PayProof'},'tab.miles':{bn:'মাইলস্টোন',en:'Milestones'},'tab.dispute':{bn:'Dispute',en:'Dispute'},'tab.billing':{bn:'বিলিং',en:'Billing'},
 'change.title':{bn:'পরিবর্তনের প্রস্তাব — ChangeLock',en:'Propose a change — ChangeLock'},
 'change.text':{bn:'দাম বা সময় বদলাতে হলে লিখিত প্রস্তাব দিন। ওয়ার্কার মানলে তবেই নতুন সংস্করণ (V2) হয়।',en:'To change price or time, send a written proposal. It becomes a new version (V2) only if the worker accepts.'},
@@ -165,7 +176,7 @@ var I18N={
 'card.foot':{bn:'V1 অক্ষত আছে · OTP-তে নিশ্চিত',en:'V1 KEPT INTACT · OTP-CONFIRMED'},
 'chip.pay':{bn:'৳5,000 পেয়েছি — ওয়ার্কার · PayProof',en:'৳5,000 received — Worker · PayProof'},
 'chip.otp':{bn:'✓ দুজনেই OTP নিশ্চিত করেছেন',en:'✓ Both confirmed by OTP'},
-'demo.scope':{bn:'পুরো ফ্ল্যাটের রিওয়্যারিং · ১২ পয়েন্ট',en:'Full flat rewiring · 12 points'},
+'demo.scope':{bn:'পুরো ফ্ল্যাটের রিওয়্যারিং · ২৪ পয়েন্ট',en:'Full flat rewiring · 24 points'},
 'card.photoNote':{bn:'ছবি · মাইলস্টোন সম্পূর্ণ',en:'PHOTO · MILESTONE COMPLETE'},
 'card.changeNote':{bn:'⇄ +৳2,000 · ChangeLock — আরও ২ পয়েন্ট · প্রস্তাব, জোর নয়',en:'⇄ +৳2,000 · ChangeLock — TWO EXTRA POINTS · PROPOSED, NOT FORCED'},
 'card.packNote':{bn:'পুরো রেকর্ড · টাইমলাইন + ছবি',en:'FULL RECORD · TIMELINE + PHOTOS'},
@@ -176,7 +187,6 @@ var I18N={
 'price.v2':{bn:'মাসে ৳70-তে ১২টি রেকর্ড',en:'12 RECORDS AT ৳70 / MONTH'},
 'price.v3':{bn:'আপনি বাঁচান',en:'YOU SAVE'},
 'price.pb2':{bn:'৳70 / মাস',en:'৳70 / MONTH'},
-'app.demoBadge':{bn:'ডেমো মোড',en:'Demo mode'},
 'nav.skip':{bn:'মূল অংশে যান',en:'Skip to content'},
 'loc.nomap':{bn:'ম্যাপ লোড হয়নি — শুধু লেখা দেখানো হচ্ছে।',en:'Map did not load — showing text only.'},
 'why.live':{bn:'লাইভ লোকেশন — কাজ চালু থাকলে ওয়ার্কার তাঁর লোকেশন শেয়ার করতে পারেন, শুধু সেই কাজের হায়ারার দেখতে পান।',en:'Live location — while a job is active, the worker can share their location, visible only to that job\'s hirer.'},
@@ -309,9 +319,6 @@ function t(key){var d=I18N[key];return d?(d[lang]||d.en):key;}
 function applyI18n(){document.documentElement.lang=lang;
  document.title=lang==='bn'?'DealCraft — দাম পরিষ্কার। কাজ পরিষ্কার।':'DealCraft — Clear price. Clear work.';
  document.querySelectorAll('[data-i18n]').forEach(function(el){var v=t(el.getAttribute('data-i18n'));if(v)el.textContent=v;});
- /* The Demo-mode badge keeps its <i> dot: only its text node is localised. */
- var db=document.querySelector('.demo-badge');
- if(db){var n=db.lastChild; if(n&&n.nodeType===3)n.textContent=t('app.demoBadge');}
  /* Placeholders are not data-i18n text: localise them here so no English
     placeholder survives in Bangla mode. */
  var PH={'login-name':{bn:'নাম',en:'Your name'},'otp-code':{bn:'6 অঙ্কের কোড',en:'6-digit code'},
@@ -319,7 +326,7 @@ function applyI18n(){document.documentElement.lang=lang;
  'bid-desc':{bn:'যেমন: বাথরুমের পাইপ ফেটে পানি পড়ছে',en:'e.g. bathroom pipe burst, water leaking'},
  'bid-address':{bn:'যেমন: বাড়ি ১২, রোড ৫, ধানমন্ডি, ঢাকা',en:'e.g. House 12, Road 5, Dhanmondi, Dhaka'},
  'site-address':{bn:'যেমন: বাড়ি ১২, রোড ৫, ধানমন্ডি, ঢাকা',en:'e.g. House 12, Road 5, Dhanmondi, Dhaka'},
- 'job-scope':{bn:'যেমন: পুরো ফ্ল্যাটের রিওয়্যারিং, ১২ পয়েন্ট',en:'e.g. full flat rewiring, 12 points'},
+ 'job-scope':{bn:'যেমন: পুরো ফ্ল্যাটের রিওয়্যারিং, ২৪ পয়েন্ট',en:'e.g. full flat rewiring, 24 points'},
  'ch-reason':{bn:'যেমন: আরও ৩ পয়েন্ট যোগ হয়েছে',en:'e.g. 3 more points added'},
  'dis-text':{bn:'কী হয়েছে, সংক্ষেপে লিখুন',en:'What happened, in brief'},
  'bid-note':{bn:'যেমন: মালামালসহ',en:'e.g. including materials'}};
@@ -874,7 +881,7 @@ function initAuth(){
   }catch(e){showErr((lang==='bn'?'যাচাই হয়নি: ':'Verification failed: ')+e.message);}
  });
  var back=$('otp-back'); if(back)back.addEventListener('click',function(){$('form-otp').hidden=true;$('form-login').hidden=false;});
- var lo=$('btn-logout'); if(lo)lo.addEventListener('click',function(){token='';user=null;localStorage.removeItem('dc_token');localStorage.removeItem('dc_user');showView('view-login','back');$('form-login').hidden=false;$('form-otp').hidden=true;});
+ var lo=$('btn-logout'); if(lo)lo.addEventListener('click',function(){token='';user=null;localStorage.removeItem('dc_token');localStorage.removeItem('dc_user');try{var ks=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('dc_job_')===0)ks.push(k);}ks.forEach(function(k){localStorage.removeItem(k);});}catch(e){}showView('view-login','back');$('form-login').hidden=false;$('form-otp').hidden=true;});
 }
 
 /* ---------- jobs ---------- */
@@ -990,6 +997,58 @@ function renderDetail(job){
    Object.keys(sc.answers||{}).map(function(k){return '<tr><th>'+esc(fsQuestionLabel(k,job.trade))+'</th><td>'+esc(fsAnswerLabel(k,sc.answers[k],job.trade))+'</td></tr>';}).join('')+
    '</table>';
  } else if(rec){rec.hidden=true;}
+ /* Item 16 (ceiling pass): price-creep protection — the first agreed
+    price vs the current price, with every approved ChangeLock in
+    between (old → new + reason). Data comes from full.priceProtection
+    (server/src/shared.js jobDetail); no new claims, only the record. */
+ var pp=full.priceProtection||job.priceProtection;
+ var prot=$('detail-protection');
+ if(prot&&pp&&pp.originalPrice!=null){
+  prot.hidden=false;
+  var chList=(pp.changes||[]).map(function(c){
+   return '<li>'+esc(taka(c.oldPrice))+' → '+esc(taka(c.newPrice))
+    +(c.priceDelta?(' ('+(c.priceDelta>0?'+':'-')+taka(Math.abs(c.priceDelta))+')'):'')
+    +(c.reason?(' — '+esc(c.reason)):'')+'</li>';
+  }).join('');
+  prot.innerHTML='<h3>'+esc(t('detail.protectionTitle'))+'</h3>'
+   +'<p><b>'+esc(taka(pp.originalPrice))+' → '+esc(taka(pp.currentPrice))+'</b></p>'
+   +(chList?'<ul>'+chList+'</ul>':'<p class="small">'+esc(t('detail.protectionNone'))+'</p>');
+ } else if(prot){prot.hidden=true;}
+ /* Item 16: the evidence pack — one visible ResolvePack + verify action
+    with the chain/fingerprint status. The per-event hash chain (Part 2)
+    is in the tree: when evd.chainPresent, show its verified/broken
+    status from the payload; otherwise fall back to the fingerprint-only
+    note. The fingerprint verdict itself is still fetched live from
+    /api/verify on tap — never assumed. */
+ var evd=full.evidence||job.evidence;
+ var evBox=$('detail-evidence');
+ if(evBox&&evd){
+  evBox.hidden=false;
+  var chainLine=evd.chainPresent
+   ?esc(t('detail.evidenceChain'))+': '+esc(evd.chainStatus||'')
+   :esc(t('detail.evidenceNoChain'));
+  evBox.innerHTML='<h3>'+esc(t('detail.evidenceTitle'))+'</h3>'
+   +'<p class="small">'+chainLine+'</p>'
+   +'<p class="mono">FP '+esc(evd.fingerprint8||'')+'…</p>'
+   +'<div class="btn-row"><button class="btn btn-dark btn-sm" type="button" id="btn-evidence-pack">'+esc(t('detail.pack'))+'</button>'
+   +'<button class="btn btn-dark-ghost btn-sm" type="button" id="btn-evidence-verify">'+esc(t('detail.evidenceVerify'))+'</button></div>'
+   +'<p class="small" id="evidence-verdict"></p>';
+  var pkBtn=$('btn-evidence-pack');
+  if(pkBtn)pkBtn.addEventListener('click',function(){var b=$('btn-resolvepack');if(b)b.click();});
+  var vfBtn=$('btn-evidence-verify');
+  if(vfBtn)vfBtn.addEventListener('click',async function(){
+   var v=$('evidence-verdict'); if(!v)return;
+   v.textContent='…';
+   try{
+    var r=await api(evd.verifyApiPath);
+    if(r&&r.match){
+     v.textContent=t('detail.evidenceVerified')
+      +(r.versionState==='superseded'?(' — '+t('detail.evidenceSuperseded')):'')
+      +' — '+(r.confirmedByBothSides?t('detail.evidenceConfirmed'):t('detail.evidenceNotConfirmed'));
+    }else v.textContent=t('detail.evidenceMismatch');
+   }catch(e){v.textContent=t('detail.evidenceMismatch');}
+  });
+ } else if(evBox){evBox.hidden=true;}
  var agreed=bal.agreed!=null?bal.agreed:price||0, paid=bal.acknowledgedPaid!=null?bal.acknowledgedPaid:0, rem=bal.remaining!=null?bal.remaining:(agreed-paid);
  /* P2: balance numbers count/tween to new values instead of snapping. */
  var prev=renderDetail._prevBal||{agreed:0,paid:0,rem:0};
@@ -997,6 +1056,24 @@ function renderDetail(job){
  tweenNum($('bal-paid'),prev.paid,paid,500,taka);
  tweenNum($('bal-rem'),prev.rem,rem,500,taka);
  renderDetail._prevBal={agreed:agreed,paid:paid,rem:rem};
+ /* Read-aloud (Part 2, item 13): one-tap Listen on the record — trade,
+    scope, price, paid, remaining, deadline in the UI language, via the
+    browser's speech synthesis. setLang re-renders the detail, so the
+    label follows the language toggle. */
+ var lb=$('btn-listen');
+ if(lb){
+  lb.hidden=!(lv&&lv.scope);
+  lb.textContent=lang==='bn'?'শুনুন':'Listen';
+  lb.onclick=function(){
+   var RA=window.DealCraftReadAloud;
+   if(!RA||!('speechSynthesis' in window)){showNotice(lang==='bn'?'এই ব্রাউজারে শোনা যাবে না।':'This browser cannot read aloud.');return;}
+   if(RA.isSpeaking&&RA.isSpeaking()){RA.stopSpeaking();lb.textContent=lang==='bn'?'শুনুন':'Listen';return;}
+   var said=RA.speakRecord({trade:job.trade,scope:(typeof sc!=='undefined'&&sc)?sc.scope:'',price:agreed,paid:paid,remaining:rem,deadline:deadline},lang);
+   if(said==null){showNotice(lang==='bn'?'শোনা যায়নি — আবার চেষ্টা করুন।':'Could not read aloud — try again.');return;}
+   lb.textContent=lang==='bn'?'থামুন':'Stop';
+   setTimeout(function(){lb.textContent=lang==='bn'?'শুনুন':'Listen';},Math.min(60000,Math.max(8000,said.length*150)));
+  };
+ }
  $('bar-paid').style.width=agreed?Math.min(100,paid/agreed*100)+'%':'0%';
  $('bar-agreed').style.width='0%';
  var dw=$('detail-warn'); if(dw){dw.hidden=!miss.length;var ul=$('detail-missing');if(ul)ul.innerHTML=miss.map(function(m){var q=typeof m==='string'?m:(m.question||m.name||JSON.stringify(m));return '<li>'+esc(fsQuestionLabel(q,job.trade))+'</li>';}).join('');}
@@ -1436,9 +1513,13 @@ function initBidding(){
 }
 
 /* ---------- demo ---------- */
+/* Per-visitor demo sandbox: a random id, kept in localStorage and sent on
+   the seed call, so two visitors demoing at once never share a job. The
+   server also sets the same id as the dc_demo cookie. */
+function demoVisitorId(){try{var v=localStorage.getItem('dc_demo_visitor');if(!v||!/^[0-9a-f]{32}$/.test(v)){v='';var b=new Uint8Array(16);if(window.crypto&&crypto.getRandomValues){crypto.getRandomValues(b);}else{for(var i=0;i<16;i++)b[i]=Math.floor(Math.random()*256);}for(var j=0;j<16;j++)v+=('0'+b[j].toString(16)).slice(-2);localStorage.setItem('dc_demo_visitor',v);}return v;}catch(e){return '';}}
 async function loadDemo(){
  clearErr();
- try{var r=await api('/api/demo/seed',{method:'POST',body:'{}'});
+ try{var r=await api('/api/demo/seed',{method:'POST',body:'{}',headers:{'x-demo-visitor':demoVisitorId()}});
   var job=r.job||(r.jobs&&r.jobs[0]); var id=job&&(job.id||job._id);
   if(id){try{localStorage.setItem('dc_pending_demo',id);}catch(e){}}
   if(r&&r.workerLink){try{localStorage.setItem('dc_demo_workerlink',r.workerLink);}catch(e){}}
@@ -1449,9 +1530,10 @@ async function loadDemo(){
    user=r.hirer||{phone:r.hirerPhone||'01700000001',name:'Rahim Uddin'};localStorage.setItem('dc_user',JSON.stringify(user));
    if(id){openJob(id);}else{showView('view-jobs');loadJobs();}return;}
   if(!token){ /* demo seed may return a token; otherwise show login with demo phone */
-   $('login-phone').value='01700000001'; showView('view-login');
+   var demoPhone=r.hirerPhone||'01700000001';
+   $('login-phone').value=demoPhone; showView('view-login');
    var extra=r&&r.sandboxOtps?(' '+(lang==='bn'?'নিশ্চিতকরণের কোড — হায়ারার: ':'Confirm codes — hirer ')+(r.sandboxOtps.hirerConfirm||'—')+' / '+(lang==='bn'?'ওয়ার্কার: ':'worker ')+(r.sandboxOtps.workerConfirm||'—')+'.'):'';
-   showNotice(lang==='bn'?'ডেমো তৈরি হয়েছে। হায়ারারের নম্বর 01700000001 দিয়ে OTP লগইন করুন। লগইনের পর ডেমো কাজটি নিজে থেকেই খুলবে।'+extra:'Demo seeded. Log in with hirer number 01700000001 and OTP. The demo job opens automatically after login.'+extra);
+   showNotice(lang==='bn'?'ডেমো তৈরি হয়েছে। হায়ারারের নম্বর '+demoPhone+' দিয়ে OTP লগইন করুন। লগইনের পর ডেমো কাজটি নিজে থেকেই খুলবে।'+extra:'Demo seeded. Log in with hirer number '+demoPhone+' and OTP. The demo job opens automatically after login.'+extra);
    document.getElementById('app').scrollIntoView({behavior:'smooth'}); return; }
   if(id)openJob(id); else loadJobs(),showView('view-jobs');
  }catch(e){showErr((lang==='bn'?'ডেমো লোড হয়নি: ':'Demo did not load: ')+e.message);}

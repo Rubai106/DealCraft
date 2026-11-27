@@ -19,6 +19,15 @@ const { rateLimit } = require('./src/rate-limit');
 init();
 
 const app = express();
+// Proxy correctness: when a reverse proxy / PaaS sits in front, Express
+// must trust X-Forwarded-For so req.ip (rate limiter) and req.protocol
+// reflect the real client, not the proxy's socket address. Set
+// TRUST_PROXY=true (or a hop count, e.g. 1) only when a proxy is actually
+// in front; unset = direct, socket address as before.
+if (process.env.TRUST_PROXY) {
+  const tp = process.env.TRUST_PROXY.trim();
+  app.set('trust proxy', tp === 'true' ? true : (/^\d+$/.test(tp) ? Number(tp) : tp));
+}
 const PORT = process.env.PORT || 3000;
 const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
@@ -95,6 +104,7 @@ app.use(require('./routes/passport'));
 app.use(require('./routes/billing'));
 app.use(require('./routes/applink').callbacksRouter);
 app.use(require('./routes/demo'));
+app.use(require('./routes/metrics'));
 
 // ---------------------------------------------------------------- errors
 app.use((req, res) => {

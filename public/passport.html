@@ -35,6 +35,7 @@
     </div>
     <div class="pp-stats">
       <div class="pp-stat"><b id="p-count">0</b><span data-i18n="p.countLabel">CONFIRMED JOBS</span></div>
+      <div class="pp-stat"><b id="p-hirers-count">0</b><span data-i18n="p.hirersLabel">DISTINCT HIRERS</span></div>
       <div class="pp-stat"><b id="p-trades-count">0</b><span data-i18n="p.tradesLabel">TRADES</span></div>
       <div class="pp-stat"><b id="p-photos-count">0</b><span data-i18n="p.photosLabel">PHOTOS SHARED</span></div>
     </div>
@@ -60,6 +61,7 @@ var pLang=localStorage.getItem('dc_lang')||'en';
 var PI18N={
  'p.kicker':{bn:'WORKPASSPORT · কাজের পরিচয়পত্র',en:'WORKPASSPORT · Work identity'},
  'p.countLabel':{bn:'সম্পন্ন কাজ',en:'Confirmed jobs'},
+ 'p.hirersLabel':{bn:'আলাদা হায়ারার',en:'Distinct hirers'},
  'p.tradesLabel':{bn:'কাজের ধরন',en:'Trades'},
  'p.photosLabel':{bn:'শেয়ার করা ছবি',en:'Photos shared'},
  'p.jobs':{bn:'সম্পন্ন কাজ',en:'Completed jobs'},
@@ -102,6 +104,9 @@ async function load(){
   var p=d.passport||d;
   $('p-name').textContent=p.workerName||p.name||(pLang==='bn'?'DealCraft ওয়ার্কার':'DealCraft worker');
   $('p-count').textContent=p.completedJobs!=null?p.completedJobs:(p.count!=null?p.count:0);
+  /* Distinct hirers (Part 2, item 11): ten jobs for one cousin reads
+     differently from ten jobs for ten customers. */
+  var hc=$('p-hirers-count'); if(hc)hc.textContent=p.distinctHirers!=null?p.distinctHirers:0;
   /* entries: [{jobId, trade, completedAt, showAmounts, showClient, showPhotos, amount?}] */
   var entries=p.entries||[];
   var tc=$('p-trades-count'); if(tc)tc.textContent=(p.trades||[]).length;

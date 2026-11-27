@@ -6,28 +6,52 @@
 **A phone call can start a job. It shouldn't be the only record of what was promised.**
 
 DealCraft turns a phone-call agreement for an informal job — electrician,
-painter, plumber — into a **mutually confirmed digital work record**.
-Before work starts, both sides agree the scope clearly. During work,
-every change and payment is recorded with both sides' confirmation.
-After work, both sides hold the complete history, and the worker carries
-the proof into future jobs.
+painter, plumber — into a **mutually confirmed digital work record**. Before
+work starts, both sides agree the scope clearly. During work, every change
+and payment is recorded with both sides' confirmation. After work, both
+sides hold the complete history, and the worker carries the proof into future jobs.
 
 > **Honest limits, stated plainly.** DealCraft is not a contract service.
 > It holds no money, does no escrow, does not guarantee payment, and does
 > not decide who is right in a disagreement. Payment entries are
 > acknowledgements only. This record is not a legal document. AppLink
-> reaches Banglalink subscribers only; users on other networks use the
-> web / PWA link route.
+> reaches Banglalink subscribers only; users on other networks use the web / PWA link route.
+
+<!-- Demo GIF: add after recording -->
+> **Demo video:** _GIF coming after the recording — the 2-minute demo
+> script is in [docs/setup.md](docs/setup.md)._
 
 Built for **AppQuest 2.0** (AppLink / Banglalink) — theme: Human Potential
 / Future of Work. Submission due **30 Nov 2026, 23:59 BST**.
+
+## Demo scenario — a ৳18,000 rewiring, in five lines
+
+1. Hirer records a full flat rewiring — 24 points, ৳18,000 — through
+   FairScope; creation is refused until every term is answered or explicitly skipped.
+2. Hirer and worker each confirm by OTP; only then does the record go ACTIVE.
+3. Two extra points are proposed; ChangeLock makes V2 at ৳20,000 (+৳2,000)
+   while V1 stays intact with its original fingerprint.
+4. A ৳5,000 Cash advance is recorded in PayProof and acknowledged
+   "Received" by the worker — balance ৳20,000 / paid ৳5,000 / left ৳15,000.
+5. Three milestones close with BEFORE/AFTER photos and hirer approval;
+   the whole history exports as one ResolvePack PDF.
+
+## How it works
+
+- **One append-only event log per job** — everything else is a view of it.
+- **Versions, never edits** — a change supersedes the old version, each
+  with a SHA-256 fingerprint covering scope, price, deadline, FairScope
+  answers, skipped terms and milestones.
+- **Dual OTP confirmation** — nothing takes effect until both sides confirm.
+- **Tamper-evident export** — ResolvePack carries a QR code that verifies
+  against the live record.
 
 ## Quick start
 
 ```bash
 npm install
 npm start          # http://localhost:3000
-npm test           # full regression — 254 assertions, PASS
+npm test           # full regression — 610 assertions, PASS (see tests/regression/run-demo.mjs; the count grows as coverage is added)
 ```
 
 Requires Node.js 24+. No other services. The database is a SQLite file
@@ -44,13 +68,23 @@ created on first run at `server/data/dealcraft.db`. See
 | **ChangeLock** | Price/scope changes create a new version (V1 → V2); the old version stays intact with its fingerprint |
 | **PayProof** | Payments recorded (Cash / bKash / Nagad) and acknowledged by the recipient; balance always visible |
 | **Milestones + photos** | Work marked complete with BEFORE/AFTER photos; hirer approves each step |
-| **Live location** | Opt-in sharing — hirer sees distance/ETA and a geofenced arrival; no coordinates kept in the record |
-| **Find a Repairer** | Optional mode: post a photo job, nearby workers bid, picking a bid creates a DRAFT record (dual OTP still required) |
-| **ResolvePack** | Disputes with both sides' statements, resolved only by mutual agreement; one-click PDF export of the full record |
+| **Live location** | Opt-in sharing — hirer sees distance/ETA and a geofenced arrival; shared only while the job is active, deleted when it closes; the permanent record stores arrival events without coordinates |
 | **WorkPassport** | Worker-owned public record of completed jobs — random profile id, no phone number, no star ratings |
+| **ResolvePack** | Disputes with both sides' statements, resolved only by mutual agreement; one-click PDF export of the full record |
 | **Billing** | ৳10 per confirmed record (CaaS) or ৳70/month plan; no DealCraft fee for workers |
 
 Full detail: [docs/features.md](docs/features.md).
+
+Read more: [Setup & demo](docs/setup.md) · [Architecture](docs/architecture.md) · [AppLink](docs/applink.md) · [API reference](docs/api.md) · [Security & privacy](docs/security.md) · [Database](docs/database.md) · [Design](docs/design.md) · [Project status](docs/status.md)
+
+---
+
+# Details
+
+Everything below the line above is the detail behind the pitch: the
+architecture, the AppLink status, what works and what does not yet, and
+the team and AI disclosure. Nothing here is hidden — it is just below
+the fold.
 
 ## Architecture
 
@@ -72,15 +106,39 @@ so no live call has been made. See
 ## Status
 
 - **Working:** everything in the table above, verified by the regression
-  (254 assertions, PASS) and CI on every push to main.
+  (610 assertions, PASS — the count grows as coverage is added) and CI on every push to main.
 - **Sandbox-only:** all AppLink calls, until live credentials exist.
 - **Planned:** real GPS/map tiles, offline PWA re-visit, photo
   retention pass, withdraw-bid endpoint.
+- **Roadmap:** Find a Repairer photo-job bidding — a secondary mode
+  behind `FEATURE_BIDDING` (default off); detail in
+  [docs/features.md](docs/features.md) §11, not a live promoted mode.
 
-An independent review of this repo (26 Nov 2026) scored it **~80/100**;
-the remaining points need evidence, not features — one live AppLink
-call, a deployed URL, the proposal PDF, and the demo video. Details:
-[docs/status.md](docs/status.md).
+## Team & AI disclosure
+
+**Team** (AppQuest 2.0, 2 members):
+
+| Role | Name |
+|---|---|
+| Team Lead | Samin Yeasar Rubai — BRAC University — samin.yeasar.rubai@g.bracu.ac.bd |
+| Teammate | [TEAM TO SUPPLY — name, university, role] |
+
+**Tools used:** Node.js 24 + Express, SQLite (`node:sqlite`), vanilla
+HTML/CSS/JS (PWA), AppLink portal + API (OTP, SMS, CaaS,
+Subscription), GitHub + GitHub Actions (Node 24 CI), Playwright /
+`design-taste-frontend` skill for design checks.
+
+**AI use — stated honestly.** AI assistants (including Muse) were used
+throughout this project: for research and competitor checks, for
+drafting and reviewing code and documentation, for design iterations,
+and for preparing this proposal and the demo script. Every feature was
+verified by the project's own regression suite (610 assertions, PASS)
+and by reading the code and the running app — AI output was never
+submitted unreviewed, and no product claim in this repo rests on an
+AI's word alone. The AppLink adapter was built against AppLink's
+published API documentation and verified against a mock-live harness;
+no live AppLink call has been made yet, and nothing in this repo
+pretends otherwise.
 
 ## Docs
 
@@ -101,5 +159,9 @@ call, a deployed URL, the proposal PDF, and the demo video. Details:
   known limits before deploying it anywhere public.
 - Screenshots from the QA passes are kept locally in
   `.taste-skill/shots/` and are not committed to this repo.
+- PWA icons: `public/manifest.json` currently lists the SVG icon only.
+  PNG icons (`icon-192.png`, `icon-512.png`) still need to be uploaded
+  via the GitHub web UI — the repo's push route is text-only and cannot
+  carry binary files — before the PWA is fully installable.
 - The full AppLink portal sheet (with account values) lives in the
   gitignored `APPLINK-APP-CREATION.local.md` and is never pushed.

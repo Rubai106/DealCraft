@@ -1,14 +1,17 @@
 # Security & privacy
 
-All items below are covered by the regression suite (`npm test`, 254
-assertions, PASS).
+All items below are covered by the regression suite (`npm test`, 610
+assertions, PASS — the count grows as coverage is added).
 
 ## Billing
 
 - **Billing is enforced, not voluntary.** A job cannot become ACTIVE
   until the ৳10 record fee is paid (CaaS, PENDING → VERIFIED via OTP) or
   the hirer has an ACTIVE ৳70/month subscription — otherwise the second
-  confirmation returns **402**.
+  confirmation returns **402**. The gate is **not** on record creation:
+  `POST /api/jobs` never checks billing; it fires at the second
+  confirmation (`routes/jobs.js` hirer-confirm, `routes/worker.js`
+  worker confirm).
 - **Billing is idempotent and ownership-checked.** A second CaaS charge
   for the same job returns the existing charge; verifying a charge that
   belongs to another hirer is 403. `POST /api/billing/subscribe` returns
@@ -65,7 +68,9 @@ OTPs and codes, including worker tokens embedded in SMS text.
   The public identifier is a random profile id — no phone number in the
   public URL, API or page — and completion time is the actual close time.
 - **Location privacy:** `ARRIVED_ON_SITE` stores a timestamp and status
-  only; no coordinates survive in the permanent event history. Distances
+  only. Location is shared only while the job is active, deleted when
+  it closes; the permanent record stores arrival events without
+  coordinates. Distances
   are labelled straight-line, never road routing. The trail (last 50
   points) and latest point are deleted on close or dispute.
 

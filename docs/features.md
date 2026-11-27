@@ -1,7 +1,8 @@
 # Features
 
 Everything below is built and covered by the regression suite
-(`npm test`, 254 assertions, PASS). Nothing in the Planned section of
+(`npm test`, 610 assertions, PASS — the count grows as coverage is
+added; see `tests/regression/run-demo.mjs`). Nothing in the Planned section of
 [status.md](status.md) is claimed here.
 
 ## 1. FairScope
@@ -82,7 +83,10 @@ job — a second charge returns the existing one; verification is
 ownership-checked), ৳70/month plan (Subscription). A job cannot become
 ACTIVE until the ৳10 record fee is paid (CaaS, PENDING → VERIFIED via
 OTP) or the hirer has an ACTIVE ৳70/month subscription — otherwise the
-second confirmation returns **402**. `POST /api/billing/subscribe`
+second confirmation returns **402**. The fee gate is **not** on record
+creation: `POST /api/jobs` never checks billing. It fires at the second
+confirmation — the hirer-confirm and worker-confirm endpoints — so a
+DRAFT record can exist unpaid, but it can never become ACTIVE unpaid. `POST /api/billing/subscribe`
 returns the existing subscription instead of a duplicate row;
 `POST /api/billing/unsubscribe` cancels it;
 `GET /api/billing/status` reports record fee / subscription fee / paid
@@ -106,8 +110,11 @@ with `POST /api/jobs/:id/worker-link` to resend it.
 Opt-in per job: the worker taps Share on the job page, the hirer sees a
 moving dot + route + distance/ETA on a live map (Leaflet + OpenStreetMap,
 no key) with En route / Arriving / Arrived states. Entering 100 m of the
-job site writes one `ARRIVED_ON_SITE` event (timestamp + status only —
-no coordinates are kept in the permanent history) and notifies the hirer.
+job site writes one `ARRIVED_ON_SITE` event (timestamp + status only)
+and notifies the hirer.
+Location is shared only while the job is active, deleted when it
+closes; the permanent record stores arrival events without
+coordinates.
 Distance shown is straight-line distance, never presented as road
 routing. Only that job's hirer can see it, only while sharing is on and
 the job is ACTIVE; the trail (last 50 points) and latest point are
@@ -139,7 +146,7 @@ log, and the hirer can close bidding without picking anyone
 |---|---|---|
 | Innovation & Originality | 25% | FairScope missing-term warning (the fight caught before work starts); one append-only event log with SHA-256 version fingerprints; ChangeLock versioning; WorkPassport as proof a worker carries — not a marketplace, not a contract, not escrow |
 | AppLink Integration | 20% | `server/src/applink/` — OTP, SMS, CaaS, Subscription adapters with identical interfaces; CaaS PENDING→VERIFIED two-step handled correctly; sandbox labelled + logged, live switch via env; `GET /api/applink/log` |
-| Technical Implementation | 20% | Express + SQLite (relational, append-only), random token auth, per-job signed worker links, magic-byte-validated photo uploads served job-scoped, server-side PDF + QR, PWA with service worker, live location (opt-in, geofenced arrival, no coordinates kept); `tests/regression/run-demo.mjs` — 254 assertions, PASS, plus GitHub Actions CI on Node 24 |
+| Technical Implementation | 20% | Express + SQLite (relational, append-only), random token auth, per-job signed worker links, magic-byte-validated photo uploads served job-scoped, server-side PDF + QR, PWA with service worker, live location (opt-in, geofenced arrival; shared only while the job is active, deleted on close, arrival events stored without coordinates); `tests/regression/run-demo.mjs` — 610 assertions, PASS (count grows with coverage), plus GitHub Actions CI on Node 24 |
 | Business Viability | 20% | ৳10/record CaaS (idempotent, ownership-checked) + ৳70/month subscription, no DealCraft fee for workers (carrier SMS charges disclosed); ৳10 yields ~৳4–5 under the revenue share before costs — not claimed profitable without settlement data; Banglalink-only limit stated honestly; demo story is a real, repeatable transaction |
 | Problem–Solution Fit & Impact | 10% | The exact fight the product removes: price changes, extra work, disputed payments with no proof — demo story reproduces it end to end in under 2 minutes |
 | Presentation & Demo | 5% | One-click demo seed + script (`GET /api/demo/script`), ResolvePack PDF as the one-page story, Direction 03 poster design, Bangla-first |

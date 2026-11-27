@@ -31,7 +31,10 @@ function rateLimit(req, res, next) {
   if (!req.path.startsWith('/api/')) return next();
   // AppLink callbacks are server-to-server webhooks: exempt (see above).
   if (req.path.startsWith('/api/applink/')) return next();
-  const ip = (req.socket && req.socket.remoteAddress) || req.ip || 'unknown';
+  // Key on the real client IP: req.ip honours Express 'trust proxy', so
+  // behind a PaaS it is the leftmost X-Forwarded-For address; direct, it
+  // is the socket address exactly as before.
+  const ip = req.ip || (req.socket && req.socket.remoteAddress) || 'unknown';
   const nowMs = Date.now();
   let entry = counts.get(ip);
   if (!entry || nowMs - entry.windowStart >= WINDOW_MS) {

@@ -13,7 +13,13 @@ router.get('/api/worker/:token', (req, res) => {
   const job = getJob(wt.job_id);
   if (!job) return err(res, 404, 'job not found');
   const detail = jobDetail(job);
-  // Never expose hirer OTP codes or secrets here; detail contains only the record.
+  // The worker must know who they are confirming with: the hirer's name
+  // and phone travel in the payload (the worker page renders them above
+  // the confirm button). Never expose hirer OTP codes or secrets here;
+  // detail contains only the record.
+  const hirer = db.prepare('SELECT name, phone FROM User WHERE id = ?').get(job.hirer_id);
+  detail.job.hirerName = hirer ? hirer.name : null;
+  detail.job.hirerPhone = hirer ? hirer.phone : null;
   res.json({ job: detail.job, version: getCurrentVersion(job), events: detail.events, balance: detail.balance, milestones: detail.milestones, payments: detail.payments });
 });
 
@@ -39,19 +45,31 @@ router.post('/api/worker/:token/confirm', async (req, res) => {
   if (!wt) return err(res, 401, 'invalid or expired worker token');
   const job = getJob(wt.job_id);
   if (!job) return err(res, 404, 'job not found');
+  // CLOSED is final: a closed job can never be confirmed back to ACTIVE.
+  if (job.status === 'CLOSED') return err(res, 409, 'job is CLOSED — a closed job cannot be confirmed again');
+  // Confirmations only in DRAFT/PENDING: an ACTIVE job is already
+  // confirmed by both sides (a second confirm would duplicate the
+  // CONFIRMED_BY_WORKER event and re-send the agreement summary SMS),
+  // and a DISPUTED job returns to ACTIVE through mutual resolution,
+  // not through re-confirmation.
+  if (job.status !== 'DRAFT' && job.status !== 'PENDING') {
+    return err(res, 409, 'job is ' + job.status + ' — confirmations are only for DRAFT or PENDING jobs');
+  }
   const { otpCode } = req.body || {};
   if (!otpCode) return err(res, 400, 'otpCode is required');
+  const hirerConfirmed = db.prepare(
+    "SELECT 1 FROM Event WHERE job_id = ? AND type = 'CONFIRMED_BY_HIRER' LIMIT 1"
+  ).get(job.id);
+  // Billing is checked BEFORE the OTP is verified, so a 402 does not burn
+  // the worker's code: the same code still works once the fee is paid.
+  if (hirerConfirmed && !billingSatisfied(job)) {
+    return err(res, 402, 'record fee unpaid — the hirer must pay ৳10 via CaaS or subscribe ৳70/month before the job can become ACTIVE');
+  }
   const adapter = getAdapter();
   let ok = false;
   try { ok = await adapter.verifyOtp(job.worker_phone, String(otpCode), 'worker-confirm'); }
   catch (e) { return otpError(res, e); }
   if (!ok) return err(res, 401, 'invalid or expired code');
-  const hirerConfirmed = db.prepare(
-    "SELECT 1 FROM Event WHERE job_id = ? AND type = 'CONFIRMED_BY_HIRER' LIMIT 1"
-  ).get(job.id);
-  if (hirerConfirmed && !billingSatisfied(job)) {
-    return err(res, 402, 'record fee unpaid — the hirer must pay ৳10 via CaaS or subscribe ৳70/month before the job can become ACTIVE');
-  }
   addEvent(job.id, 'CONFIRMED_BY_WORKER', 'worker:' + job.worker_phone, {});
   const status = hirerConfirmed ? 'ACTIVE' : 'PENDING';
   db.prepare('UPDATE Job SET status = ? WHERE id = ?').run(status, job.id);

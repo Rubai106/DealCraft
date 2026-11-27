@@ -16,6 +16,21 @@ db.exec('PRAGMA journal_mode = WAL;');
 db.exec('PRAGMA foreign_keys = ON;');
 db.exec('PRAGMA busy_timeout = 5000;');
 
+function createEventTriggers() {
+  // Append-only at the storage layer, not just in code: history can never
+  // be rewritten or deleted through SQL, even by a bug or a hand-written
+  // query. CREATE TRIGGER IF NOT EXISTS keeps this safe for databases
+  // created before the triggers existed.
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS event_no_update
+    BEFORE UPDATE ON Event
+    BEGIN SELECT RAISE(ABORT, 'events are append-only'); END;
+    CREATE TRIGGER IF NOT EXISTS event_no_delete
+    BEFORE DELETE ON Event
+    BEGIN SELECT RAISE(ABORT, 'events are append-only'); END;
+  `);
+}
+
 function init() {
   // Foreign keys: declared here for fresh databases only. CREATE TABLE
   // IF NOT EXISTS never alters an existing table, so a database created
@@ -243,6 +258,19 @@ function init() {
     CREATE INDEX IF NOT EXISTS idx_bidjob_status ON BidJob(status, created_at);
     CREATE INDEX IF NOT EXISTS idx_bid_job ON Bid(bid_job_id, amount);
     CREATE INDEX IF NOT EXISTS idx_bidjobphoto_job ON BidJobPhoto(bid_job_id);
+    -- SMS cost ledger (ceiling pass item 14): one row per SMS actually
+    -- sent (summary on activation, deadline nudge), with the segment
+    -- count computed by server/src/sms.js — the same function the
+    -- sender and the metrics view use, so the numbers agree. This is
+    -- the unit-economics record: segments per record, not a guess.
+    CREATE TABLE IF NOT EXISTS SmsLog (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      job_id TEXT NOT NULL,
+      kind TEXT NOT NULL CHECK (kind IN ('summary','nudge')),
+      segments INTEGER NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_smslog_job ON SmsLog(job_id, kind);
     CREATE INDEX IF NOT EXISTS idx_locationtrail_job ON LocationTrail(job_id, id);
     CREATE INDEX IF NOT EXISTS idx_jobversion_job ON JobVersion(job_id, version_no);
     CREATE INDEX IF NOT EXISTS idx_event_job ON Event(job_id, id);
@@ -257,6 +285,10 @@ function init() {
   for (const [name, type] of [['site_lat', 'REAL'], ['site_lng', 'REAL'], ['site_address', 'TEXT']]) {
     if (!cols.includes(name)) db.exec(`ALTER TABLE Job ADD COLUMN ${name} ${type}`);
   }
+  // Migration: per-visitor demo namespace (demo isolation). Demo seed /
+  // reset delete only Job rows carrying a demo_visitor tag; real jobs
+  // have NULL here and are never touched by a demo endpoint.
+  if (!cols.includes('demo_visitor')) db.exec('ALTER TABLE Job ADD COLUMN demo_visitor TEXT');
   // Migration: Session expiry (older DBs were created without it).
   // Sessions without an expiry are treated as expired by authedUser().
   const sessionCols = db.prepare('PRAGMA table_info(Session)').all().map((c) => c.name);
@@ -268,6 +300,19 @@ function init() {
   // hirer who bought it (subscription rows have no job_id of their own).
   const billingCols = db.prepare('PRAGMA table_info(Billing)').all().map((c) => c.name);
   if (!billingCols.includes('user_phone')) db.exec('ALTER TABLE Billing ADD COLUMN user_phone TEXT');
+  // Migration: hirer opt-in for publishing their name on the worker's
+  // WorkPassport (default hidden; the worker cannot opt the hirer in).
+  const jobCols2 = db.prepare('PRAGMA table_info(Job)').all().map((c) => c.name);
+  if (!jobCols2.includes('hirer_client_opt_in')) db.exec('ALTER TABLE Job ADD COLUMN hirer_client_opt_in INTEGER NOT NULL DEFAULT 0');
+  // Migration: hash chain over the Event log (Ceiling Pass, Part 2,
+  // item 9). Event.hash is SHA-256(prevHash + canonical event payload),
+  // computed at write time in addEvent (server/src/shared.js); the chain
+  // is verified by server/src/chain.js. Events written before this
+  // migration keep hash NULL and verify as "missing hash" at their index.
+  const eventCols = db.prepare('PRAGMA table_info(Event)').all().map((c) => c.name);
+  if (!eventCols.includes('hash')) db.exec('ALTER TABLE Event ADD COLUMN hash TEXT');
+  // Append-only Event triggers (see createEventTriggers above).
+  createEventTriggers();
   // Migration: Billing status 'CANCELLED' (unsubscribe). Older databases were
   // created with CHECK (status IN ('PENDING','VERIFIED','ACTIVE')) and
   // CREATE TABLE IF NOT EXISTS never updates an existing table, so an
@@ -316,11 +361,4 @@ function takePendingProfile(phone) {
   return row || {};
 }
 
-function clearAllTables() {
-  const tables = ['pending_profiles', 'OtpTransaction', 'DisputeResolution', 'PassportProfile', 'Bid', 'BidJobPhoto', 'BidJob', 'LocationTrail', 'LocationShare', 'PassportEntry', 'Billing', 'WorkerToken', 'Session', 'Otp',
-    'ChangeProposal', 'DisputeStatement', 'Dispute', 'Photo', 'Payment',
-    'Event', 'JobVersion', 'Job', 'User'];
-  for (const t of tables) db.prepare(`DELETE FROM ${t}`).run();
-}
-
-module.exports = { db, init, now, setPendingProfile, takePendingProfile, clearAllTables, DATA_DIR, DB_PATH };
+module.exports = { db, init, now, setPendingProfile, takePendingProfile, createEventTriggers, DATA_DIR, DB_PATH };

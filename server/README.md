@@ -12,7 +12,7 @@ legal document. AppLink reaches Banglalink subscribers only.
 ```sh
 npm install
 npm start          # listens on PORT (default 3000)
-npm test           # full regression (254 assertions)
+npm test           # full regression (610 assertions; the count grows as coverage is added)
 ```
 
 Full documentation lives in [`../docs/`](../docs/):

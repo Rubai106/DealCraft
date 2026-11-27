@@ -1,5 +1,5 @@
-/* DealCraft service worker — cache the app shell + already-loaded job records for offline viewing. */
-var CACHE='dealcraft-v2';
+/* DealCraft service worker — cache the app shell for offline viewing. API responses are never cached. */
+var CACHE='dealcraft-v3';
 /* Fonts are NOT in SHELL: public/fonts/ is not shipped with the app
    (the self-hosted woff2 files are deployed separately), and
    cache.addAll fails ATOMICALLY — one missing file left the whole shell
@@ -16,18 +16,14 @@ self.addEventListener('fetch',function(e){
   if(e.request.method!=='GET')return;
   var url=new URL(e.request.url);
   if(url.origin!==self.location.origin)return;
-  // Job records: network first, fall back to the cached copy so an already-loaded job stays viewable offline.
-  if(url.pathname.indexOf('/api/jobs/')===0){
-    e.respondWith(fetch(e.request).then(function(res){
-      if(res.ok){var copy=res.clone();caches.open(CACHE).then(function(c){c.put(e.request,copy);});}
-      return res;
-    }).catch(function(){return caches.match(e.request);}));
-    return;
-  }
+  // API responses are never cached (network-only): a cached record would
+  // show stale job state — and another visitor's data after logout.
+  // Not intercepting the request is the network-only behaviour.
+  if(url.pathname.indexOf('/api/')===0)return;
   // App shell + static: cache first, refresh in background.
   e.respondWith(caches.match(e.request).then(function(hit){
     var net=fetch(e.request).then(function(res){
-      if(res.ok&&url.pathname.indexOf('/api/')!==0){var copy=res.clone();caches.open(CACHE).then(function(c){c.put(e.request,copy);});}
+      if(res.ok){var copy=res.clone();caches.open(CACHE).then(function(c){c.put(e.request,copy);});}
       return res;
     }).catch(function(){return hit;});
     return hit||net;

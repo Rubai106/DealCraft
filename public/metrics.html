@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DealCraft — Internal metrics</title>
+<meta name="description" content="Team-only usage metrics for DealCraft: records, activation, SMS segments, ChangeLock, disputes, passport-qualified jobs.">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif}
+  .wrap{max-width:720px;margin:0 auto;padding:24px 16px 64px}
+  .brand{font-weight:900;font-size:22px;letter-spacing:.04em}
+  .brand i{color:#FF5A1F;font-style:normal}
+  h1{font-size:28px;line-height:1.15;margin:28px 0 8px}
+  p{font-size:16px;line-height:1.55;color:#333}
+  .small{font-size:13px;color:#666}
+  .card{border:2px solid #111;padding:20px;margin-top:20px}
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  th,td{text-align:left;padding:10px 4px;border-top:1px solid #ddd;vertical-align:top}
+  th{color:#666;font-weight:400}
+  td b{font-weight:700}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .pill{display:inline-block;background:#FF5A1F;color:#fff;font-size:12px;font-weight:700;letter-spacing:.08em;padding:4px 10px;text-transform:uppercase}
+  .pill.grey{background:#eee;color:#333}
+  form{margin-top:20px;display:flex;gap:8px;flex-wrap:wrap}
+  input[type=text]{flex:1;min-width:220px;padding:10px 12px;border:2px solid #111;font-size:15px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  button{padding:10px 18px;border:2px solid #111;background:#111;color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+  button.ghost{background:#fff;color:#111}
+  a{color:#111}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;word-break:break-all;color:#333}
+  ul.defs{margin:16px 0 0;padding-left:20px;font-size:14px;line-height:1.6;color:#333}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">DEALCRAFT<i>.</i></div>
+  <p><span class="pill">Team only</span> <span class="pill grey">Internal metrics</span></p>
+  <h1>DealCraft metrics</h1>
+  <p>Real numbers from the live database — nothing here is estimated or filled in. When there is no usage yet, the table honestly shows zeros.</p>
+
+  <div id="token-box" class="card" hidden>
+    <p><b>Demo token needed.</b> This page is behind the same demo gate as the demo endpoints. Paste the demo token (or open this page with <span class="mono">?demoToken=…</span>).</p>
+    <form id="token-form"><input type="text" id="token-input" placeholder="demo token" autocomplete="off"><button type="submit">Show metrics</button></form>
+  </div>
+
+  <div id="metrics-box" hidden>
+    <p class="small" id="generated-at"></p>
+    <div class="card">
+      <table id="metrics-table" aria-label="DealCraft usage metrics">
+        <thead><tr><th>Metric</th><th style="text-align:right">Value</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="btn-row">
+      <a id="csv-link" href="#"><button type="button" class="ghost">Download CSV</button></a>
+      <button type="button" class="ghost" id="copy-btn">Copy table (CSV)</button>
+      <button type="button" class="ghost" id="refresh-btn">Refresh</button>
+    </div>
+    <p class="small" id="copy-note"></p>
+    <h2 style="font-size:20px;margin-top:32px">What each number means</h2>
+    <ul class="defs">
+      <li><b>Total records</b> — every work record ever created, all statuses.</li>
+      <li><b>Confirmed / activation rate</b> — records that reached mutual confirmation (ACTIVE, CLOSED or DISPUTED) ÷ total records.</li>
+      <li><b>ChangeLock jobs / rate</b> — records with at least one approved ChangeLock (price or deadline change both sides accepted).</li>
+      <li><b>Dispute jobs / rate</b> — records with at least one dispute opened.</li>
+      <li><b>Passport-qualified jobs</b> — CLOSED records whose close was mutual (a hirer-only close does not qualify).</li>
+      <li><b>Avg SMS segments per record</b> — segments actually sent for the activation summary SMS, per record that got one, counting <i>both</i> parties' messages (today: 3 segments × 2 recipients = 6 per record). The unit-economics number for the summary SMS.</li>
+    </ul>
+  </div>
+  <p class="small" id="error" hidden></p>
+</div>
+<script>
+(function(){
+  var params=new URLSearchParams(location.search);
+  var token=params.get('demoToken')||'';
+  var rows=[
+    ['totalRecords','Total records'],
+    ['confirmed','Confirmed records'],
+    ['activationRate','Activation rate (%)'],
+    ['changeLockJobs','ChangeLock jobs'],
+    ['changeLockRate','ChangeLock rate (%)'],
+    ['disputeJobs','Dispute jobs'],
+    ['disputeRate','Dispute rate (%)'],
+    ['passportQualified','Passport-qualified jobs'],
+    ['summarySmsMessages','Summary SMS sent'],
+    ['summarySmsRecords','Records with a summary SMS'],
+    ['summarySmsSegments','Summary SMS segments sent'],
+    ['avgSegmentsPerRecord','Avg SMS segments per record']
+  ];
+  function showError(msg){var e=document.getElementById('error');e.hidden=false;e.textContent=msg;}
+  function load(){
+    if(!token){document.getElementById('token-box').hidden=false;return;}
+    fetch('/api/metrics',{headers:{'x-demo-token':token}}).then(function(r){
+      if(r.status===403||r.status===404){document.getElementById('token-box').hidden=false;showError('That token was not accepted (or demo mode is off).');return null;}
+      if(!r.ok){showError('Metrics failed to load ('+r.status+').');return null;}
+      return r.json();
+    }).then(function(m){
+      if(!m)return;
+      document.getElementById('metrics-box').hidden=false;
+      document.getElementById('generated-at').textContent='Generated: '+m.generatedAt;
+      var tb=document.querySelector('#metrics-table tbody');
+      tb.innerHTML=rows.map(function(pair){
+        return '<tr><th>'+pair[1]+'</th><td class="num"><b>'+m[pair[0]]+'</b></td></tr>';
+      }).join('');
+      document.getElementById('csv-link').href='/api/metrics.csv?demoToken='+encodeURIComponent(token);
+      window._metricsCsv=rows.map(function(pair){return pair[1]+','+m[pair[0]];}).join('\n');
+    }).catch(function(){showError('Metrics failed to load (network error).');});
+  }
+  document.getElementById('token-form').addEventListener('submit',function(ev){
+    ev.preventDefault();
+    token=document.getElementById('token-input').value.trim();
+    if(!token)return;
+    document.getElementById('token-box').hidden=true;
+    document.getElementById('error').hidden=true;
+    load();
+  });
+  document.getElementById('copy-btn').addEventListener('click',function(){
+    if(!window._metricsCsv)return;
+    navigator.clipboard.writeText(window._metricsCsv).then(function(){
+      document.getElementById('copy-note').textContent='Copied — paste it into the proposal table.';
+    },function(){document.getElementById('copy-note').textContent='Copy failed — use Download CSV instead.';});
+  });
+  document.getElementById('refresh-btn').addEventListener('click',load);
+  load();
+})();
+</script>
+</body>
+</html>

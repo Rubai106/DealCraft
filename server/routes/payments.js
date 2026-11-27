@@ -11,6 +11,10 @@ router.post('/api/jobs/:id/payments', requireAuth, (req, res) => {
   const job = getJob(req.params.id);
   if (!job) return err(res, 404, 'job not found');
   if (job.hirer_id !== req.user.id) return err(res, 403, 'only the hirer records payments');
+  // CLOSED is final, and a payment can only be recorded on an ACTIVE job —
+  // never on a DRAFT the worker has not confirmed yet.
+  if (job.status === 'CLOSED') return err(res, 409, 'job is CLOSED — payments cannot be recorded');
+  if (job.status !== 'ACTIVE') return err(res, 409, 'payments can only be recorded on an ACTIVE job');
   const { amount, method, date } = req.body || {};
   if (typeof amount !== 'number' || amount <= 0) return err(res, 400, 'amount must be a positive number (BDT)');
   if (!['Cash', 'bKash', 'Nagad'].includes(method)) return err(res, 400, 'method must be Cash, bKash or Nagad');
@@ -21,7 +25,7 @@ router.post('/api/jobs/:id/payments', requireAuth, (req, res) => {
   addEvent(job.id, 'PAYMENT_RECORDED', 'hirer:' + req.user.phone, { paymentId, amount, method });
   const payment = db.prepare('SELECT * FROM Payment WHERE id = ?').get(paymentId);
   const wt = db.prepare('SELECT * FROM WorkerToken WHERE job_id = ? ORDER BY expires_at DESC LIMIT 1').get(job.id);
-  const ackLink = wt ? '/worker.html?token=' + wt.token + '&action=ack-payment&paymentId=' + paymentId : null;
+  const ackLink = wt ? '/worker.html?lang=bn&token=' + wt.token + '&action=ack-payment&paymentId=' + paymentId : null;
   res.status(201).json({ payment, ackLink });
 });
 
@@ -29,6 +33,9 @@ router.post('/api/payments/:paymentId/ack', async (req, res) => {
   const payment = db.prepare('SELECT * FROM Payment WHERE id = ?').get(req.params.paymentId);
   if (!payment) return err(res, 404, 'payment not found');
   const job = getJob(payment.job_id);
+  // CLOSED is final: no acknowledgement on a closed job (checked before
+  // any OTP is verified, so no code is burned).
+  if (job && job.status === 'CLOSED') return err(res, 409, 'job is CLOSED — payments cannot be acknowledged');
   const wt = workerTokenForJob(req, job.id);
   if (!wt) return err(res, 401, 'a valid worker token is required');
   if (payment.ack_status !== 'AWAITING') return err(res, 400, 'payment already ' + payment.ack_status.toLowerCase());

@@ -1,13 +1,14 @@
 # Project status
 
-## Working (verified by the regression, 254 assertions, PASS)
+## Working (verified by the regression, 610 assertions, PASS — the count grows as coverage is added)
 
 FairScope three-state gate, dual OTP confirmation, ChangeLock
 (transactional, positive-price-checked), PayProof balances, milestones +
 photos (magic-byte validated, job-scoped serving), mutual dispute
 resolution, ResolvePack PDF, worker-owned WorkPassport (random profile
-id), live location (opt-in, straight-line distance, arrival without
-coordinates), Find a Repairer bidding, billing gate + idempotent CaaS +
+id), live location (opt-in, straight-line distance, arrival events
+stored without coordinates — location shared only while the job is
+active, deleted on close), Find a Repairer bidding, billing gate + idempotent CaaS +
 subscription with unsubscribe, AppLink log scoped to the caller with
 tokens masked, AppLink callback endpoints (`/api/applink/sms-report`,
 `/api/applink/mo-sms`, `/api/applink/caas-notify`,

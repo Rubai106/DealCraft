@@ -8,30 +8,32 @@
 //   public/verify.html load, between them:
 //   - scripts: same-origin app.js / inline <script> blocks (every page
 //     has one: index.html:25, worker.html:154, passport.html:52,
-//     verify.html:55), plus Leaflet from unpkg.com; passport.html also
-//     has an inline onerror= handler
+//     verify.html:55), plus self-hosted Leaflet (public/vendor/leaflet/);
+//     passport.html also has an inline onerror= handler
 //   - styles: same-origin style.css / fonts.css, <style> blocks
 //     (worker.html, verify.html), inline style="..." attributes on all
-//     pages, Google Fonts CSS, Leaflet CSS from unpkg.com
+//     pages, Google Fonts CSS, self-hosted Leaflet CSS
 //   - fonts: Google Fonts (fonts.gstatic.com) and self-hosted .woff2
 //     under public/fonts/ (fonts.css @font-face, same-origin)
 //   - images: same-origin photos (/uploads/*), QR PNGs
 //     (/api/passport/:id/qr.png), data: favicons, Leaflet tiles from
-//     tile.openstreetmap.org, Leaflet marker images from unpkg.com
+//     tile.openstreetmap.org, Leaflet marker images (same-origin, under
+//     public/vendor/leaflet/images/)
 //   - network: same-origin fetch only (connect-src 'self')
 // Because the pages carry inline scripts, inline styles and an inline
 // event handler, script-src and style-src keep 'unsafe-inline': removing
 // those would be a UI change, out of scope for this pass. The policy
-// still confines every external load to the four inventoried hosts
-// (fonts.googleapis.com, fonts.gstatic.com, unpkg.com,
+// still confines every external load to the three inventoried hosts
+// (fonts.googleapis.com, fonts.gstatic.com,
 // tile.openstreetmap.org) and blocks plugins, foreign frames and
-// foreign form targets outright.
+// foreign form targets outright. unpkg.com was removed: Leaflet is now
+// self-hosted, so no page loads anything from it.
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://unpkg.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: https://tile.openstreetmap.org https://unpkg.com",
+  "img-src 'self' data: https://tile.openstreetmap.org",
   "connect-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",

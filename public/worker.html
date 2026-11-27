@@ -60,6 +60,7 @@ input[type=checkbox]{min-height:0}
 
   <section id="w-record" hidden>
     <div class="record" id="w-summary"></div>
+    <button class="big-btn ghost" id="w-listen" type="button" data-i18n="w.listen">শুনুন</button>
     <div id="w-missing" class="warn" hidden><h4 data-i18n="w.missingTitle">Missing terms</h4><ul id="w-missing-list"></ul></div>
     <button class="big-btn orange" id="w-confirm" type="button" data-i18n="w.confirm">Agree — confirm with OTP</button>
     <div id="w-otp-box" hidden>
@@ -134,9 +135,8 @@ input[type=checkbox]{min-height:0}
 
   <section id="w-passport" hidden>
     <h2 data-i18n="w.ppTitle" style="font-family:'Oswald',sans-serif;text-transform:uppercase">WorkPassport — my record</h2>
-    <p class="small" data-i18n="w.ppText">You choose what it shows — amounts, client name, photos.</p>
+    <p class="small" data-i18n="w.ppText">You choose what it shows — amounts and photos. The hirer's name is shown only if the hirer allows it.</p>
     <p><label style="display:flex;gap:10px;align-items:center;font-size:15px"><input type="checkbox" id="w-pp-amounts" style="width:auto"> <span data-i18n="w.ppAmounts">টাকার অঙ্ক দেখান</span></label></p>
-    <p><label style="display:flex;gap:10px;align-items:center;font-size:15px"><input type="checkbox" id="w-pp-client" style="width:auto"> <span data-i18n="w.ppClient">ক্লায়েন্টের নাম দেখান</span></label></p>
     <p><label style="display:flex;gap:10px;align-items:center;font-size:15px"><input type="checkbox" id="w-pp-photos" style="width:auto"> <span data-i18n="w.ppPhotos">ছবি দেখান</span></label></p>
     <button class="big-btn orange" id="w-pp-add" type="button" data-i18n="w.ppAdd">Add to my WorkPassport</button>
     <p class="notice" id="w-pp-done" hidden></p>
@@ -151,12 +151,15 @@ input[type=checkbox]{min-height:0}
 
   <p class="small"><a href="index.html" data-i18n="w.homeLink">DealCraft home</a> · <a href="passport.html">WorkPassport</a></p>
 </main>
+<script src="read-aloud.js"></script>
 <script>
 (function(){'use strict';
 var q=new URLSearchParams(location.search), token=q.get('token')||'';
-/* Language toggle — same pattern as index.html (dc_lang, default en).
-   Saved dc_lang is still respected. Dynamic status lines stay bilingual. */
-var wLang=localStorage.getItem('dc_lang')||'en';
+/* Language — the worker is the least English-literate user, so this page
+   defaults to Bangla. ?lang=bn on the worker link wins, then a saved
+   choice, then Bangla. The hirer app stays English-default. */
+var qLang=(q.get('lang')||'').toLowerCase();
+var wLang=qLang==='en'?'en':qLang==='bn'?'bn':(localStorage.getItem('dc_lang')||'bn');
 var WI18N={
  'w.title':{bn:'কাজের রেকর্ড',en:'Work record'},
  'w.changeTitle':{bn:'পরিবর্তনের প্রস্তাব',en:'Change proposal'},
@@ -189,7 +192,7 @@ var WI18N={
  'w.resAccept':{bn:'মানলাম',en:'Accept resolution'},
  'w.resReject':{bn:'মানলাম না',en:'Reject'},
  'w.ppTitle':{bn:'WorkPassport — আমার পরিচয়পত্র',en:'WorkPassport — my record'},
- 'w.ppText':{bn:'আপনি ঠিক করুন কী দেখাবে — টাকার অঙ্ক, ক্লায়েন্টের নাম, ছবি।',en:'You choose what it shows — amounts, client name, photos.'},
+ 'w.ppText':{bn:'আপনি ঠিক করুন কী দেখাবে — টাকার অঙ্ক, ছবি। হায়ারারের নাম দেখাবে শুধু হায়ারার অনুমতি দিলে।',en:'You choose what it shows — amounts and photos. The hirer name is shown only if the hirer allows it.'},
  'w.ppAdd':{bn:'WorkPassport-এ যোগ করুন',en:'Add to my WorkPassport'},
  'w.closeTitle':{bn:'কাজ শেষ',en:'Close the job'},
  'w.closeText':{bn:'কাজ শেষ হলে নিচের বোতাম চাপুন — একটি OTP কোড আসবে। কোডটি হায়ারারকে জানান, হায়ারার ওই কোড দিয়ে কাজটি বন্ধ করবেন।',en:'When the work is done, tap below — a code arrives. Give it to the hirer; they close the job with it.'},
@@ -201,9 +204,10 @@ var WI18N={
  'w.stmtLabel':{bn:'বক্তব্য',en:'Statement'},
  'w.locSaver':{bn:'ব্যাটারি সেভার — ৩০ সেকেন্ডে একবার',en:'Battery saver — every 30 s'},
  'w.ppAmounts':{bn:'টাকার অঙ্ক দেখান',en:'Show amount'},
- 'w.ppClient':{bn:'ক্লায়েন্টের নাম দেখান',en:'Show client name'},
  'w.ppPhotos':{bn:'ছবি দেখান',en:'Show photos'},
  'w.missingTitle':{bn:'ঠিক হয়নি এমন শর্ত',en:'Missing terms'},
+ 'w.listen':{bn:'শুনুন',en:'Listen'},
+ 'w.stopListen':{bn:'থামুন',en:'Stop'},
  'w.homeLink':{bn:'DealCraft হোম',en:'DealCraft home'},
  'w.roleTag':{bn:'শ্রমিক',en:'WORKER'}
 };
@@ -226,7 +230,7 @@ function wFsLabel(qEn){return wLang==='bn'?(W_FS_Q[qEn]||qEn):qEn;}
 var W_MS={'APPROVED':{bn:'অনুমোদিত',en:'Approved'},'COMPLETE':{bn:'সম্পূর্ণ',en:'Complete'},'PENDING':{bn:'অপেক্ষায়',en:'Pending'}};
 function wMsLabel(st){var d=W_MS[st];return d?(d[wLang]||d.en):st;}
 var payDecision='received', payId=q.get('paymentId')||null, changeId=null, changeDecision=null;
-var jobId=null, disputeId=null;
+var jobId=null, disputeId=null, wListenRecord=null;
 function $(id){return document.getElementById(id);}
 function err(m){var e=$('w-err');e.hidden=false;e.textContent=m;}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -261,6 +265,11 @@ async function load(){
    '<tr><th>'+(wLang==='bn'?'সংস্করণ':'Version')+'</th><td>V'+esc(job.current_version||ver.version_no||1)+'</td></tr>'+
    '<tr><th>'+(wLang==='bn'?'বিবরণ':'Scope')+'</th><td>'+esc(scope.scope||job.scope||'—')+'</td></tr></table>'+
    '<p class="small">'+(wLang==='bn'?'হায়ারার: ':'Hirer: ')+esc(job.hirerName||job.hirerPhone||'—')+'</p>';
+  /* Read-aloud (Part 2, item 13): the record's own fields, for the Listen
+     button below the summary. Paid / remaining come from the balance. */
+  var wPaid=(r.balance&&r.balance.acknowledgedPaid)||0;
+  wListenRecord={trade:job.trade,scope:scope.scope||job.scope||'',price:price,paid:wPaid,
+   remaining:(r.balance&&r.balance.remaining)!=null?r.balance.remaining:((price||0)-wPaid),deadline:deadline};
   var miss=scope.skippedTerms||job.missingTerms||[];
   if(miss.length){$('w-missing').hidden=false;$('w-missing-list').innerHTML=miss.map(function(m){return '<li>'+esc(wFsLabel(typeof m==='string'?m:(m.question||m)))+'</li>';}).join('');}
   show('w-record');
@@ -279,7 +288,10 @@ async function load(){
   var pay=payId?pays.filter(function(p){return String(p.id)===String(payId);})[0]:pays.filter(function(p){return p.ack_status==='AWAITING';})[0];
   if(pay){payId=pay.id;$('w-pay-text').textContent=(wLang==='bn'?'টাকা: ':'Amount: ')+taka(pay.amount)+' · '+(pay.method==='Cash'?(wLang==='bn'?'নগদ':'Cash'):(pay.method||''))+' · '+(pay.date||'');show('w-pay');}
   var miles=r.milestones||job.milestones||[];
-  if(miles.length){$('w-mile-list').innerHTML=miles.map(function(m,i){return '<div class="job-row"><div><div class="t">'+esc(m.title||((wLang==='bn'?'ধাপ ':'Step ')+(i+1)))+'</div><div class="m">'+taka(m.amount)+' · '+esc(wMsLabel(m.approved?'APPROVED':m.completed?'COMPLETE':'PENDING'))+'</div></div><button class="big-btn" style="max-width:220px" data-mile="'+i+'" '+(m.completed?'disabled':'')+'>'+(wLang==='bn'?'সম্পূর্ণ করুন':'Mark complete')+'</button></div>';}).join('');
+  /* Draft discipline: no "Complete" button on a job the worker has not
+     confirmed yet — milestones can only be completed on an ACTIVE job. */
+  var canComplete=job.status==='ACTIVE';
+  if(miles.length){$('w-mile-list').innerHTML=miles.map(function(m,i){return '<div class="job-row"><div><div class="t">'+esc(m.title||((wLang==='bn'?'ধাপ ':'Step ')+(i+1)))+'</div><div class="m">'+taka(m.amount)+' · '+esc(wMsLabel(m.approved?'APPROVED':m.completed?'COMPLETE':'PENDING'))+'</div></div>'+(canComplete?'<button class="big-btn" style="max-width:220px" data-mile="'+i+'" '+(m.completed?'disabled':'')+'>'+(wLang==='bn'?'সম্পূর্ণ করুন':'Mark complete')+'</button>':'')+'</div>';}).join('');
    $('w-mile-list').querySelectorAll('[data-mile]').forEach(function(b){b.addEventListener('click',async function(){try{await api('/api/jobs/'+encodeURIComponent(jobId)+'/milestones/'+b.getAttribute('data-mile')+'/complete'+wt(),{method:'POST',body:'{}'});wShowCheck();b.disabled=true;b.textContent=wLang==='bn'?'সম্পূর্ণ হয়েছে':'Complete';}catch(e){err(e.message);}});});
    show('w-mile');}
   events.forEach(function(ev){if(ev.type==='DISPUTE_OPENED'){var p=parsePayload(ev);if(p.disputeId)disputeId=p.disputeId;}});
@@ -352,6 +364,20 @@ $('w-loc-stop').addEventListener('click',async function(){
 window.addEventListener('online',locFlush);
 
 $('w-confirm').addEventListener('click',async function(){try{await requestOtp('worker-confirm');$('w-otp-box').hidden=false;$('w-otp').focus();}catch(e){err(e.message);}});
+/* Read-aloud (Part 2, item 13): one tap reads the record in plain
+   language (trade, scope, price, paid, remaining, deadline) in the UI
+   language, via the browser's speech synthesis — no API, no cost. Tap
+   again (or switch language) to stop; the label follows the toggle. */
+$('w-listen').addEventListener('click',function(){
+ if(!wListenRecord)return;
+ var RA=window.DealCraftReadAloud;
+ if(!RA||!('speechSynthesis' in window)){err(wLang==='bn'?'এই ব্রাউজারে শোনা যাবে না।':'This browser cannot read aloud.');return;}
+ if(RA.isSpeaking&&RA.isSpeaking()){RA.stopSpeaking();$('w-listen').textContent=(WI18N['w.listen']||{bn:'শুনুন',en:'Listen'})[wLang];return;}
+ var said=RA.speakRecord(wListenRecord,wLang);
+ if(said==null){err(wLang==='bn'?'শোনা যায়নি — আবার চেষ্টা করুন।':'Could not read aloud — try again.');return;}
+ $('w-listen').textContent=(WI18N['w.stopListen']||{bn:'থামুন',en:'Stop'})[wLang];
+ setTimeout(function(){var b=$('w-listen');if(b)b.textContent=(WI18N['w.listen']||{bn:'শুনুন',en:'Listen'})[wLang];},Math.min(60000,Math.max(8000,said.length*150)));
+});
 $('w-confirm-send').addEventListener('click',async function(){try{await api('/api/worker/'+encodeURIComponent(token)+'/confirm',{method:'POST',body:JSON.stringify({otpCode:$('w-otp').value.trim()})});
   wShowCheck();$('w-confirm').disabled=true;$('w-confirm').textContent=wLang==='bn'?'নিশ্চিত হয়েছে':'Confirmed';}catch(e){err(e.message);}});
 /* Change response: accept/reject need an OTP (purpose change-approve); clarify does not. */
@@ -392,7 +418,7 @@ $('w-res-reject').addEventListener('click',async function(){if(!disputeId)return
   wShowCheck();$('w-resolve').hidden=true;$('w-res-reject').textContent=wLang==='bn'?'মানা হয়নি':'Rejected';}catch(e){err(e.message);}});
 $('w-pp-add').addEventListener('click',async function(){if(!jobId)return;
  try{var r=await api('/api/passport/add'+wt(),{method:'POST',body:JSON.stringify({jobId:jobId,
-   showAmounts:$('w-pp-amounts').checked,showClient:$('w-pp-client').checked,showPhotos:$('w-pp-photos').checked})});
+   showAmounts:$('w-pp-amounts').checked,showClient:false,showPhotos:$('w-pp-photos').checked})});
   var done=$('w-pp-done');done.hidden=false;
   var pid=r.profileId||(r.entry&&r.entry.profileId)||'';
   done.innerHTML=(wLang==='bn'?'WorkPassport-এ যোগ হয়েছে। ':'Added to your WorkPassport. ')+(pid?'<a href="passport.html?id='+encodeURIComponent(pid)+'" target="_blank" rel="noopener">'+(wLang==='bn'?'আমার WorkPassport দেখুন':'View my WorkPassport')+'</a>':'');

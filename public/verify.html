@@ -39,7 +39,7 @@
 <div class="wrap">
   <div class="brand">DEALCRAFT<i>.</i></div>
   <h1>Verify a record</h1>
-  <p>Every ResolvePack carries a QR code with the job id, the version, and a SHA-256 fingerprint. This page checks that fingerprint against the stored record — a lookup, nothing more.</p>
+  <p>Every ResolvePack carries a QR code that opens this page for the job's version. This page checks that fingerprint against the stored record — a lookup, nothing more. It also shows the job's status and whether this version is still the current one, so an old pack cannot pass as the live deal.</p>
   <div class="card" id="verify-card">
     <p class="verdict" id="verify-result">Checking…</p>
     <p id="verify-detail" class="small">Reading the fingerprint from the link.</p>
@@ -49,6 +49,27 @@
     <input type="text" id="verify-fp" placeholder="Paste a fingerprint (SHA-256)" aria-label="Fingerprint">
     <button type="submit">Check</button>
   </form>
+  <p><button type="button" id="scan-btn">Scan QR with camera</button></p>
+  <video id="scan-video" playsinline hidden style="width:100%;max-width:480px;border:2px solid #111"></video>
+  <p class="small" id="scan-note" hidden></p>
+  <!-- Part 2, item 10: verify that recomputes. Paste or upload a
+       ResolvePack JSON and this page recomputes the ENTIRE hash chain in
+       the browser (WebCrypto SHA-256) — it never trusts the server's
+       say-so. The server lookup is a secondary cross-check, shown
+       alongside. The ResolvePack QR encodes the verify URL (never a raw
+       JSON blob); the &ch= on that URL is the first 8 hex of the chain
+       head the pack was generated with. -->
+  <div class="card" id="pack-card">
+    <p class="verdict" id="pack-result">Check a ResolvePack file</p>
+    <p id="pack-detail" class="small">Paste a ResolvePack JSON below, or upload the .json file. This page recomputes the whole hash chain in your browser — it does not trust the server's say-so.</p>
+    <ul class="rows" id="pack-rows" hidden></ul>
+    <p class="small" id="pack-cross" hidden></p>
+  </div>
+  <form id="pack-form">
+    <textarea id="pack-json" rows="6" placeholder="Paste a ResolvePack JSON here" aria-label="ResolvePack JSON" style="flex:1;min-width:220px;padding:10px 12px;border:2px solid #111;font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace"></textarea>
+    <button type="submit">Recompute the chain</button>
+  </form>
+  <p><label class="small">Or upload the file: <input type="file" id="pack-file" accept=".json,application/json"></label></p>
   <p class="small">DealCraft holds no money. This record is not a legal document. A match means the fingerprint is the one stored for that version; it does not prove who scanned it.</p>
   <p class="small"><a href="/">← Back to DealCraft</a></p>
 </div>
@@ -64,16 +85,42 @@
     if(!fp){result.textContent='No fingerprint in the link.';result.className='verdict bad';card.className='card mismatch';detail.textContent='Paste a fingerprint below, or scan a ResolvePack QR code.';return;}
     if(data&&data.match){
       card.className='card match';
-      result.textContent='✓ This record matches version V'+data.versionNo+' — confirmed by both sides';
-      result.className='verdict ok';
-      detail.textContent='The fingerprint in the QR code is the one stored for this version.';
+      var superseded = data.versionState === 'superseded';
+      var confirmed = !!data.confirmedByBothSides;
+      if(superseded){
+        result.textContent='✓ Authentic — but SUPERSEDED: current version is V'+data.currentVersion;
+        result.className='verdict ok';
+        detail.textContent='This fingerprint matches version V'+data.versionNo+', which has been replaced by version V'+data.currentVersion+'. The current agreed price is ৳'+data.currentPrice+'.';
+      }else if(confirmed){
+        result.textContent='✓ This record matches version V'+data.versionNo+' — confirmed by both sides';
+        result.className='verdict ok';
+        detail.textContent='The fingerprint in the QR code is the one stored for this version, and both sides confirmed it.';
+      }else{
+        result.textContent='✓ This record matches version V'+data.versionNo+' — not yet confirmed by both sides';
+        result.className='verdict ok';
+        detail.textContent='The fingerprint is the one stored for this version, but the job is '+((data.status||'').toLowerCase()||'not active')+' — both sides have not confirmed it yet.';
+      }
       rows.hidden=false;
       rows.innerHTML='<li><span>Trade</span><b>'+esc(data.trade||'—')+'</b></li>'
-        +'<li><span>Agreed price</span><b>৳'+esc(data.price)+'</b></li>'
-        +'<li><span>Deadline</span><b>'+esc(data.deadline||'—')+'</b></li>'
+        +'<li><span>Version</span><b>V'+esc(data.versionNo)+' — '+esc(data.versionState||'—')+(superseded?' (current: V'+esc(data.currentVersion)+')':'')+'</b></li>'
         +'<li><span>Status</span><b>'+esc(data.status||'—')+'</b></li>'
+        +'<li><span>Confirmed by both sides</span><b>'+(confirmed?'Yes':'No')+'</b></li>'
+        +'<li><span>Scope (what the fingerprint covers)</span><b>'+esc(data.scope||'—')+'</b></li>'
+        +'<li><span>Price of this version</span><b>৳'+esc(data.price)+'</b></li>'
+        +'<li><span>Current agreed price</span><b>৳'+esc(data.currentPrice!=null?data.currentPrice:data.price)+'</b></li>'
+        +'<li><span>Deadline</span><b>'+esc(data.deadline||'—')+'</b></li>'
+        +'<li><span>Match</span><b>'+esc(data.matchKind||'full fingerprint match')+'</b></li>'
         +'<li><span>Job</span><b class="mono">'+esc(data.jobId)+'</b></li>'
-        +'<li><span>Fingerprint</span><b class="mono">'+esc(data.fingerprint)+'</b></li>';
+        +'<li><span>Fingerprint</span><b class="mono">'+esc(data.fingerprint)+'</b></li>'
+        +'<li><span>Hash chain</span><b>'+(data.chainValid===true?'Valid — '+esc(data.chainEvents!=null?String(data.chainEvents):'?')+' events':data.chainValid===false?'BROKEN'+(data.chainBrokenType?' at '+esc(data.chainBrokenType):''):'—')+'</b></li>'
+        +'<li><span>Chain head</span><b class="mono">'+esc(data.chainHead||'—')+'</b></li>';
+    }else if(data&&data.ambiguous){
+      card.className='card mismatch';
+      result.textContent='? Several records share this fingerprint prefix';
+      result.className='verdict bad';
+      detail.textContent='The short code from the SMS matches more than one record. Paste the full 64-character fingerprint to check it.';
+      rows.hidden=false;
+      rows.innerHTML='<li><span>Fingerprint prefix</span><b class="mono">'+esc(fp)+'</b></li>';
     }else{
       card.className='card mismatch';
       result.textContent='✕ No record matches this fingerprint';
@@ -104,7 +151,186 @@
     history.replaceState(null,'','/verify?fp='+encodeURIComponent(v));
     check(v);
   });
+  // Camera scan: where the browser supports it, read the QR code with the
+  // device camera (BarcodeDetector); otherwise the paste box above is the
+  // fallback. The ResolvePack QR encodes the verify URL, so a scan lands
+  // here with ?fp= already in the link.
+  var scanBtn=document.getElementById('scan-btn');
+  var scanVideo=document.getElementById('scan-video');
+  var scanNote=document.getElementById('scan-note');
+  var scanStream=null, scanning=false;
+  function stopScan(){
+    scanning=false;
+    if(scanStream){scanStream.getTracks().forEach(function(t){t.stop();});scanStream=null;}
+    scanVideo.hidden=true;
+  }
+  function fpFromQr(text){
+    var m=String(text||'').match(/[?&]fp=([0-9a-fA-F]+)/);
+    return m?m[1]:String(text||'').trim();
+  }
+  scanBtn.addEventListener('click',async function(){
+    if(scanning){stopScan();scanBtn.textContent='Scan QR with camera';return;}
+    if(!('BarcodeDetector' in window)||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+      scanNote.hidden=false;
+      scanNote.textContent='This browser cannot scan QR codes with the camera — paste the fingerprint above instead.';
+      return;
+    }
+    try{
+      scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    }catch(e){
+      scanNote.hidden=false;
+      scanNote.textContent='Camera unavailable — check the camera permission, or paste the fingerprint above instead.';
+      return;
+    }
+    scanVideo.srcObject=scanStream;scanVideo.hidden=false;scanVideo.play();
+    scanBtn.textContent='Stop scanning';scanning=true;
+    scanNote.hidden=false;scanNote.textContent='Point the camera at the ResolvePack QR code…';
+    var detector=new BarcodeDetector({formats:['qr_code']});
+    var tick=async function(){
+      if(!scanning)return;
+      try{
+        var codes=await detector.detect(scanVideo);
+        if(codes&&codes.length){
+          var fp=fpFromQr(codes[0].rawValue||'');
+          stopScan();scanBtn.textContent='Scan QR with camera';
+          scanNote.textContent='QR code read — checking…';
+          input.value=fp;
+          history.replaceState(null,'','/verify?fp='+encodeURIComponent(fp));
+          check(fp);return;
+        }
+      }catch(e){/* keep scanning */}
+      setTimeout(tick,300);
+    };
+    tick();
+  });
+  /* --- ResolvePack chain recompute (Part 2, item 10) ---
+     Same definition as server/src/chain.js — keep the two in sync:
+     event hash = SHA-256(prevHash + canonicalJSON({type, actor, payload,
+     created_at})), prevHash '' for the first event. The payload is the
+     parsed payload_json (null when the event has none). */
+  function canon(v){
+    if(v===null||typeof v!=='object')return JSON.stringify(v);
+    if(Array.isArray(v))return '['+v.map(canon).join(',')+']';
+    var keys=Object.keys(v).sort();
+    return '{'+keys.map(function(k){return JSON.stringify(k)+':'+canon(v[k]);}).join(',')+'}';
+  }
+  async function sha256hex(str){
+    var buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+  }
+  async function recomputeChain(events){
+    var prev='';
+    for(var i=0;i<events.length;i++){
+      var ev=events[i]||{};
+      var payload=null;
+      try{payload=ev.payload_json?JSON.parse(ev.payload_json):(ev.payload||null);}catch(e){payload=null;}
+      var input=prev+canon({type:ev.type,actor:ev.actor==null?null:ev.actor,payload:payload,created_at:ev.created_at});
+      var h=await sha256hex(input);
+      if(!ev.hash)return {valid:false,brokenIndex:i,brokenType:ev.type||'',reason:'missing hash',chainHead:prev||null};
+      if(h!==ev.hash)return {valid:false,brokenIndex:i,brokenType:ev.type||'',reason:'hash mismatch',chainHead:prev||null};
+      prev=h;
+    }
+    return {valid:true,brokenIndex:-1,brokenType:null,reason:null,chainHead:events.length?prev:null};
+  }
+  var packCard=document.getElementById('pack-card');
+  var packResult=document.getElementById('pack-result');
+  var packDetail=document.getElementById('pack-detail');
+  var packRows=document.getElementById('pack-rows');
+  var packCross=document.getElementById('pack-cross');
+  function renderPack(pack,chain){
+    packRows.hidden=true;packRows.innerHTML='';packCross.hidden=true;packCross.textContent='';
+    var job=pack.job||{};
+    var versions=pack.versions||[];
+    var currentNo=job.current_version||(versions.length?versions[versions.length-1].version_no:1);
+    /* Which version is being checked: the fingerprint in this page's URL
+       (?fp=, from the QR) matched against the pack's versions; without
+       one, the pack's current version. A superseded version is named as
+       such, with the actual current version number. */
+    var urlFp=(new URLSearchParams(window.location.search).get('fp')||'').toLowerCase();
+    var checked=versions.filter(function(v){return (v.fingerprint||'').toLowerCase()===urlFp;})[0]
+      ||versions.filter(function(v){return v.version_no===currentNo;})[0]
+      ||versions[versions.length-1]||{};
+    var checkedNo=checked.version_no||currentNo;
+    var superseded=checkedNo!==currentNo;
+    if(chain.valid){
+      packCard.className='card match';
+      packResult.textContent='✓ Hash chain valid — '+(pack.events||[]).length+' events, nothing changed';
+      packResult.className='verdict ok';
+      packDetail.textContent='Every event hash recomputed in this browser matches the stored hash. '
+        +(superseded?('This pack is version V'+checkedNo+', superseded by V'+currentNo+'.'):('This is the current version, V'+checkedNo+'.'))
+        +' Job status: '+(job.status||'—')+'.';
+    }else{
+      packCard.className='card mismatch';
+      packResult.textContent='✕ Hash chain BROKEN at event #'+chain.brokenIndex+' ('+(chain.brokenType||'?')+')';
+      packResult.className='verdict bad';
+      packDetail.textContent='The event at position '+chain.brokenIndex+' ('+(chain.brokenType||'unknown type')+') does not match its stored hash ('+chain.reason+') — the history after it cannot be trusted. '
+        +(superseded?('This pack is version V'+checkedNo+', superseded by V'+currentNo+'.'):('This is the current version, V'+checkedNo+'.'))
+        +' Job status: '+(job.status||'—')+'.';
+    }
+    packRows.hidden=false;
+    packRows.innerHTML='<li><span>Chain</span><b>'+(chain.valid?'Valid':'BROKEN at #'+chain.brokenIndex)+'</b></li>'
+      +'<li><span>Events checked</span><b>'+(pack.events||[]).length+'</b></li>'
+      +'<li><span>Version</span><b>V'+esc(checkedNo)+(superseded?', superseded by V'+esc(currentNo):' — current')+'</b></li>'
+      +'<li><span>Status</span><b>'+esc(job.status||'—')+'</b></li>'
+      +'<li><span>Price of this version</span><b>৳'+esc(checked.price!=null?checked.price:'—')+'</b></li>'
+      +'<li><span>Recomputed chain head</span><b class="mono">'+esc(chain.chainHead||'—')+'</b></li>'
+      +'<li><span>Chain head in the pack</span><b class="mono">'+esc(pack.chainHead||'—')+'</b></li>';
+    /* Secondary cross-check: the server lookup for this version's
+       fingerprint, shown alongside — never the verdict itself. */
+    if(checked.fingerprint){
+      fetch('/api/verify?fp='+encodeURIComponent(checked.fingerprint)).then(function(r){return r.json();}).then(function(d){
+        packCross.hidden=false;
+        if(d&&d.match){
+          var sameHead=(d.chainHead||null)===(chain.chainHead||null);
+          packCross.textContent='Server cross-check: fingerprint matches V'+d.versionNo+' ('+d.versionState+'), status '+d.status
+            +', server chain '+(d.chainValid?'valid':'BROKEN')+', server chain head '+(sameHead?'matches the recomputed head':'DIFFERS from the recomputed head')+'.';
+        }else{
+          packCross.textContent='Server cross-check: the server has no record for this fingerprint.';
+        }
+      }).catch(function(){packCross.hidden=false;packCross.textContent='Server cross-check: the server did not answer.';});
+    }
+    /* The QR's &ch= is the first 8 hex of the chain head this pack was
+       generated with — a stale pack shows a head that no longer matches. */
+    var qrHead=new URLSearchParams(window.location.search).get('ch')||'';
+    if(qrHead&&chain.chainHead&&chain.chainHead.toLowerCase().indexOf(qrHead.toLowerCase())!==0){
+      packDetail.textContent+=' Note: the chain head in the QR link differs from the recomputed head — this pack is stale or was regenerated.';
+    }
+  }
+  async function checkPack(text){
+    packResult.textContent='Recomputing…';packResult.className='verdict';
+    packDetail.textContent='Recomputing every event hash in this browser.';
+    packRows.hidden=true;packCross.hidden=true;
+    var pack=null;
+    try{pack=JSON.parse(text);}catch(e){
+      packCard.className='card mismatch';packResult.textContent='✕ That is not a ResolvePack JSON';packResult.className='verdict bad';
+      packDetail.textContent='Paste the JSON from /api/jobs/:id/resolvepack.json, or upload the .json file.';return;
+    }
+    if(!pack||!Array.isArray(pack.events)){
+      packCard.className='card mismatch';packResult.textContent='✕ That JSON has no event history';packResult.className='verdict bad';
+      packDetail.textContent='A ResolvePack JSON carries job, versions, events and chainHead. This one has no events array.';return;
+    }
+    if(!window.crypto||!crypto.subtle){
+      packCard.className='card mismatch';packResult.textContent='✕ This browser cannot recompute the chain';packResult.className='verdict bad';
+      packDetail.textContent='Chain recompute needs WebCrypto (a secure context). The server lookup above still works.';return;
+    }
+    var chain=await recomputeChain(pack.events);
+    renderPack(pack,chain);
+  }
+  document.getElementById('pack-form').addEventListener('submit',function(ev){
+    ev.preventDefault();
+    var v=document.getElementById('pack-json').value.trim();
+    if(!v)return;
+    checkPack(v);
+  });
+  document.getElementById('pack-file').addEventListener('change',function(ev){
+    var f=ev.target.files&&ev.target.files[0];
+    if(!f)return;
+    var rd=new FileReader();
+    rd.onload=function(){document.getElementById('pack-json').value=String(rd.result||'');checkPack(String(rd.result||''));};
+    rd.readAsText(f);
+  });
 })();
+
 </script>
 </body>
 </html>

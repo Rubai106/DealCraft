@@ -51,6 +51,13 @@ router.post('/api/billing/caas/:chargeId/verify', requireAuth, async (req, res) 
   if (billing.user_phone && billing.user_phone !== req.user.phone) {
     return err(res, 403, 'this charge belongs to another hirer');
   }
+  // A charge already verified stays VERIFIED (idempotent success); a
+  // charge cancelled after a failed code is dead — the hirer must start
+  // a fresh charge for a fresh code.
+  if (billing.status === 'VERIFIED') return res.json({ chargeId: req.params.chargeId, status: 'VERIFIED' });
+  if (billing.status === 'CANCELLED') {
+    return err(res, 400, 'this charge was cancelled after a wrong code — request a new charge to get a fresh code');
+  }
   const { otpCode } = req.body || {};
   if (!otpCode) return err(res, 400, 'otpCode is required');
   const adapter = getAdapter();
@@ -63,8 +70,16 @@ router.post('/api/billing/caas/:chargeId/verify', requireAuth, async (req, res) 
   if (result.status === 'VERIFIED') {
     db.prepare("UPDATE Billing SET status = 'VERIFIED' WHERE id = ?").run(req.params.chargeId);
     db.prepare('UPDATE Job SET billing_paid = 1 WHERE id = ?').run(billing.job_id);
+    return res.json({ chargeId: req.params.chargeId, status: 'VERIFIED' });
   }
-  res.json({ chargeId: req.params.chargeId, status: result.status });
+  // Wrong code is an explicit error, not a silent 200 PENDING — and the
+  // failed attempt is closed (CANCELLED), so the next POST /api/billing/caas
+  // issues a NEW charge with a NEW code instead of returning the same
+  // stuck pending charge. Idempotency is keyed on the payment intent
+  // (the job's fee), not on the failed attempt: only one charge can ever
+  // verify a job, because a verified charge sets billing_paid.
+  db.prepare("UPDATE Billing SET status = 'CANCELLED' WHERE id = ?").run(req.params.chargeId);
+  return err(res, 400, 'incorrect code — this charge attempt is closed; request a new charge to get a fresh code');
 });
 
 router.post('/api/billing/subscribe', requireAuth, async (req, res) => {

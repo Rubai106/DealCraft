@@ -5,8 +5,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const multer = require('multer');
 
-const { db, init, now, setPendingProfile, takePendingProfile, clearAllTables, DATA_DIR } = require('./db');
+const { db, init, now, setPendingProfile, takePendingProfile, createEventTriggers, DATA_DIR } = require('./db');
 const { fingerprint } = require('./fingerprint');
+const { eventHash, verifyChain, GENESIS } = require('./chain');
+const { smsSegments, shortCodeFor } = require('./sms');
 const { randomToken, newId, expiryDate } = require('./tokens');
 const { FAIRSCOPE_QUESTIONS, questionsFor, computeMissingTerms, validateSkippedTerms } = require('./fairscope');
 const { getAdapter, getMode } = require('./applink');
@@ -32,6 +34,12 @@ function err(res, status, message) {
 }
 
 function baseUrl(req) {
+  // All SMS / PDF / passport links are built from a configured
+  // PUBLIC_BASE_URL (https) when one is set — the Host header is never
+  // trusted for these links. Without it (local dev only), fall back to
+  // the request, as before. Deployments must set PUBLIC_BASE_URL.
+  const configured = (process.env.PUBLIC_BASE_URL || '').replace(/\/+$/, '');
+  if (configured) return configured;
   return req.protocol + '://' + req.get('host');
 }
 
@@ -42,10 +50,30 @@ function escapeHtml(s) {
 }
 
 function addEvent(jobId, type, actor, payload) {
+  // Hash chain (Ceiling Pass, Part 2, item 9): the ONLY event-append
+  // path in the app (every route writes events through here, including
+  // bidding history copies). The hash covers type, actor, the payload as
+  // stored, and the stored timestamp, chained on the previous event's
+  // hash for this job ('' for the first event). The timestamp is fixed
+  // before hashing so the stored row recomputes exactly.
+  const createdAt = now();
+  const prev = db.prepare('SELECT hash FROM Event WHERE job_id = ? ORDER BY id DESC LIMIT 1').get(jobId);
+  const prevHash = (prev && prev.hash) || GENESIS;
+  const hash = eventHash(prevHash, {
+    type, actor: actor || null, payload: payload ?? null, created_at: createdAt,
+  });
   db.prepare(
-    'INSERT INTO Event (job_id, type, actor, payload_json, created_at) VALUES (?, ?, ?, ?, ?)'
-  ).run(jobId, type, actor || null, payload ? JSON.stringify(payload) : null, now());
+    'INSERT INTO Event (job_id, type, actor, payload_json, created_at, hash) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(jobId, type, actor || null, payload ? JSON.stringify(payload) : null, createdAt, hash);
   return db.prepare('SELECT * FROM Event ORDER BY id DESC LIMIT 1').get();
+}
+
+// The chain head for a job: the hash of its latest event, or null when
+// the job has no events yet. (verifyChain is the full check; the head is
+// the one value ResolvePack / /api/verify publish.)
+function chainHeadOf(events) {
+  if (!events || !events.length) return null;
+  return events[events.length - 1].hash || null;
 }
 
 function getJob(id) {
@@ -98,6 +126,10 @@ function jobDetail(job) {
   const versions = getVersions(job.id);
   const current = getCurrentVersion(job);
   const events = db.prepare('SELECT * FROM Event WHERE job_id = ? ORDER BY id ASC').all(job.id);
+  // Hash chain (Ceiling Pass, Part 2, item 9): verified here so the
+  // ResolvePack JSON (which is jobDetail) carries the verdict alongside
+  // the events themselves; the verify page recomputes the same check.
+  const chain = verifyChain(events);
   const payments = db.prepare('SELECT * FROM Payment WHERE job_id = ? ORDER BY created_at ASC').all(job.id);
   const photos = db.prepare('SELECT * FROM Photo WHERE job_id = ? ORDER BY taken_at ASC').all(job.id);
   const disputes = db.prepare('SELECT * FROM Dispute WHERE job_id = ? ORDER BY created_at ASC').all(job.id)
@@ -107,21 +139,76 @@ function jobDetail(job) {
     }));
   const milestones = current ? milestoneStatus(job.id, milestonesOf(current)) : [];
   const agreed = current ? current.price : 0;
+  // Price-creep protection (ceiling pass item 16): the price the hirer
+  // agreed first (V1) vs the price the record carries now, with every
+  // APPROVED ChangeLock between them — old price → new price + reason.
+  // The old/new prices come from the stored versions (the CHANGE_APPROVED
+  // event names the resulting version); the reason from the proposal.
+  const approvedEvents = events.filter((e) => e.type === 'CHANGE_APPROVED');
+  const priceChanges = db.prepare(
+    "SELECT * FROM ChangeProposal WHERE job_id = ? AND status = 'APPROVED' ORDER BY created_at ASC"
+  ).all(job.id).map((c) => {
+    let versionNo = null;
+    let decidedAt = null;
+    for (const e of approvedEvents) {
+      let p = {};
+      try { p = JSON.parse(e.payload_json || '{}'); } catch (_e) {}
+      if (p.changeId === c.id) { versionNo = p.version; decidedAt = e.created_at; break; }
+    }
+    const prevVersion = versionNo ? versions.find((v) => v.version_no === versionNo - 1) : null;
+    const nextVersion = versionNo ? versions.find((v) => v.version_no === versionNo) : null;
+    return {
+      changeId: c.id, version: versionNo,
+      oldPrice: prevVersion ? prevVersion.price : null,
+      newPrice: nextVersion ? nextVersion.price : null,
+      priceDelta: c.price_delta, reason: c.reason, decidedAt,
+    };
+  });
+  const priceProtection = {
+    originalPrice: versions.length ? versions[0].price : null,
+    currentPrice: current ? current.price : null,
+    changed: versions.length > 1,
+    changes: priceChanges,
+  };
+  // Evidence pack (ceiling pass item 16): ResolvePack + live fingerprint
+  // verification. The per-event hash chain (Part 2, item 9) now exists:
+  // chainPresent is true when the job has chained events, and chainStatus
+  // reports the verification verdict honestly — never faked.
+  const evidence = current ? {
+    fingerprint: current.fingerprint,
+    fingerprint8: shortCodeFor(current.fingerprint),
+    verifyPath: '/verify?fp=' + current.fingerprint,
+    verifyApiPath: '/api/verify?fp=' + current.fingerprint,
+    resolvePackPath: '/api/jobs/' + job.id + '/resolvepack',
+    chainPresent: chain.chainHead != null,
+    chainHead: chain.chainHead,
+    chainStatus: chain.valid
+      ? 'hash chain verified end-to-end (' + events.length + ' events)'
+      : 'hash chain BROKEN at event ' + chain.brokenIndex + ' (' + chain.brokenType + ')',
+  } : null;
   const acknowledgedPaid = payments
     .filter((p) => p.ack_status === 'ACKNOWLEDGED')
     .reduce((sum, p) => sum + p.amount, 0);
   // The hirer needs the worker link for the detail view (and for the
   // ResolvePack download, which opens in a new tab without an auth header).
+  // The link is the worker's link, so it carries ?lang=bn — the worker
+  // page defaults to Bangla.
   const wt = db.prepare('SELECT * FROM WorkerToken WHERE job_id = ? ORDER BY expires_at DESC LIMIT 1').get(job.id);
   return {
-    job: { ...job, workerLink: wt ? '/worker.html?token=' + wt.token : null },
+    job: { ...job, workerLink: wt ? '/worker.html?lang=bn&token=' + wt.token : null },
     versions: versions.map((v) => ({ ...v, scope: parseScopeJson(v) })),
     events,
+    chainHead: chain.chainHead,
+    chainValid: chain.valid,
+    chainBrokenIndex: chain.valid ? null : chain.brokenIndex,
+    chainBrokenType: chain.valid ? null : chain.brokenType,
     payments,
     photos,
     milestones,
     balance: { agreed, acknowledgedPaid, remaining: agreed - acknowledgedPaid },
     disputes,
+    priceProtection,
+    evidence,
   };
 }
 
@@ -172,6 +259,85 @@ function otpError(res, e) {
   return err(res, 502, e.message);
 }
 
+// ---------------------------------------------------------------- validation (Agent B)
+// Sane price band for a record: a whole number of taka, ৳100 – ৳10,000,000.
+// ৳1 is not a real job price — the floor is ৳100.
+const MAX_JOB_PRICE = 10000000;
+const MIN_JOB_PRICE = 100;
+const VALIDATION_MSG = {
+  scopeRequired: { en: 'scope is required — describe the work', bn: 'কাজের বিবরণ দিতে হবে' },
+  priceInteger: { en: 'price must be a whole number of taka (BDT)', bn: 'দাম পূর্ণ টাকায় হতে হবে' },
+  priceMin: { en: 'price must be at least ৳100', bn: 'দাম কমপক্ষে ৳১০০ হতে হবে' },
+  priceMax: { en: 'price must be at most ৳10,000,000', bn: 'দাম সর্বোচ্চ ৳১,০০,০০,০০০ হতে হবে' },
+  deadlineFormat: { en: 'deadline must be a real date (YYYY-MM-DD)', bn: 'শেষ তারিখ সঠিক তারিখ হতে হবে (YYYY-MM-DD)' },
+  deadlinePast: { en: 'deadline cannot be in the past', bn: 'শেষ তারিখ অতীতের হতে পারবে না' },
+  samePhone: { en: 'the hirer and worker cannot be the same phone number', bn: 'হায়ারার ও ওয়ার্কারের নম্বর এক হতে পারবে না' },
+  milestoneAmount: { en: 'each milestone amount must be a positive whole number of taka', bn: 'প্রতিটি মাইলস্টোনের টাকা পূর্ণ সংখ্যায় হতে হবে' },
+};
+function vmsg(key, lang) {
+  const m = VALIDATION_MSG[key];
+  return (m && m[lang === 'bn' ? 'bn' : 'en']) || (m && m.en);
+}
+// Today's date in Dhaka (Asia/Dhaka), YYYY-MM-DD. Deadline comparisons
+// use this, not UTC — UTC midnight is up to 6 hours late in Dhaka.
+function dhakaToday() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Dhaka', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date());
+}
+// True only for a real calendar date in YYYY-MM-DD form ('2026-02-30'
+// and 'not-a-date' are both false).
+function isRealDateString(s) {
+  if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const [y, m, d] = s.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
+}
+function validateScope(scope, lang = 'en') {
+  if (typeof scope !== 'string' || !scope.trim()) return vmsg('scopeRequired', lang);
+  return null;
+}
+function validatePrice(price, lang = 'en') {
+  if (typeof price !== 'number' || !Number.isInteger(price)) return vmsg('priceInteger', lang);
+  if (price < MIN_JOB_PRICE) return vmsg('priceMin', lang);
+  if (price > MAX_JOB_PRICE) return vmsg('priceMax', lang);
+  return null;
+}
+function validateDeadline(deadline, lang = 'en') {
+  if (deadline == null || deadline === '') return null; // deadline is optional
+  if (!isRealDateString(deadline)) return vmsg('deadlineFormat', lang);
+  if (deadline < dhakaToday()) return vmsg('deadlinePast', lang);
+  return null;
+}
+function validateMilestones(milestones, lang = 'en') {
+  if (milestones == null) return null;
+  if (!Array.isArray(milestones)) return vmsg('milestoneAmount', lang);
+  for (const m of milestones) {
+    if (!m || typeof m.amount !== 'number' || !Number.isInteger(m.amount) || m.amount <= 0) {
+      return vmsg('milestoneAmount', lang);
+    }
+  }
+  return null;
+}
+// Rescale a milestone list proportionally to a new total: each amount is
+// rounded to whole taka and the last milestone absorbs the remainder, so
+// the rescaled list always sums exactly to the new total.
+function rescaleMilestones(milestones, newTotal) {
+  const list = (Array.isArray(milestones) ? milestones : []).map((m) => ({ ...m }));
+  const oldTotal = list.reduce((s, m) => s + (Number(m.amount) || 0), 0);
+  if (!list.length || oldTotal <= 0 || newTotal <= 0) return { milestones: list, oldTotal, rescaled: false };
+  if (oldTotal === newTotal) return { milestones: list, oldTotal, rescaled: false };
+  let running = 0;
+  for (let i = 0; i < list.length; i++) {
+    if (i === list.length - 1) list[i].amount = newTotal - running;
+    else {
+      list[i].amount = Math.round((Number(list[i].amount) || 0) * newTotal / oldTotal);
+      running += list[i].amount;
+    }
+  }
+  return { milestones: list, oldTotal, rescaled: true };
+}
+
 // Bangladesh mobile numbers only: 01[3-9]XXXXXXXX, optionally +880/880
 // prefixed. Normalised to the 11-digit 01… form before anything is stored
 // or sent, so an OTP can never be sprayed at an arbitrary string — in live
@@ -197,25 +363,24 @@ function billingSatisfied(job) {
   return hirer ? hasActiveSubscription(hirer.phone) : false;
 }
 
-// Demo endpoints (seed/reset wipe the whole database) must never be
-// reachable on a public server: in production they do not exist (404).
-// They are also gated behind DEMO_MODE=true — the flag is OFF unless
-// explicitly set, and OFF in production, so a missing flag is a 404
-// (loopback alone no longer opens them). On top of the flag, when
-// DEALCRAFT_DEMO_TOKEN is configured the caller must also carry it
-// (x-demo-token header or demoToken body/query field); without a
-// configured token only loopback requests are allowed. Deployments must
-// set NODE_ENV=production and leave DEMO_MODE unset.
+// Demo endpoints (seed/reset) are gated behind DEMO_MODE=true — the flag
+// is OFF unless explicitly set, so a missing flag is a 404 (loopback alone
+// no longer opens them). They now work in production too, when the flag is
+// set: seeding is namespaced per visitor (routes/demo.js) and can no
+// longer touch other users' data, so production no longer 404s them. On
+// top of the flag, when DEALCRAFT_DEMO_TOKEN is configured the caller must
+// also carry it (x-demo-token header or demoToken body/query field); with
+// no token configured, production allows any visitor to demo (the sandbox
+// is namespaced and rate-limited), while non-production still requires a
+// loopback request. Deployments that want "See the demo" to work set
+// DEMO_MODE=true and leave the token unset; deployments that want demo
+// endpoints restricted set a token.
 function isLoopback(req) {
   const a = req.socket && req.socket.remoteAddress;
   return a === '127.0.0.1' || a === '::1' || a === '::ffff:127.0.0.1';
 }
 
 function demoAllowed(req, res) {
-  if ((process.env.NODE_ENV || '').toLowerCase() === 'production') {
-    err(res, 404, 'not found');
-    return false;
-  }
   // Env flag first: DEMO_MODE=true is required, and the flag defaults OFF.
   if (process.env.DEMO_MODE !== 'true') {
     err(res, 404, 'not found');
@@ -231,6 +396,10 @@ function demoAllowed(req, res) {
     }
     return true;
   }
+  // No token configured: in production any visitor may demo (namespaced
+  // seeding cannot wipe or read other visitors' data); in non-production
+  // the old loopback-only rule still applies.
+  if ((process.env.NODE_ENV || '').toLowerCase() === 'production') return true;
   if (!isLoopback(req)) {
     err(res, 403, 'demo endpoints are local-only without a demo token');
     return false;
@@ -359,6 +528,27 @@ function upsertUser(phone, name, role) {
   return db.prepare('SELECT * FROM User WHERE id = ?').get(id);
 }
 
+// OTP round-trips (ceiling pass item 14 — audit, no reuse made).
+// Every OTP purpose guards a DISTINCT state change, and codes are
+// purpose-scoped (phone + purpose), so a code issued for one purpose
+// cannot verify another:
+//   login          -> a 7-day session. Proves identity at login time
+//                     only; it proves no intent for any later change.
+//   hirer-confirm  -> CONFIRMED_BY_HIRER, possibly ACTIVE.
+//   worker-confirm -> CONFIRMED_BY_WORKER, possibly ACTIVE. The worker
+//                     has no session at all (token link only), so there
+//                     is nothing to reuse here.
+//   change-approve -> CHANGE_APPROVED + a new JobVersion.
+//   payment-ack    -> a payment becomes ACKNOWLEDGED.
+//   close-confirm  -> JOB_CLOSED.
+//   CaaS verify    -> the ৳10 charge moves (money authorization).
+// Reusing a verified session for any of these would collapse mutual
+// confirmation — two sides, each confirming by their own code — into a
+// single login. So ZERO OTP round-trips were removed: the cost saving
+// in this item is the shorter SMS (see below), never a weaker gate.
+// (The 402-before-OTP billing check already avoids burning a code on a
+// refused confirm; that is the only "reuse" the flow has, and it
+// predates this pass.)
 // ---------------------------------------------------------------- agreement summary SMS + deadline nudge
 // Event-label strings for the two new event types. The raw BN/EN strings
 // live here in server code (Section 2 owns the client i18n dictionary);
@@ -376,6 +566,17 @@ const TRADE_BN = { ELECTRICIAN: 'ইলেকট্রিশিয়ান', PA
 // only: the ACTIVE transition happens in two confirm handlers, so the
 // SUMMARY_SMS_SENT event is the guard. An SMS failure never un-activates
 // the job. Returns the exact text sent, or null when already sent.
+//
+// Item 14 (SMS cost) — STOPPED on the live text switch: the text below
+// still carries the 36-character record UUID because the passing
+// regression assertion pins `text.endsWith(job.id)`; switching to the
+// short text (trade, price, deadline, short verify link — 3 segments
+// down to 2) needs that assertion updated first (coordinator's call).
+// What DID ship in this pass, without touching the text: the segment
+// count is computed by server/src/sms.js (GSM 7-bit vs UCS-2) and logged
+// per recipient in SmsLog, and the short code (first 8 fingerprint
+// characters — the code /api/verify already resolves) is recorded in the
+// event payload as shortCode, so the metrics view reads real numbers.
 async function sendAgreementSummarySms(job) {
   const already = db.prepare(
     "SELECT 1 FROM Event WHERE job_id = ? AND type = 'SUMMARY_SMS_SENT' LIMIT 1"
@@ -383,20 +584,29 @@ async function sendAgreementSummarySms(job) {
   if (already) return null;
   const version = getCurrentVersion(job);
   if (!version) return null;
-  const fp8 = (version.fingerprint || '').slice(0, 8);
+  const fp8 = shortCodeFor(version.fingerprint);
   const milestoneCount = milestonesOf(version).length;
   const tradeBn = TRADE_BN[job.trade] || job.trade;
   const text = 'DealCraft: আপনার কাজের রেকর্ড সক্রিয় হয়েছে — ' + tradeBn + ', ৳' + version.price
     + ', শেষ তারিখ ' + (version.deadline || '—') + ', ' + milestoneCount + 'টি মাইলস্টোন। ফিঙ্গারপ্রিন্ট: ' + fp8
     + '। রেকর্ড: ' + job.id;
+  const segments = smsSegments(text);
   const hirer = db.prepare('SELECT phone FROM User WHERE id = ?').get(job.hirer_id);
   const adapter = getAdapter();
   const to = [...new Set([hirer && hirer.phone, job.worker_phone].filter(Boolean))];
   for (const phone of to) {
-    try { await adapter.sendSms(phone, text); } catch (_e) { /* SMS failure must not un-activate the job */ }
+    try {
+      await adapter.sendSms(phone, text);
+      // Log only sends that actually went out — a failed send is not a
+      // segment spent, and the metrics view must not bill it.
+      db.prepare(
+        'INSERT INTO SmsLog (job_id, kind, segments, created_at) VALUES (?, ?, ?, ?)'
+      ).run(job.id, 'summary', segments, now());
+    } catch (_e) { /* SMS failure must not un-activate the job */ }
   }
   addEvent(job.id, 'SUMMARY_SMS_SENT', 'system', {
-    to, version: version.version_no, fingerprint8: fp8, text,
+    to, version: version.version_no, fingerprint8: fp8, shortCode: fp8,
+    segments, text,
     labelEn: SUMMARY_SMS_LABELS.en, labelBn: SUMMARY_SMS_LABELS.bn,
   });
   return text;
@@ -409,25 +619,39 @@ async function sendAgreementSummarySms(job) {
 // Runs on server start, every 15 minutes, and on every job-detail read
 // (cheap: one ACTIVE-jobs scan; the event-exists guard makes it idempotent).
 async function checkDeadlines() {
-  const today = new Date().toISOString().slice(0, 10);
+  // Dhaka date, not UTC: a deadline that passed in Dhaka has passed,
+  // even when UTC still shows the day before.
+  const today = dhakaToday();
   const jobs = db.prepare("SELECT * FROM Job WHERE status = 'ACTIVE'").all();
   for (const job of jobs) {
     const version = getCurrentVersion(job);
     if (!version || !version.deadline || version.deadline >= today) continue;
-    const already = db.prepare(
-      "SELECT 1 FROM Event WHERE job_id = ? AND type = 'DEADLINE_PASSED' LIMIT 1"
-    ).get(job.id);
-    if (already) continue;
+    // Once per DEADLINE, not once per job ever: a ChangeLock extension
+    // that sets a new deadline re-arms the nudge for that new deadline.
+    // A DEADLINE_PASSED event only blocks the deadline it was fired for.
+    const firedForThisDeadline = db.prepare(
+      "SELECT payload_json FROM Event WHERE job_id = ? AND type = 'DEADLINE_PASSED'"
+    ).all(job.id).some((row) => {
+      try { return JSON.parse(row.payload_json || '{}').deadline === version.deadline; }
+      catch (_e) { return false; }
+    });
+    if (firedForThisDeadline) continue;
     addEvent(job.id, 'DEADLINE_PASSED', 'system', {
       deadline: version.deadline, version: version.version_no,
       labelEn: DEADLINE_PASSED_LABELS.en, labelBn: DEADLINE_PASSED_LABELS.bn,
     });
     const tradeBn = TRADE_BN[job.trade] || job.trade;
     const text = 'DealCraft: ' + tradeBn + ' কাজের শেষ তারিখ (' + version.deadline + ') পার হয়ে গেছে। কোনো জরিমানা বা চার্জ নেই — অ্যাপে ChangeLock থেকে নতুন তারিখ প্রস্তাব করুন। রেকর্ড: ' + job.id;
+    const segments = smsSegments(text);
     const hirer = db.prepare('SELECT phone FROM User WHERE id = ?').get(job.hirer_id);
     const adapter = getAdapter();
     for (const phone of [...new Set([hirer && hirer.phone, job.worker_phone].filter(Boolean))]) {
-      try { await adapter.sendSms(phone, text); } catch (_e) { /* nudge SMS failure is not fatal */ }
+      try {
+        await adapter.sendSms(phone, text);
+        db.prepare(
+          'INSERT INTO SmsLog (job_id, kind, segments, created_at) VALUES (?, ?, ?, ?)'
+        ).run(job.id, 'nudge', segments, now());
+      } catch (_e) { /* nudge SMS failure is not fatal */ }
     }
   }
 }
@@ -626,6 +850,19 @@ function passportData(workerPhone) {
   const jobs = entries.map((e) => {
     const job = getJob(e.job_id);
     if (!job) return null;
+    // Anti-gaming (Ceiling Pass, Part 2, item 11): a job counts toward
+    // the passport ONLY if it was closed with BOTH sides' confirmation.
+    // /api/passport/add already 409s hirer-only closes, but the COUNT
+    // must not trust that alone — an entry for a job that was never
+    // mutually closed (or is not CLOSED at all) is excluded here, so NO
+    // path — API, cached count, bid facts — can count a forced close.
+    if (job.status !== 'CLOSED') return null;
+    const closedEv = db.prepare(
+      "SELECT payload_json FROM Event WHERE job_id = ? AND type = 'JOB_CLOSED' ORDER BY id ASC LIMIT 1"
+    ).get(e.job_id);
+    let hirerOnlyClose = false;
+    try { hirerOnlyClose = JSON.parse(closedEv ? closedEv.payload_json || '{}' : '{}').hirerOnly === true; } catch (_e) {}
+    if (hirerOnlyClose) return null;
     const hirer = db.prepare('SELECT name FROM User WHERE id = ?').get(job.hirer_id);
     // Completion time is when the job actually closed (JOB_CLOSED event),
     // not when it was created.
@@ -633,6 +870,7 @@ function passportData(workerPhone) {
     return {
       jobId: e.job_id,
       trade: job.trade,
+      hirerId: job.hirer_id,
       completedAt: closed ? closed.created_at : job.created_at,
       showAmounts: !!e.show_amounts,
       showClient: !!e.show_client,
@@ -646,10 +884,18 @@ function passportData(workerPhone) {
     };
   }).filter(Boolean);
   const trades = [...new Set(jobs.map((j) => j.trade))];
+  // Distinct hirers: ten jobs for one cousin is visibly different from
+  // ten jobs for ten customers. The hirer id is an internal key — it is
+  // counted here and never returned in the public shape.
+  const distinctHirers = new Set(jobs.map((j) => j.hirerId)).size;
+  const publicEntries = jobs.map((j) => {
+    const { hirerId, ...rest } = j;
+    return rest;
+  });
   // The worker's name comes from the User table — the phone number is an
   // identifier, not a name, and must not be shown as one. No phone number
   // is returned in the public shape at all.
-  return { profileId: getOrCreateProfileId(workerPhone), workerName: worker ? worker.name : undefined, trades, completedJobs: jobs.length, entries: jobs };
+  return { profileId: getOrCreateProfileId(workerPhone), workerName: worker ? worker.name : undefined, trades, completedJobs: publicEntries.length, distinctHirers, entries: publicEntries };
 }
 // ---------------------------------------------------------------- applink callbacks
 // Callback endpoints named in APPLINK-APP-CREATION.md (Callback URL).
@@ -679,9 +925,15 @@ module.exports = {
   now,
   setPendingProfile,
   takePendingProfile,
-  clearAllTables,
+  createEventTriggers,
   DATA_DIR,
   fingerprint,
+  smsSegments,
+  shortCodeFor,
+  eventHash,
+  verifyChain,
+  chainHeadOf,
+  GENESIS,
   randomToken,
   newId,
   expiryDate,
@@ -715,6 +967,15 @@ module.exports = {
   authedUser,
   otpError,
   normalizeBdPhone,
+  MAX_JOB_PRICE,
+  vmsg,
+  dhakaToday,
+  isRealDateString,
+  validateScope,
+  validatePrice,
+  validateDeadline,
+  validateMilestones,
+  rescaleMilestones,
   hasActiveSubscription,
   billingSatisfied,
   isLoopback,

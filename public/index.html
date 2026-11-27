@@ -20,8 +20,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Oswald:wght@500;600;700&family=Noto+Sans+Bengali:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="fonts.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<script src="vendor/leaflet/leaflet.js" defer></script>
 <script>document.documentElement.classList.add('m-enter')</script>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -62,13 +62,13 @@
         <div class="rcard rcard-ghost" aria-hidden="true">
           <div class="rcard-top"><span data-i18n="card.ghostVer">V1 · SUPERSEDED</span><span data-i18n="card.fp">SHA-256 FINGERPRINT</span></div>
           <h3 class="rcard-trade" data-i18n="trade.electrician">ELECTRICIAN</h3>
-          <p class="rcard-scope" data-i18n="demo.scope">পুরো ফ্ল্যাটের রিওয়্যারিং · ১২ পয়েন্ট</p>
+          <p class="rcard-scope" data-i18n="demo.scope">পুরো ফ্ল্যাটের রিওয়্যারিং · ২৪ পয়েন্ট</p>
           <div class="rcard-rows"><div><span data-i18n="bal.agreed">মোট</span><b>৳18,000</b></div></div>
         </div>
         <article class="rcard rcard-main" aria-label="Active work record, version 2">
           <div class="rcard-top"><span class="rcard-ver" data-i18n="card.mainVer">V2 · ACTIVE</span><span data-i18n="card.fp">SHA-256 FINGERPRINT</span></div>
           <h3 class="rcard-trade" data-i18n="trade.electrician">ELECTRICIAN</h3>
-          <p class="rcard-scope" data-i18n="demo.scope">পুরো ফ্ল্যাটের রিওয়্যারিং · ১২ পয়েন্ট</p>
+          <p class="rcard-scope" data-i18n="demo.scope">পুরো ফ্ল্যাটের রিওয়্যারিং · ২৪ পয়েন্ট</p>
           <div class="rcard-rows">
             <div><span data-i18n="bal.agreed">মোট</span><b>৳20,000</b></div>
             <div><span data-i18n="bal.paid">স্বীকৃত</span><b>৳5,000</b></div>
@@ -107,7 +107,7 @@
   <div class="jcard" id="journey-card" data-state="0" aria-label="Work record, version 1 to version 2">
     <div class="jcard-top"><span class="jcard-ver" id="jc-ver">V1 · AGREED</span><span data-i18n="card.fp">SHA-256 FINGERPRINT</span></div>
     <div class="jcard-trade" data-i18n="trade.electrician">ELECTRICIAN</div>
-    <div class="jcard-scope" data-i18n="demo.scope">পুরো ফ্ল্যাটের রিওয়্যারিং · ১২ পয়েন্ট</div>
+    <div class="jcard-scope" data-i18n="demo.scope">পুরো ফ্ল্যাটের রিওয়্যারিং · ২৪ পয়েন্ট</div>
     <div class="jcard-rows">
       <div><span data-i18n="bal.agreed">মোট / AGREED</span><b id="jc-agreed">৳18,000</b></div>
       <div><span data-i18n="bal.paid">স্বীকৃত / PAID</span><b id="jc-paid">৳0</b></div>
@@ -207,14 +207,14 @@
 
 <!-- APP -->
 <section class="section section-white app" id="app"><div class="wrap">
-  <div class="sec-head"><h2 class="sec-title" data-i18n="app.title">অ্যাপ — রেকর্ড শুরু করুন</h2><span class="demo-badge"><i aria-hidden="true"></i>Demo mode</span></div>
-  <p class="lede" data-i18n="app.lede">ফোন নম্বর দিয়ে লগইন করুন। OTP আসবে SMS-এ।</p>
+  <div class="sec-head"><h2 class="sec-title" data-i18n="app.title">অ্যাপ — রেকর্ড শুরু করুন</h2></div>
   <div id="app-error" class="error" role="alert" hidden></div>
   <div id="app-notice" class="notice" role="status" hidden></div>
 
   <!-- LOGIN -->
   <div class="app-card view" id="view-login" data-ui="dealcraft-app">
     <h3 class="app-title" data-i18n="login.title">লগইন — ফোন + OTP</h3>
+    <p class="lede" data-i18n="app.lede">ফোন নম্বর দিয়ে লগইন করুন। OTP আসবে SMS-এ।</p>
     <p data-i18n="login.sub">Hirer হিসেবে লগইন করুন।</p>
     <form id="form-login">
       <label for="login-phone" data-i18n="login.phone">Phone number</label>
@@ -332,7 +332,7 @@
         <div><label for="job-deadline" data-i18n="new.deadline">Deadline</label><input id="job-deadline" type="date"></div>
       </div>
       <label for="job-scope" data-i18n="new.scope">Scope — কাজের বিবরণ</label>
-      <textarea id="job-scope" rows="3" placeholder="যেমন: পুরো ফ্ল্যাটের রিওয়্যারিং, ১২ পয়েন্ট"></textarea>
+      <textarea id="job-scope" rows="3" placeholder="যেমন: পুরো ফ্ল্যাটের রিওয়্যারিং, ২৪ পয়েন্ট"></textarea>
       <h3 data-i18n="site.title">Job site — কাজের জায়গা (optional)</h3>
       <p class="small" data-i18n="site.hint">ম্যাপে ট্যাপ করে পিন বসান, অথবা আপনার বর্তমান লোকেশন ব্যবহার করুন।</p>
       <div id="site-map"></div>
@@ -393,6 +393,9 @@
       <div class="btn-row"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-resend-link" data-i18n="detail.resendLink">Resend worker link</button></div>
     </div>
     <div class="record" id="detail-record" hidden></div>
+    <div class="btn-row"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-listen" hidden>শুনুন / Listen</button></div>
+    <div class="notice" id="detail-protection" hidden></div>
+    <div class="notice" id="detail-evidence" hidden></div>
     <div class="tabs" role="tablist" aria-label="Job sections">
       <span class="tab-ind" aria-hidden="true"></span>
       <button role="tab" aria-selected="true" data-tab="timeline" data-i18n="tab.timeline">Timeline</button>
@@ -491,6 +494,7 @@
   <div class="foot-map"><div id="map-footer"></div></div>
 </div>
 </div></footer>
+<script src="read-aloud.js"></script>
 <script src="app.js"></script>
 <div id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer" hidden><button type="button" id="lightbox-close" aria-label="Close photo viewer">✕</button><img id="lightbox-img" alt="Job photo, enlarged"></div>
 </body>
