@@ -1,0 +1,579 @@
+/* DealCraft UI refinement layer — 28 Nov 2026
+   Keeps the existing Dotted Bangladesh identity while fixing hierarchy,
+   short-screen access, touch ergonomics and excessive card/depth noise. */
+
+:root {
+  --ux-radius: 14px;
+  --ux-radius-sm: 9px;
+  --ux-border: #ded8ce;
+  --ux-muted: #5e5a54;
+  --ux-focus: 3px solid #ff5a1f;
+  --ux-ease: cubic-bezier(.22,1,.36,1);
+}
+
+/* Focus is visible and consistent without changing the brand palette. */
+:focus-visible {
+  outline: var(--ux-focus);
+  outline-offset: 3px;
+}
+button, a, input, select, textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+button:disabled, input:disabled, select:disabled, textarea:disabled {
+  cursor: not-allowed;
+}
+
+/* A one-screen layout is useful on normal phones, but must not trap users
+   on short screens, landscape phones, browser zoom or enlarged text. */
+@media (max-height: 760px) {
+  body:not(.show-app) {
+    height: auto;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  body:not(.show-app) main {
+    height: auto;
+    min-height: 100dvh;
+  }
+  body:not(.show-app) .hero {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  body:not(.show-app) .hero-grid {
+    height: auto;
+    min-height: 100dvh;
+    align-content: start;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+}
+@media (max-width: 979px) and (max-height: 740px) {
+  .hero-grid { gap: 10px; }
+  .journey5 { margin-top: 2px; }
+  .demo-player { margin-bottom: 8px; }
+}
+@media (orientation: landscape) and (max-height: 560px) {
+  body:not(.show-app) .hero-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, .9fr);
+    height: auto;
+    min-height: 100dvh;
+    padding-top: 76px;
+  }
+  body:not(.show-app) .hero-visual { display: none; }
+}
+
+/* Landing page: keep the five stages readable and reachable on narrow phones.
+   It becomes a horizontal, snap-scrolling strip rather than five tiny columns. */
+@media (max-width: 560px) {
+  .journey5 {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+    scrollbar-color: #ff5a1f #252525;
+    padding: 2px 2px 9px;
+  }
+  .journey5 li {
+    flex: 0 0 94px;
+    min-width: 94px;
+    scroll-snap-align: start;
+    font-size: 10px;
+    line-height: 1.35;
+    padding: 9px 7px;
+  }
+  .journey5 li b { font-size: 21px; }
+  .hero-panel { border-radius: var(--ux-radius); }
+  .prompt-box { border-radius: var(--ux-radius-sm); }
+  .demo-player { border-radius: var(--ux-radius); }
+  .hire-choice { border-radius: var(--ux-radius-sm); }
+}
+
+/* The app shell needs a clear hierarchy between global chrome and each view. */
+#app { background: var(--page); }
+.app-wrap {
+  width: min(100%, 1120px);
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+.app-topbar {
+  min-height: 58px;
+  gap: 10px;
+  border-bottom: 1px solid var(--ux-border);
+  padding: 8px 0 12px;
+  margin-bottom: 10px;
+}
+.app-topbar .app-title-h {
+  min-width: 0;
+  text-align: left;
+  font-size: clamp(18px, 2.2vw, 26px);
+  line-height: 1.1;
+}
+.app-topbar > .btn {
+  flex: none;
+  min-height: 42px;
+}
+.app-card {
+  min-width: 0;
+  padding: 22px 0;
+  border-color: transparent;
+}
+.view-scroll {
+  scrollbar-gutter: stable;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+  padding: 8px 2px max(20px, env(safe-area-inset-bottom));
+}
+.view-head {
+  padding: 5px 0 12px;
+  border-bottom: 1px solid var(--ux-border);
+  margin-bottom: 12px;
+}
+.view-head h2 {
+  min-width: 0;
+  font-size: clamp(20px, 2.5vw, 28px);
+  line-height: 1.1;
+}
+.app-card .lede, .app-card .small {
+  color: var(--ux-muted);
+}
+.app-card form {
+  max-width: 760px;
+}
+.app-card label {
+  color: #49443d;
+  letter-spacing: .1em;
+}
+.app-card input:not([type="checkbox"]),
+.app-card select,
+.app-card textarea {
+  border: 1px solid #cfc8bd;
+  border-radius: 9px;
+  min-height: 50px;
+  background: #fff;
+  box-shadow: none;
+}
+.app-card textarea { resize: vertical; }
+.app-card input:focus-visible,
+.app-card select:focus-visible,
+.app-card textarea:focus-visible {
+  border-color: #c73e0e;
+  outline: 2px solid rgba(255,90,31,.2);
+  outline-offset: 1px;
+}
+
+/* FairScope should read as one guided question, not an ever-growing stack
+   of unrelated form boxes. */
+#view-new #fs-chat { max-width: 820px; }
+#view-new .prompt-box-app {
+  border: 1px solid var(--ux-border);
+  border-radius: var(--ux-radius);
+  box-shadow: 3px 3px 0 rgba(17,17,17,.1);
+  padding: clamp(14px, 2.5vw, 22px);
+}
+#view-new .chat-q {
+  border-radius: var(--ux-radius);
+  padding: clamp(16px, 3vw, 24px);
+}
+#view-new .chat-q-text {
+  font-size: clamp(20px, 3vw, 26px);
+  line-height: 1.2;
+}
+#view-new .chat-q-row {
+  align-items: stretch;
+}
+#view-new .chat-q-row input { min-width: 0; }
+#view-new #trade-picker { margin-top: 14px; }
+#view-new #trade-picker button {
+  flex: 1 1 110px;
+  border-radius: 8px;
+}
+#view-new .record, #view-new #review-record {
+  border: 1px solid var(--ux-border);
+  border-radius: var(--ux-radius-sm);
+  padding: 18px;
+  background: #fff;
+}
+#view-new .warn {
+  border-radius: var(--ux-radius-sm);
+  box-shadow: none;
+}
+#view-new .fab-bar {
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+@media (max-width: 520px) {
+  #view-new .view-head { align-items: flex-start; }
+  #view-new .view-head h2 { flex-basis: 100%; order: -1; }
+  #view-new .chat-q-row { flex-direction: column; }
+  #view-new .chat-q-row .btn { width: 100%; }
+  #view-new .field-grid { grid-template-columns: minmax(0,1fr); }
+}
+
+/* Job list: information order is title → price/status → action.
+   Remove the old effect where every static surface pretended to be a button. */
+#view-jobs .view-head { align-items: center; }
+#view-jobs .jobs-tabs { gap: 6px; }
+#view-jobs .jobs-tabs button {
+  border-radius: 8px;
+  min-height: 46px;
+  transition: background-color 160ms var(--ux-ease), color 160ms var(--ux-ease);
+}
+#view-jobs .jobs-filter { margin: 12px 0 0; }
+#view-jobs .jobs-filter button {
+  border-radius: 999px;
+  padding: 9px 13px;
+  min-height: 40px;
+  font-size: 12px;
+}
+#view-jobs .job-list { gap: 10px; margin-top: 12px; }
+#view-jobs .job-row {
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--ux-border);
+  border-radius: var(--ux-radius-sm);
+  padding: 14px 16px;
+  background: #fff;
+  box-shadow: none;
+  transition: border-color 160ms var(--ux-ease), background-color 160ms var(--ux-ease);
+}
+#view-jobs .job-row:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: #a9a095;
+  background: #fffdfa;
+}
+#view-jobs .job-row > div:first-child { min-width: 0; }
+#view-jobs .job-row .t {
+  font-size: 18px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+#view-jobs .job-row .m {
+  margin-top: 5px;
+  letter-spacing: .07em;
+  line-height: 1.5;
+}
+#view-jobs .job-row .pill { white-space: nowrap; }
+#view-jobs .job-row .btn {
+  min-height: 42px;
+  padding-inline: 16px;
+}
+#view-jobs .fab-bar {
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 0 max(8px, env(safe-area-inset-bottom));
+}
+#view-jobs .fab-bar .fab-primary { flex: 1 1 100%; }
+
+/* Job workspace: one strong header, one financial summary, then a flat
+   step workspace. Avoid nested paper cards and multiple competing shadows. */
+#view-detail.detail-sheet {
+  width: 100%;
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding-top: 10px;
+}
+#view-detail .view-head {
+  align-items: flex-start;
+  border-bottom: 0;
+  margin-bottom: 2px;
+}
+#view-detail .view-head h2 {
+  font-size: clamp(19px, 2vw, 25px);
+  overflow-wrap: anywhere;
+}
+#view-detail #detail-meta {
+  margin: 0 0 9px;
+  font-size: 10px;
+  letter-spacing: .08em;
+  overflow-wrap: anywhere;
+}
+#view-detail #detail-pills { margin-bottom: 10px; }
+#view-detail .balance {
+  gap: 1px;
+  border: 1px solid #28231e;
+  border-radius: var(--ux-radius);
+  overflow: hidden;
+  margin: 12px 0 8px;
+  background: #28231e;
+}
+#view-detail .balance > div {
+  min-width: 0;
+  padding: 15px 12px;
+  box-shadow: none;
+  transition: none;
+}
+#view-detail .balance > div:hover,
+#view-detail .balance > div:active {
+  transform: none;
+  box-shadow: none;
+}
+#view-detail .balance .amt {
+  font-size: clamp(17px, 2.4vw, 25px);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+#view-detail .balance .lbl {
+  font-size: 9px;
+  letter-spacing: .07em;
+  line-height: 1.35;
+}
+#view-detail .bar {
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 8px 0 14px;
+}
+#view-detail .stepper {
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #e9e5de;
+  margin: 6px 0 10px;
+}
+#view-detail .stepper button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 7px;
+  padding: 0 12px;
+  font-size: 10px;
+  letter-spacing: .06em;
+  color: #44403a;
+  background: transparent;
+}
+#view-detail .stepper button[aria-selected="true"] {
+  color: #fff;
+  background: #111;
+}
+#view-detail .tabpanel {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  padding: 8px 0 22px;
+  margin: 0;
+}
+#view-detail .tabpanel h3 {
+  font-size: 21px;
+  line-height: 1.15;
+  margin: 18px 0 10px;
+}
+#view-detail .tabpanel > h3:first-child { margin-top: 4px; }
+#view-detail .record {
+  border: 1px solid var(--ux-border);
+  border-radius: var(--ux-radius-sm);
+  padding: 16px;
+  background: #fff;
+  margin: 12px 0;
+  box-shadow: none;
+}
+#view-detail .notice, #view-detail .warn {
+  border-radius: var(--ux-radius-sm);
+  box-shadow: none;
+}
+#view-detail .notice:hover, #view-detail .warn:hover,
+#view-detail .notice:active, #view-detail .warn:active {
+  transform: none;
+  box-shadow: none;
+}
+#view-detail .job-row {
+  background: #fff;
+  border: 1px solid var(--ux-border);
+  border-radius: var(--ux-radius-sm);
+  box-shadow: none;
+  padding: 13px 14px;
+}
+#view-detail .job-row:hover, #view-detail .job-row:active {
+  transform: none;
+  box-shadow: none;
+}
+#view-detail .timeline li { padding-block: 13px; }
+#view-detail .fab-bar {
+  position: relative;
+  padding: 12px 0 max(8px, env(safe-area-inset-bottom));
+  background: var(--paper);
+}
+#view-detail .fab-bar .btn {
+  min-height: 46px;
+  white-space: normal;
+  font-size: 10px;
+  padding-inline: 14px;
+  letter-spacing: .08em;
+}
+#view-detail .fab-bar .fab-primary { flex: 1 1 auto; }
+#view-detail .fab-bar #btn-more-job { flex: 0 0 auto; }
+#view-detail .photo-grid { grid-template-columns: repeat(auto-fill, minmax(112px,1fr)); }
+#view-detail .photo {
+  border: 1px solid var(--ux-border);
+  border-radius: 9px;
+  box-shadow: none;
+}
+#view-detail .photo:hover { transform: none; box-shadow: none; }
+@media (min-width: 900px) {
+  #view-detail.detail-sheet { padding: 22px 26px 10px; }
+  #view-detail .balance > div { padding: 18px 20px; }
+  #view-detail .stepper { max-width: 720px; }
+  #view-detail .tabpanel { max-width: 900px; }
+}
+@media (max-width: 520px) {
+  #view-detail .view-head { flex-wrap: wrap; }
+  #view-detail .view-head > button { min-height: 40px; }
+  #view-detail .view-head h2 { flex: 1 1 100%; order: -1; }
+  #view-detail .balance > div { padding: 12px 7px; }
+  #view-detail .stepper button { padding-inline: 10px; font-size: 9px; }
+  #view-detail .fab-bar { gap: 6px; }
+  #view-detail .fab-bar .btn { min-width: 0; }
+  #view-detail .fab-bar .fab-primary { flex: 1 1 100%; }
+  #view-detail .fab-bar #btn-share-trip-fab,
+  #view-detail .fab-bar #btn-more-job { flex: 1; }
+}
+
+/* Sheets: make them feel like intentional task surfaces, not a second app. */
+.sheet {
+  padding: 14px;
+  align-items: center;
+  overscroll-behavior: contain;
+}
+.sheet-card {
+  width: min(100%, 760px);
+  max-height: min(88dvh, 900px);
+  border: 1px solid var(--ux-border);
+  border-radius: 18px;
+  padding: clamp(18px, 3vw, 30px);
+}
+.sheet-head { align-items: center; }
+.sheet-head h2 {
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 1.08;
+}
+.sheet-close { width: 44px; height: 44px; }
+.sheet-nav button { border-radius: 8px; }
+@media (max-width: 560px) {
+  .sheet { align-items: flex-end; padding: 0; }
+  .sheet-card {
+    width: 100%;
+    max-height: 92dvh;
+    border-radius: 18px 18px 0 0;
+    padding: 20px 16px max(24px, env(safe-area-inset-bottom));
+  }
+  .sheet-nav { overflow-x: auto; }
+  .sheet-nav button { min-width: 86px; }
+}
+
+/* Worker experience: retain the calm light page and large controls, but
+   improve rhythm, scrolling and the prominence of the next useful action. */
+body.worker-page .topbar { min-height: 58px; }
+body.worker-page main {
+  width: min(100%, 760px);
+  margin-inline: auto;
+  padding-inline: max(16px, env(safe-area-inset-left));
+}
+body.worker-page .w-scroll {
+  padding: 8px 2px max(24px, env(safe-area-inset-bottom));
+  scrollbar-gutter: stable;
+  overscroll-behavior-y: contain;
+}
+body.worker-page main section h2 {
+  font-size: clamp(21px, 3vw, 25px);
+  line-height: 1.15;
+}
+body.worker-page .profile-card {
+  border-radius: var(--ux-radius);
+  border-color: var(--ux-border);
+  box-shadow: none;
+  margin: 10px 0 18px;
+}
+body.worker-page .record {
+  background: #fff;
+  border: 1px solid var(--ux-border);
+  border-radius: var(--ux-radius-sm);
+  padding: 16px;
+}
+body.worker-page .notice, body.worker-page .warn {
+  border-radius: var(--ux-radius-sm);
+  box-shadow: none;
+}
+body.worker-page .notice:hover, body.worker-page .warn:hover {
+  transform: none;
+  box-shadow: none;
+}
+body.worker-page .big-btn {
+  border-radius: 10px;
+  min-height: 56px;
+  font-size: 16px;
+  line-height: 1.25;
+  white-space: normal;
+  padding: 10px 16px;
+}
+body.worker-page .big-btn.orange { background: #ff5a1f; color: #111; }
+body.worker-page input:not([type="checkbox"]),
+body.worker-page select,
+body.worker-page textarea {
+  border-radius: 9px;
+  border-width: 1px;
+  background: #fff;
+}
+@media (max-width: 420px) {
+  body.worker-page main { padding-inline: 12px; }
+  body.worker-page .pc-name { font-size: 19px; }
+}
+
+/* WorkPassport is a portfolio page: allow the projects list to scroll,
+   while keeping the identity header stable inside its own viewport. */
+body.pp-page .pp-panel {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding: 4px 2px max(22px, env(safe-area-inset-bottom));
+  scrollbar-gutter: stable;
+}
+body.pp-page .pp-id-card {
+  border-radius: var(--ux-radius);
+  box-shadow: 7px 7px 0 #111;
+}
+body.pp-page .pp-job {
+  border-radius: var(--ux-radius-sm);
+  box-shadow: none;
+  border-color: var(--ux-border);
+}
+body.pp-page .pp-job:hover { transform: none; box-shadow: none; }
+
+/* Verification and trip pages: consistent readable content width. */
+body.trip-page main,
+body.light-page:not(.worker-page):not(.pp-page) main {
+  width: min(100%, 760px);
+  margin-inline: auto;
+}
+body.trip-page .trip-card {
+  border-radius: var(--ux-radius);
+  box-shadow: none;
+}
+body.trip-page #trip-map,
+body.trip-page #trip-fallback { border-radius: var(--ux-radius-sm); }
+
+/* Cards that are static no longer lift on hover. Keep motion for actual
+   controls and links; reserve depth for the main demo record and CTAs. */
+.stat, .visual-card, .pp-job, .trip-card, .profile-card,
+.notice, .warn, .record, .photo, .q-block,
+#loc-box, .balance > div {
+  box-shadow: none;
+  transition: border-color 160ms var(--ux-ease), background-color 160ms var(--ux-ease);
+}
+.stat:hover, .visual-card:hover, .pp-job:hover, .trip-card:hover,
+.profile-card:hover, .notice:hover, .warn:hover, .record:hover,
+.photo:hover, .q-block:hover, #loc-box:hover, .balance > div:hover {
+  transform: none;
+  box-shadow: none;
+}
+#success-check { flex: none; }
+#app-error, #app-notice { flex: none; border-radius: 8px; }
+#app-error:not([hidden]), #app-notice:not([hidden]) { margin: 8px 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .view-scroll { scroll-behavior: auto; }
+  .job-row, .stat, .visual-card, .pp-job, .trip-card,
+  .profile-card, .notice, .warn, .record, .photo, .q-block {
+    transition: none !important;
+  }
+}
