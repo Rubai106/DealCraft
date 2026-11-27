@@ -569,16 +569,30 @@ async function api(path,opts){
  if(!res.ok){var m=(data&&(data.error||data.message))||('HTTP '+res.status);var errObj=new Error(m);errObj.status=res.status;throw errObj;}
  return data;
 }
-function showView(id,dir){document.body.classList.add('show-app');
- ['view-login','view-jobs','view-new','view-detail','view-bid-post','view-find-work','view-bid-detail'].forEach(function(v){var el=$(v);if(el)el.hidden=(v!==id);});
- /* Premium: DIRECTIONAL view transitions — forward slides in from the
-    right, back from the left (260ms ease-out, transform+opacity only). */
- var show=$(id); if(show){var cls=(dir==='back')?'view-enter-back':'view-enter-fwd';show.classList.remove('view-enter','view-enter-fwd','view-enter-back');void show.offsetWidth;show.classList.add(cls);}
- /* P2: detail sheet sits on a very light grey section background. */
+function showView(id,dir){
+ document.body.classList.add('show-app');
+ ['view-login','view-jobs','view-new','view-detail','view-bid-post','view-find-work','view-bid-detail'].forEach(function(v){
+  var el=$(v); if(el)el.hidden=(v!==id);
+ });
+ var show=$(id);
+ if(show){
+  /* Each screen opens at its own start, not at a stale scroll position. */
+  show.querySelectorAll('.view-scroll').forEach(function(scroller){scroller.scrollTop=0;});
+  var cls=(dir==='back')?'view-enter-back':'view-enter-fwd';
+  show.classList.remove('view-enter','view-enter-fwd','view-enter-back');
+  void show.offsetWidth;
+  show.classList.add(cls);
+  /* Move keyboard and assistive-technology focus into the new screen. */
+  requestAnimationFrame(function(){
+   var heading=show.querySelector('.view-head h2, h2, h3');
+   if(!heading)return;
+   if(!heading.hasAttribute('tabindex'))heading.setAttribute('tabindex','-1');
+   try{heading.focus({preventScroll:true});}catch(e){heading.focus();}
+  });
+ }
  var appSec=$('app'); if(appSec)appSec.classList.toggle('app-grey',id==='view-detail');
- /* Motion gaps 4: the tab indicator can only be measured once the detail
-    view is visible — reposition it when the view appears. */
- if(id==='view-detail'){requestAnimationFrame(function(){moveTabInd();});setTimeout(moveTabInd,60);}}
+ if(id==='view-detail'){requestAnimationFrame(function(){moveTabInd();});setTimeout(moveTabInd,60);}
+}
 
 function showLanding(){document.body.classList.remove('show-app');}
 /* ---------- motion helpers (P0–P4; transform/opacity only) ---------- */
@@ -2988,15 +3002,27 @@ document.addEventListener('DOMContentLoaded',function(){
  initNavSpy();
  loadConfig();
  applyI18n();
- /* Mobile hamburger menu */
+ /* Mobile navigation: close on selection, outside tap or Escape. */
  var mb=$('menu-btn');
+ var mainNav=document.getElementById('main-nav');
+ function closeMobileNav(){
+  if(mainNav)mainNav.classList.remove('open');
+  if(mb)mb.setAttribute('aria-expanded','false');
+ }
  if(mb)mb.addEventListener('click',function(){
-  var nav=document.getElementById('main-nav'); if(!nav)return;
-  var open=nav.classList.toggle('open');
-  mb.setAttribute('aria-expanded',open?'true':'false');});
- document.querySelectorAll('#main-nav a').forEach(function(a){a.addEventListener('click',function(){
-  var nav=document.getElementById('main-nav'); if(nav)nav.classList.remove('open');
-  if(mb)mb.setAttribute('aria-expanded','false');});});
+  if(!mainNav)return;
+  var open=mainNav.classList.toggle('open');
+  mb.setAttribute('aria-expanded',open?'true':'false');
+ });
+ if(mainNav)mainNav.addEventListener('click',function(ev){
+  if(ev.target&&ev.target.closest&&ev.target.closest('button'))closeMobileNav();
+ });
+ document.addEventListener('pointerdown',function(ev){
+  if(mainNav&&mainNav.classList.contains('open')&&!(ev.target.closest&&ev.target.closest('.nav')))closeMobileNav();
+ });
+ document.addEventListener('keydown',function(ev){
+  if(ev.key==='Escape')closeMobileNav();
+ });
  $('lang-bn').addEventListener('click',function(){setLang('bn');});
  $('lang-en').addEventListener('click',function(){setLang('en');});
  renderDotMap($('map-footer'),{w:560,h:300,step:15});
@@ -3013,7 +3039,12 @@ document.addEventListener('DOMContentLoaded',function(){
  var bhome=$('btn-home');
  if(bhome)bhome.addEventListener('click',function(){closeSheets();showLanding();});
  var navApp=$('nav-app');
- if(navApp)navApp.addEventListener('click',function(){closeSheets();if(token){showView('view-jobs');loadJobs();}else showView('view-login');});
+ if(navApp)navApp.addEventListener('click',function(){
+  closeSheets();
+  if(mainNav)mainNav.classList.remove('open');
+  if(mb)mb.setAttribute('aria-expanded','false');
+  if(token){showView('view-jobs');loadJobs();}else showView('view-login');
+ });
  var bmg=$('btn-more-global');
  if(bmg)bmg.addEventListener('click',function(){openSheet('sheet-more');loadBillingStatus();});
  var bmj=$('btn-more-job');
