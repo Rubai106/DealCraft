@@ -1870,11 +1870,13 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       const html = fs.readFileSync(path.resolve(ROOT_P1, 'public', page), 'utf8');
       check(!html.includes('.woff2') && !/\/fonts\//.test(html), 'part 1: ' + page + ' requests no self-hosted font file');
     }
-    // Item 8 (hygiene): .taste-skill/ stays, and no self-assigned score
-    // in the README (the Part 4 block already pins the /100 rule; here
-    // the taste-skill gate files must exist).
-    check(fs.existsSync(path.resolve(ROOT_P1, '.taste-skill', 'gate.json')), 'part 1: .taste-skill/gate.json still exists (not deleted)');
-    check(fs.existsSync(path.resolve(ROOT_P1, '.taste-skill', 'waivers.json')), 'part 1: .taste-skill/waivers.json still exists (not deleted)');
+    // Item 8 (hygiene): .taste-skill/ is REMOVED from the repo (2026-11-27)
+    // — tooling output, not product — and .gitignore covers the whole
+    // directory. (An earlier pass pinned the gate files' existence; the
+    // removal order supersedes it. The gate evidence lives in a local
+    // QA archive outside the repo.)
+    check(!fs.existsSync(path.resolve(ROOT_P1, '.taste-skill')), 'part 1: .taste-skill/ removed from the repo (tooling output, not product)');
+    check(fs.readFileSync(path.resolve(ROOT_P1, '.gitignore'), 'utf8').split('\n').some((l) => l.trim() === '.taste-skill/'), 'part 1: .gitignore covers .taste-skill/');
     // Item 8 (docs show the TRUE count): the README must carry the exact
     // number this run reports. EXPECTED_COUNT is the FINAL suite total
     // (610 at the ceiling-pass verification run); this check runs

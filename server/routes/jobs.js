@@ -342,14 +342,28 @@ router.get('/api/jobs/:id/resolvepack.json', requireJobAccess, (req, res) => {
 // If no Chromium binary is found on the machine, or printing fails, the
 // route falls back to the PDFKit pack below (same content, Helvetica —
 // Bangla mojibake there is the pre-existing behaviour, not a regression).
+// DIAGNOSIS (2026-11-27): that fallback used to be SILENT — a machine
+// with no working Chromium served the broken PDFKit pack and nothing
+// logged it, which is exactly how a conjunct failure presents. Candidate
+// status in this sandbox, verified by hand: Playwright chromium-1248
+// works, chrome-no-sandbox.sh (same binary) works, headless_shell-1248
+// works; chromium-1179's binary does not exist (only its headless-shell
+// dir) and /opt/meta-chromium/chrome exits 13 ("Hatch WebGL domain
+// policy is required"). Both failure points now log to stderr, so a
+// fallback is diagnosable instead of silent.
 function findChromiumCandidates() {
   const candidates = [];
   if (process.env.CHROME_PATH) candidates.push(process.env.CHROME_PATH);
   const home = os.homedir();
   candidates.push(
     path.join(home, '.cache', 'ms-playwright', 'chromium-1248', 'chrome-linux64', 'chrome'),
-    path.join(home, '.cache', 'ms-playwright', 'chromium-1179', 'chrome-linux64', 'chrome'),
     path.join(home, 'workspace', 'bin', 'chrome-no-sandbox.sh'),
+    // Headless shell (same Playwright build, smaller binary) as a
+    // fallback when the full Chromium will not start.
+    path.join(home, '.cache', 'ms-playwright', 'chromium_headless_shell-1248', 'chrome-headless-shell-linux64', 'chrome-headless-shell'),
+    // The Meta Chromium build. It refuses to start in this sandbox
+    // ("Hatch WebGL domain policy is required", exit 13) and is tried
+    // last; it may work in other environments.
     '/opt/meta-chromium/chrome',
   );
   return candidates.filter((c) => {
@@ -429,7 +443,10 @@ function resolvePackHtml(d, job, current, verifyUrl, qrPng, generatedAt) {
 // when no Chromium works (the caller then falls back to the PDFKit pack).
 async function printPackWithChromium(html) {
   const candidates = findChromiumCandidates();
-  if (!candidates.length) return null;
+  if (!candidates.length) {
+    console.error('[resolvepack] no Chromium candidate found — PDFKit fallback will render Bangla incorrectly');
+    return null;
+  }
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dealcraft-pack-'));
   const htmlPath = path.join(dir, 'pack.html');
   const pdfPath = path.join(dir, 'pack.pdf');
@@ -447,14 +464,17 @@ async function printPackWithChromium(html) {
         child.on('error', () => { clearTimeout(timer); resolve(false); });
         child.on('exit', (code) => { clearTimeout(timer); resolve(code === 0); });
       });
-      if (!ok) continue;
+      if (!ok) { console.error('[resolvepack] Chromium candidate failed: ' + chrome); continue; }
       try {
         const buf = fs.readFileSync(pdfPath);
         if (buf.length >= 1000 && buf.subarray(0, 4).toString('latin1') === '%PDF') return buf;
-      } catch (_e) { /* try the next candidate */ }
+        console.error('[resolvepack] Chromium candidate produced no usable PDF: ' + chrome);
+      } catch (_e) { console.error('[resolvepack] Chromium candidate produced no usable PDF: ' + chrome); }
     }
+    console.error('[resolvepack] all Chromium candidates failed (' + candidates.join(', ') + ') — PDFKit fallback will render Bangla incorrectly');
     return null;
   } catch (_e) {
+    console.error('[resolvepack] Chromium print failed: ' + (_e && _e.message));
     return null;
   } finally {
     try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_e) {}
@@ -483,15 +503,20 @@ router.get('/api/jobs/:id/resolvepack', requireJobAccess, async (req, res) => {
   let qrPng = null;
   try { qrPng = await QRCode.toBuffer(verifyUrl, { type: 'png', width: 256 }); } catch (_e) { /* PDF still generates without the QR */ }
   // Chromium first (correct Bengali shaping); PDFKit fallback below.
+  // The fallback is LOUD: if Chromium was unavailable, the PDFKit pack
+  // renders Bangla with broken conjuncts — say so in the server log
+  // instead of serving it silently.
+  let chromiumPdf = null;
   try {
-    const chromiumPdf = await printPackWithChromium(resolvePackHtml(d, job, current, verifyUrl, qrPng, generatedAt));
-    if (chromiumPdf) {
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename="resolvepack-' + job.id + '.pdf"');
-      res.setHeader('Content-Length', chromiumPdf.length);
-      return res.send(chromiumPdf);
-    }
-  } catch (_e) { /* fall through to the PDFKit pack */ }
+    chromiumPdf = await printPackWithChromium(resolvePackHtml(d, job, current, verifyUrl, qrPng, generatedAt));
+  } catch (_e) { console.error('[resolvepack] Chromium print threw: ' + (_e && _e.message)); }
+  if (chromiumPdf) {
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="resolvepack-' + job.id + '.pdf"');
+    res.setHeader('Content-Length', chromiumPdf.length);
+    return res.send(chromiumPdf);
+  }
+  console.error('[resolvepack] Chromium unavailable for job ' + job.id + ' — PDFKit fallback (Bangla conjuncts will be broken)');
   // compress: false — the text stays searchable in the file, so a judge (or
   // a test) can verify the labelled FairScope lines are really in the PDF
   // instead of trusting a debug dump. File size is a non-issue here.

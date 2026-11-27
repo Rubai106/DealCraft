@@ -15,12 +15,15 @@ grids.
 
 `design-taste-frontend` gate on `public/index.html`, 3 rounds —
 **GATE: OPEN 14** (106 → 54 → 43 → 34 → 23 → 12, then re-counted at 14
-open FAILs in `.taste-skill/gate.json`; rounds exhausted, 3/3). 3 waivers
-in `.taste-skill/waivers.json`: button-styles (pill CTAs are the one
+open FAILs in the gate report; rounds exhausted, 3/3). 3 waivers:
+button-styles (pill CTAs are the one
 action style; square tab/option controls are form controls by design),
 copy-headings (step headings name the product's own parts in Bangla; the
 checker matches English nouns only), section-height (the app section is
 a working multi-view form, so its height follows the visible view).
+(The gate report and waivers files were removed from the repo with
+`.taste-skill/` on 2026-11-27 — tooling output, not product; the result
+is summarised here and the evidence lives in a local QA archive.)
 Copy-lint: **0 FAIL, 2 WARN** (em-dash budget — most are mono-label
 separators and Bangla punctuation, not prose habit; numbered steps — the
 FAQ and journey steps genuinely run in order). The remaining open FAILs
@@ -54,5 +57,5 @@ The hero pill is mode-aware: "Sandbox — demo" in sandbox mode, "Live"
 only in live mode with credentials configured — it never claims a
 simulated call was live.
 
-Screenshots from the QA passes are kept locally in
-`.taste-skill/shots/` (gitignored, not committed to the repo).
+Screenshots from the QA passes are kept in a local QA archive outside
+the repo (not committed).

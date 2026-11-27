@@ -157,8 +157,8 @@ pretends otherwise.
 - This is a hackathon entry, built for AppQuest 2.0. It is not a
   production service: see [docs/security.md](docs/security.md) for the
   known limits before deploying it anywhere public.
-- Screenshots from the QA passes are kept locally in
-  `.taste-skill/shots/` and are not committed to this repo.
+- Screenshots from the QA passes are kept in a local QA archive outside
+  the repo and are not committed to this repo.
 - PWA icons: `public/manifest.json` currently lists the SVG icon only.
   PNG icons (`icon-192.png`, `icon-512.png`) still need to be uploaded
   via the GitHub web UI — the repo's push route is text-only and cannot

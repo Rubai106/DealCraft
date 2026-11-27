@@ -9,10 +9,10 @@ uploads/*
 .env
 .DS_Store
 
-# taste-skill gate screenshots (evidence stays in gate.json + waivers.json)
-.taste-skill/gate/
-.taste-skill/build.done.json
-.taste-skill/shots/
+# taste-skill tooling output (design-gate evidence, QA screenshots) — not
+# product, not committed. Removed from the repo 2026-11-27; the QA
+# evidence lives in a local archive outside the repo.
+.taste-skill/
 
 # Full AppLink sheet with real account/application values (personal data).
 # The repo carries only the redacted APPLINK-APP-CREATION.md.
