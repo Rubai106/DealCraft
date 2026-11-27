@@ -2,11 +2,47 @@
 // (route split; no behaviour change). Paths, middleware and responses
 // are identical to the monolith.
 const express = require('express');
-const { db, now, getAdapter, err, addEvent, getJob, getCurrentVersion, jobDetail, findWorkerToken, otpError, billingSatisfied, getLocationShare, clearLocation, locationView, validLatLng, sendAgreementSummarySms } = require('../src/shared');
+const { db, now, getAdapter, err, addEvent, getJob, getCurrentVersion, jobDetail, findWorkerToken, otpError, billingSatisfied, getLocationShare, clearLocation, locationView, validLatLng, sendAgreementSummarySms, requireAuth, upsertUser, randomToken, newId, expiryDate, expireBids, addBiddingEvent, passportData } = require('../src/shared');
 const router = express.Router();
+
+// Worker profile facts — one shared shape, verified data only. No phone
+// number is ever included. photoUrl is null until a photo is ever stored
+// (there is no photo upload for workers); the card renders an initials
+// tile instead. completedJobs/distinctHirers reuse passportData's exact
+// count logic (mutually closed jobs only). memberSince is the User
+// account creation date, month + year.
+function formatMemberSince(createdAt) {
+  try {
+    const d = new Date(createdAt);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+  } catch (_e) { return null; }
+}
+function workerProfileFor(phone, trade, nameFallback) {
+  const user = db.prepare('SELECT name, created_at FROM User WHERE phone = ?').get(phone);
+  const pass = passportData(phone);
+  return {
+    name: (user && user.name) || nameFallback || null,
+    trade: trade || null,
+    photoUrl: null,
+    phoneVerified: true,
+    completedJobs: pass.completedJobs,
+    distinctHirers: pass.distinctHirers,
+    memberSince: formatMemberSince(user && user.created_at),
+  };
+}
 
 
 // ---------------------------------------------------------------- worker
+// Worker "My jobs": jobs where the logged-in user is the worker, newest
+// first. Same job summary shape as GET /api/jobs items (raw Job rows);
+// the hirer list stays GET /api/jobs. Registered BEFORE the :token route
+// below, so 'jobs' is never mistaken for a worker token.
+router.get('/api/worker/jobs', requireAuth, (req, res) => {
+  const jobs = db.prepare('SELECT * FROM Job WHERE worker_phone = ? ORDER BY created_at DESC').all(req.user.phone);
+  res.json({ jobs });
+});
+
 router.get('/api/worker/:token', (req, res) => {
   const wt = findWorkerToken(req.params.token);
   if (!wt) return err(res, 401, 'invalid or expired worker token');
@@ -20,7 +56,7 @@ router.get('/api/worker/:token', (req, res) => {
   const hirer = db.prepare('SELECT name, phone FROM User WHERE id = ?').get(job.hirer_id);
   detail.job.hirerName = hirer ? hirer.name : null;
   detail.job.hirerPhone = hirer ? hirer.phone : null;
-  res.json({ job: detail.job, version: getCurrentVersion(job), events: detail.events, balance: detail.balance, milestones: detail.milestones, payments: detail.payments });
+  res.json({ job: detail.job, version: getCurrentVersion(job), events: detail.events, balance: detail.balance, milestones: detail.milestones, payments: detail.payments, workerProfile: workerProfileFor(job.worker_phone, job.trade, job.worker_name) });
 });
 
 router.post('/api/worker/:token/request-otp', async (req, res) => {
@@ -74,7 +110,36 @@ router.post('/api/worker/:token/confirm', async (req, res) => {
   const status = hirerConfirmed ? 'ACTIVE' : 'PENDING';
   db.prepare('UPDATE Job SET status = ? WHERE id = ?').run(status, job.id);
   if (status === 'ACTIVE') await sendAgreementSummarySms(getJob(job.id));
-  res.json({ job: getJob(job.id) });
+  // The SMS link lands the worker straight in their account: a
+  // successful confirm creates/finds the worker's User (keyed by phone)
+  // and issues a 7-day session, exactly as POST /api/auth/verify-otp
+  // does. The per-job token flow above is unchanged — this only adds
+  // sessionToken to the response.
+  upsertUser(job.worker_phone, job.worker_name || null, 'worker');
+  const sessionToken = randomToken();
+  db.prepare('INSERT INTO Session (id, token, phone, created_at, expires_at) VALUES (?, ?, ?, ?, ?)')
+    .run(newId(), sessionToken, job.worker_phone, now(), expiryDate(7));
+  res.json({ job: getJob(job.id), sessionToken });
+});
+
+// ---------------------------------------------------------------- withdraw bid
+// A worker takes back their own bid. Only the bid's own worker (session
+// phone == bid worker_phone), only while the bid is LIVE — an expired bid
+// is lazily expired first, so it reads EXPIRED and is refused. Logged in
+// the same Event log as BID_PLACED / BID_NOT_SELECTED (addBiddingEvent,
+// under the bid-job id).
+router.post('/api/worker/bids/:bidId/withdraw', requireAuth, (req, res) => {
+  const bid = db.prepare('SELECT * FROM Bid WHERE id = ?').get(req.params.bidId);
+  if (!bid) return err(res, 404, 'bid not found');
+  expireBids(bid.bid_job_id);
+  const live = db.prepare('SELECT * FROM Bid WHERE id = ?').get(req.params.bidId);
+  if (live.worker_phone !== req.user.phone) return err(res, 403, 'only the worker who placed this bid can withdraw it');
+  if (live.status !== 'LIVE') return err(res, 400, 'this bid is ' + live.status.toLowerCase() + ' — only a live bid can be withdrawn');
+  db.prepare("UPDATE Bid SET status = 'WITHDRAWN' WHERE id = ?").run(live.id);
+  addBiddingEvent(live.bid_job_id, 'BID_WITHDRAWN', 'worker:' + req.user.phone, {
+    bidJobId: live.bid_job_id, bidId: live.id, amount: live.amount,
+  });
+  res.json({ ok: true, status: 'WITHDRAWN' });
 });
 
 // ---------------------------------------------------------------- live location

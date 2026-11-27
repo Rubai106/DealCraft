@@ -8,13 +8,55 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 const PDFDocument = require('pdfkit');
 const QRCode = require('qrcode');
-const { db, now, fingerprint, newId, questionsFor, computeMissingTerms, validateSkippedTerms, getAdapter, UPLOADS_DIR, err, baseUrl, escapeHtml, addEvent, getJob, getCurrentVersion, milestonesOf, milestoneStatus, jobDetail, createWorkerToken, workerTokenForJob, authedUser, otpError, normalizeBdPhone, billingSatisfied, requireAuth, requireJobAccess, actorOf, clearLocation, jobSite, locationView, validLatLng, upsertUser, sendAgreementSummarySms, checkDeadlines, isRealImage, imageMime, MAX_PHOTOS_PER_JOB, upload, resolvePackData, TRADE_BN, validateScope, validatePrice, validateDeadline, validateMilestones, vmsg } = require('../src/shared');
+const { db, now, fingerprint, newId, questionsFor, computeMissingTerms, validateSkippedTerms, getAdapter, UPLOADS_DIR, err, baseUrl, escapeHtml, addEvent, getJob, getCurrentVersion, milestonesOf, milestoneStatus, jobDetail, createWorkerToken, workerTokenForJob, authedUser, otpError, normalizeBdPhone, billingSatisfied, requireAuth, requireJobAccess, actorOf, clearLocation, jobSite, locationView, validLatLng, upsertUser, sendAgreementSummarySms, checkDeadlines, isRealImage, imageMime, MAX_PHOTOS_PER_JOB, upload, resolvePackData, TRADE_BN, validateScope, validatePrice, validateDeadline, validateMilestones, vmsg, passportData } = require('../src/shared');
+const { parsePrompt } = require('../src/prompt-parse');
 const router = express.Router();
+
+// Worker profile facts — same shape as worker.js (see its comment):
+// verified data only, no phone number, photoUrl null until a photo is
+// ever stored, counts reuse passportData's mutually-closed logic.
+function formatMemberSince(createdAt) {
+  try {
+    const d = new Date(createdAt);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+  } catch (_e) { return null; }
+}
+function workerProfileFor(phone, trade, nameFallback) {
+  const user = db.prepare('SELECT name, created_at FROM User WHERE phone = ?').get(phone);
+  const pass = passportData(phone);
+  return {
+    name: (user && user.name) || nameFallback || null,
+    trade: trade || null,
+    photoUrl: null,
+    phoneVerified: true,
+    completedJobs: pass.completedJobs,
+    distinctHirers: pass.distinctHirers,
+    memberSince: formatMemberSince(user && user.created_at),
+  };
+}
 
 
 // ---------------------------------------------------------------- jobs
 router.post('/api/jobs', requireAuth, async (req, res) => {
-  const { trade, workerPhone, workerName, scope, price, deadline, milestones, answers, skippedTerms, site, publishHirerName } = req.body || {};
+  let { trade, workerPhone, workerName, scope, price, deadline, milestones, answers, skippedTerms, site, publishHirerName } = req.body || {};
+  // Prompt-based creation: the prompt is parsed server-side and its
+  // values win over any client-parsed values (the server never trusts
+  // the phone). A prompt is an additional input path — direct fields
+  // without a prompt behave exactly as before.
+  if (typeof (req.body || {}).prompt === 'string' && req.body.prompt.trim()) {
+    const parsed = parsePrompt(req.body.prompt);
+    if (parsed.trade) trade = parsed.trade;
+    if (parsed.price != null) price = parsed.price;
+    if (parsed.deadline) deadline = parsed.deadline;
+    if (parsed.description) scope = parsed.description;
+    const missingNow = [];
+    if (!trade) missingNow.push('trade');
+    if (price == null) missingNow.push('price');
+    if (missingNow.length) {
+      return err(res, 400, 'prompt is missing ' + missingNow.join(' and ') + ' — say the trade and the price, e.g. "2 bedroom flat rewiring, 18000, by Friday"');
+    }
+  }
   if (!trade || !questionsFor(trade).length) return err(res, 400, 'trade must be one of ELECTRICIAN, PAINTER, PLUMBER');
   const workerPhoneNorm = normalizeBdPhone(workerPhone);
   if (!workerPhoneNorm) return err(res, 400, 'workerPhone must be a Bangladesh mobile number (01XXXXXXXXX)');
@@ -103,7 +145,9 @@ router.get('/api/jobs/:id', requireJobAccess, (req, res) => {
   // checkDeadlines): cheap, idempotent, and testable without waiting
   // for the 15-minute interval.
   checkDeadlines().catch(() => {});
-  res.json(jobDetail(req.job));
+  const detail = jobDetail(req.job);
+  detail.workerProfile = workerProfileFor(req.job.worker_phone, req.job.trade, req.job.worker_name);
+  res.json(detail);
 });
 
 router.post('/api/jobs/:id/hirer-confirm', requireAuth, async (req, res) => {

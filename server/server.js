@@ -16,8 +16,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {
   init, getMode, checkDeadlines, FAIRSCOPE_QUESTIONS, BIDDING_ENABLED,
-  db, authedUser, workerTokenForJob, servePhoto, err, getJob,
+  db, now, authedUser, workerTokenForJob, servePhoto, err, getJob,
 } = require('./src/shared');
+const { runRetention } = require('./src/retention');
 const { securityHeaders } = require('./src/security-headers');
 const { originCheck } = require('./src/origin-check');
 const { rateLimit } = require('./src/rate-limit');
@@ -111,6 +112,16 @@ app.use(require('./routes/billing'));
 app.use(require('./routes/applink').callbacksRouter);
 app.use(require('./routes/demo'));
 app.use(require('./routes/metrics'));
+app.use(require('./routes/trip-share'));
+
+// Shareable live-trip link: /trip/<token> serves the trip page
+// (public/trip.html), the same pattern as /verify and /passport/:id in
+// routes/passport.js — the page reads the token from the path and polls
+// GET /api/trip/:token. Without this the static server 404s the link,
+// because no file exists at /trip/<token>.
+app.get('/trip/:token', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'trip.html'));
+});
 
 // ---------------------------------------------------------------- errors
 app.use((req, res) => {
@@ -132,6 +143,10 @@ if (require.main === module) {
   // never holds the process open on its own).
   checkDeadlines().catch(() => {});
   setInterval(() => { checkDeadlines().catch(() => {}); }, 15 * 60 * 1000).unref();
+  // Photo retention: once at start (non-blocking), then every 24 hours.
+  // Deletes Photo rows + files for jobs closed more than 90 days ago.
+  setImmediate(() => { try { runRetention(db, now()); } catch (_e) { /* retention never breaks boot */ } });
+  setInterval(() => { try { runRetention(db, now()); } catch (_e) {} }, 24 * 60 * 60 * 1000).unref();
 }
 
 module.exports = app;

@@ -1,6 +1,6 @@
 # Project status
 
-## Working (verified by the regression, 612 assertions, PASS — the count grows as coverage is added)
+## Working (verified by the regression, 783 assertions, PASS — the count grows as coverage is added)
 
 FairScope three-state gate, dual OTP confirmation, ChangeLock
 (transactional, positive-price-checked), PayProof balances, milestones +

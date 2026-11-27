@@ -206,7 +206,7 @@ function init() {
       worker_lat REAL,
       worker_lng REAL,
       status TEXT NOT NULL DEFAULT 'LIVE'
-        CHECK (status IN ('LIVE','EXPIRED','NOT_SELECTED','ACCEPTED')),
+        CHECK (status IN ('LIVE','EXPIRED','NOT_SELECTED','ACCEPTED','WITHDRAWN')),
       created_at TEXT NOT NULL,
       expires_at TEXT NOT NULL
     );
@@ -216,6 +216,15 @@ function init() {
       url TEXT NOT NULL,
       taken_at TEXT NOT NULL
     );
+    -- Shareable live-trip link: one active token per job (the route
+    -- reuses the existing token). Public read via GET /api/trip/:token
+    -- returns position/status only — never a phone number.
+    CREATE TABLE IF NOT EXISTS TripShare (
+      token TEXT PRIMARY KEY,
+      job_id TEXT NOT NULL REFERENCES Job(id),
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_tripshare_job ON TripShare(job_id);
     -- Random public WorkPassport identifier (never a phone number).
     CREATE TABLE IF NOT EXISTS PassportProfile (
       profile_id TEXT PRIMARY KEY,
@@ -335,6 +344,36 @@ function init() {
       INSERT INTO Billing (id, job_id, kind, amount, status, created_at, user_phone)
         SELECT id, job_id, kind, amount, status, created_at, user_phone FROM Billing_old;
       DROP TABLE Billing_old;
+    `);
+  }
+  // Migration: Bid status 'WITHDRAWN' (worker withdraw-bid). Older
+  // databases were created with CHECK (status IN
+  // ('LIVE','EXPIRED','NOT_SELECTED','ACCEPTED')) and CREATE TABLE IF
+  // NOT EXISTS never updates an existing table, so a withdraw on an old
+  // DB crashed with a constraint error. Rebuild the table with the
+  // current constraint, preserving all rows.
+  const bidSql = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'Bid'").get();
+  if (bidSql && !bidSql.sql.includes('WITHDRAWN')) {
+    db.exec(`
+      ALTER TABLE Bid RENAME TO Bid_old;
+      CREATE TABLE Bid (
+        id TEXT PRIMARY KEY,
+        bid_job_id TEXT NOT NULL REFERENCES BidJob(id),
+        worker_phone TEXT NOT NULL REFERENCES User(phone),
+        worker_name TEXT,
+        amount INTEGER NOT NULL,
+        note TEXT,
+        earliest_start TEXT,
+        worker_lat REAL,
+        worker_lng REAL,
+        status TEXT NOT NULL DEFAULT 'LIVE'
+          CHECK (status IN ('LIVE','EXPIRED','NOT_SELECTED','ACCEPTED','WITHDRAWN')),
+        created_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL
+      );
+      INSERT INTO Bid (id, bid_job_id, worker_phone, worker_name, amount, note, earliest_start, worker_lat, worker_lng, status, created_at, expires_at)
+        SELECT id, bid_job_id, worker_phone, worker_name, amount, note, earliest_start, worker_lat, worker_lng, status, created_at, expires_at FROM Bid_old;
+      DROP TABLE Bid_old;
     `);
   }
 }

@@ -18,11 +18,12 @@ const { readLog, LOG_PATH } = require('./applink/log');
 const UPLOADS_DIR = path.join(__dirname, '..', '..', 'uploads');
 const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
 
-// Feature flag: the bidding marketplace ("Find a repairer") is OFF by
-// default. When off, its API routes do not exist (404) and the client
-// hides every trace of it. The code stays in the repo, only gated —
-// nothing is deleted. Set FEATURE_BIDDING=true to turn it back on.
-const BIDDING_ENABLED = process.env.FEATURE_BIDDING === 'true';
+// Feature flag: the bidding marketplace ("Find a repairer") is ON by
+// default. When off (FEATURE_BIDDING=false), its API routes do not exist
+// (404) and the client hides every trace of it. The code stays in the
+// repo, only gated — nothing is deleted. Set FEATURE_BIDDING=false to
+// turn it off.
+const BIDDING_ENABLED = process.env.FEATURE_BIDDING !== 'false';
 function requireBidding(req, res, next) {
   if (!BIDDING_ENABLED) return err(res, 404, 'not found');
   next();

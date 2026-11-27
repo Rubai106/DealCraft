@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Served at /trip/<token> as well as /trip.html — relative asset
+     URLs must resolve from the site root, not from /trip/ (same as
+     passport.html). -->
+<base href="/">
+<title>DealCraft — Live trip</title>
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Oswald:wght@500;600;700&family=Noto+Sans+Bengali:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="style.css">
+<script src="vendor/leaflet/leaflet.js" defer></script>
+<style>
+/* One viewport (same pattern as worker.html): the page is a flex column
+   at 100dvh with overflow hidden; the map takes the leftover height and
+   the document itself never scrolls. */
+body.trip-page{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+body.trip-page .topbar{flex:none}
+body.trip-page main{flex:1;min-height:0;height:auto;display:flex;flex-direction:column;padding:12px 16px;overflow:hidden}
+#trip-map{flex:1;min-height:120px;height:auto;border:1px solid #222;background:#111;z-index:0;margin:10px 0}
+.trip-card{flex:none;background:#fff;color:#111;padding:14px 16px;border:1px solid #e6e6e6;box-shadow:6px 6px 0 #000}
+.trip-card h1{font-family:'Oswald',sans-serif;font-size:24px;text-transform:uppercase;margin:6px 0}
+.trip-card p{margin:6px 0}
+body.trip-page main>.small{flex:none;margin:4px 0}
+@media(max-width:390px){
+  .trip-card{padding:12px}
+  .trip-card h1{font-size:20px}
+}
+</style>
+</head>
+<body class="light-page trip-page">
+<header class="topbar"><span style="font-family:'Oswald',sans-serif;font-size:20px">DEALCRAFT<span style="color:#FF5A1F">.</span></span><span class="mono" style="color:#bbb">LIVE TRIP</span></header>
+<main>
+  <div class="trip-card card-3d">
+    <p class="mono" style="margin:0">Shared live trip — no login needed</p>
+    <h1 id="trip-title">Worker on the way</h1>
+    <p><span class="pill pill-orange" id="trip-status">—</span> <span id="trip-eta" class="mono">—</span></p>
+    <p class="small" id="trip-updated">—</p>
+    <p class="small">Only this trip's live location is shown. No phone number is shown here.</p>
+  </div>
+  <div id="trip-map" class="card-3d"></div>
+  <p class="small" id="trip-nomap" hidden>Map did not load — showing text only.</p>
+  <p class="small" id="trip-err" hidden></p>
+  <p class="small"><a href="index.html">DealCraft home</a></p>
+</main>
+<script>
+(function(){'use strict';
+var token=new URLSearchParams(location.search).get('token')||location.pathname.split('/').pop();
+var map=null, marker=null, trail=null;
+var STATUS={'en-route':'En route','arriving':'Arriving','arrived':'Arrived on site','on-site':'On site','paused':'Paused','not-sharing':'Not sharing','stopped':'Sharing stopped'};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function initMap(lat,lng){
+ if(typeof L==='undefined'){document.getElementById('trip-nomap').hidden=false;return;}
+ map=L.map('trip-map').setView([lat,lng],14);
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+ marker=L.marker([lat,lng],{icon:L.divIcon({className:'loc-dot',html:'<span class="loc-dot-in"></span>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(map);
+ trail=L.polyline([[lat,lng]],{color:'#FF5A1F',weight:3}).addTo(map);
+}
+async function poll(){
+ try{
+  var r=await fetch('/api/trip/'+encodeURIComponent(token));
+  if(!r.ok)throw new Error('Trip link is not valid any more (HTTP '+r.status+').');
+  var d=await r.json();
+  var trade=(d.trade||'WORKER').toUpperCase();
+  document.getElementById('trip-title').textContent=trade+' — '+(d.worker_name||'Worker');
+  var st=STATUS[(d.status||'').toLowerCase()]||d.status||'—';
+  document.getElementById('trip-status').textContent=st;
+  document.getElementById('trip-eta').textContent=d.eta_minutes!=null?('ETA ~'+d.eta_minutes+' min'):'';
+  document.getElementById('trip-updated').textContent=d.updated_at?('Updated '+new Date(d.updated_at).toLocaleTimeString()):'';
+  if(d.lat!=null&&d.lng!=null){
+   if(!map)initMap(d.lat,d.lng);
+   else{marker.setLatLng([d.lat,d.lng]);trail.addLatLng([d.lat,d.lng]);map.panTo([d.lat,d.lng]);}
+  }
+ }catch(e){
+  var el=document.getElementById('trip-err');el.hidden=false;el.textContent=e.message;
+ }
+}
+poll();
+setInterval(poll,10000);
+})();
+</script>
+</body>
+</html>

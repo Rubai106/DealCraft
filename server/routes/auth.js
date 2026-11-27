@@ -54,6 +54,15 @@ router.post('/api/auth/verify-otp', async (req, res) => {
   res.json({ ok: true, token, user });
 });
 
+router.post('/api/auth/logout', (req, res) => {
+  const user = authedUser(req);
+  if (!user) return err(res, 401, 'authentication required');
+  const h = req.get('authorization') || '';
+  const m = h.match(/^Bearer\s+(.+)$/);
+  if (m) db.prepare('DELETE FROM Session WHERE token = ?').run(m[1]);
+  res.json({ ok: true });
+});
+
 router.get('/api/me', (req, res) => {
   const user = authedUser(req);
   if (!user) return err(res, 401, 'authentication required');

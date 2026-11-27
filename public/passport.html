@@ -15,12 +15,38 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Oswald:wght@500;600;700&family=Noto+Sans+Bengali:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="style.css">
+<style>
+/* One viewport (same pattern as worker.html): the document never
+   scrolls; the passport content scrolls inside one region. */
+body.pp-page{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+body.pp-page .topbar{flex:none}
+body.pp-page main{flex:1;min-height:0;height:auto;display:flex;flex-direction:column;padding:16px 20px 12px;overflow:hidden}
+#p-scroll{flex:1;min-height:0;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding-bottom:8px}
+body.pp-page main{min-width:0}
+/* The ID card's name + QR row needs ~380px at desktop sizes but only
+   ~254px is available at 390px: without min-width:0 the flex row's
+   min-content expands the whole layout viewport (517px). Let the name
+   block shrink (the name wraps to two lines) and shrink the QR. */
+.pp-id-top>div{min-width:0}
+.pp-id-name{overflow-wrap:break-word}
+@media(max-width:480px){
+  .pp-id-name{font-size:24px}
+  .pp-qr{width:64px;padding:6px}
+  .pp-stats{flex-wrap:wrap}
+  .pp-stat{flex:1 1 40%}
+}
+</style>
 </head>
-<body class="light-page">
+<body class="light-page pp-page">
 <header class="topbar"><span style="font-family:'Oswald',sans-serif;font-size:20px">DEALCRAFT<span style="color:#FF5A1F">.</span></span><div class="lang-toggle" role="group" aria-label="Language / ভাষা"><button type="button" id="lang-bn" aria-pressed="false">বাংলা</button><button type="button" id="lang-en" aria-pressed="true">EN</button></div><span class="mono" style="color:#bbb">WORKPASSPORT</span></header>
 <main>
   <p class="mono" data-i18n="p.kicker" style="color:#666">WORKPASSPORT · কাজের পরিচয়পত্র</p>
   <div id="p-err" class="error" hidden></div>
+  <div id="p-scroll">
+  <!-- Worker profile card — same shared renderer as the app and the
+       worker page (identical markup + .profile-card), fed by
+       GET /api/passport/:id workerProfile. -->
+  <div id="p-profile"></div>
   <div class="pp-stage">
   <!-- P3: premium ID card — matte solid surface, solid-band shine, slight 3D tilt.
        Amounts / client names / photos stay hidden unless the worker enabled
@@ -49,6 +75,7 @@
     <p class="small" data-i18n="p.note" style="color:#666">Amounts, client names and photos are shown only if the worker enabled them. / টাকার অঙ্ক, ক্লায়েন্টের নাম আর ছবি worker না চাইলে দেখানো হয় না।</p>
   </div>
   <p class="small"><a href="index.html" data-i18n="p.home">DealCraft হোম</a></p>
+  </div>
 </main>
 <script>
 (function(){'use strict';
@@ -71,7 +98,12 @@ var PI18N={
  'p.note':{bn:'টাকার অঙ্ক, ক্লায়েন্টের নাম আর ছবি ওয়ার্কার না চাইলে দেখানো হয় না।',en:'Amounts, client names and photos are shown only if the worker enabled them.'},
  'p.sub':{bn:'WORKPASSPORT · দুই পক্ষের নিশ্চিত করা কাজ',en:'WORKPASSPORT · MUTUALLY CONFIRMED WORK'},
  'p.foot':{bn:'DEALCRAFT · QR দিয়ে যাচাই করা',en:'DEALCRAFT · VERIFIED BY QR'},
- 'p.home':{bn:'DealCraft হোম',en:'DealCraft home'}
+ 'p.home':{bn:'DealCraft হোম',en:'DealCraft home'},
+ 'p.profileVerified':{bn:'✓ ফোন যাচাই করা',en:'✓ Phone verified'},
+ 'p.profileJobs':{bn:'সম্পন্ন কাজ',en:'Completed jobs'},
+ 'p.profileHirers':{bn:'আলাদা হায়ারার',en:'Distinct hirers'},
+ 'p.profileSince':{bn:'সদস্য',en:'Member since'},
+ 'p.profileWorker':{bn:'DealCraft ওয়ার্কার',en:'DealCraft worker'}
 };
 function pApplyLang(){document.documentElement.lang=pLang;
  document.querySelectorAll('[data-i18n]').forEach(function(el){var v=PI18N[el.getAttribute('data-i18n')];if(v)el.textContent=v[pLang]||v.bn;});
@@ -79,12 +111,46 @@ function pApplyLang(){document.documentElement.lang=pLang;
  if(b)b.setAttribute('aria-pressed',pLang==='bn'?'true':'false');
  if(e)e.setAttribute('aria-pressed',pLang==='en'?'true':'false');
  localStorage.setItem('dc_lang',pLang);
- var qr=$('p-qr'); if(qr)qr.alt=pLang==='bn'?'WorkPassport QR কোড':'WorkPassport QR code';}
+ var qr=$('p-qr'); if(qr)qr.alt=pLang==='bn'?'WorkPassport QR কোড':'WorkPassport QR code';
+ /* Re-render the profile card in the new language (same renderer). */
+ var profBox=$('p-profile'); if(profBox&&pLastProfile)profBox.innerHTML=pRenderProfileCard(pLastProfile);}
 function $(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function jobNum(n){return (n<10?'0':'')+n;}
 var P_TRADE={ELECTRICIAN:{bn:'ইলেকট্রিশিয়ান',en:'Electrician'},PAINTER:{bn:'পেইন্টার',en:'Painter'},PLUMBER:{bn:'প্লাম্বার',en:'Plumber'}};
 function pTradeLabel(tr){if(!tr)return '';var d=P_TRADE[String(tr).toUpperCase()];return d?(d[pLang]||d.en):tr;}
+/* Worker profile card — identical markup to app.js renderProfileCard
+   (this page does not load app.js). Verified facts only; no phone
+   number; initials tile while photoUrl is null (no photo upload). */
+function pProfileInitials(name){
+ var parts=String(name||'').trim().split(/\s+/).filter(Boolean);
+ if(!parts.length)return 'D';
+ return (parts[0].charAt(0)+(parts.length>1?parts[parts.length-1].charAt(0):'')).toUpperCase();
+}
+var pLastProfile=null;
+function pRenderProfileCard(p){
+ if(!p)return '';
+ var name=p.name||((PI18N['p.profileWorker']||{bn:'DealCraft ওয়ার্কার',en:'DealCraft worker'})[pLang]||'DealCraft worker');
+ var trade=pTradeLabel(p.trade)||'—';
+ var photo=p.photoUrl
+  ?'<img src="'+esc(p.photoUrl)+'" alt="">'
+  :'<span class="pc-initials" aria-hidden="true">'+esc(pProfileInitials(name))+'</span>';
+ var jobs=p.completedJobs!=null?p.completedJobs:0;
+ var hirers=p.distinctHirers!=null?p.distinctHirers:0;
+ var since=p.memberSince||'—';
+ var L=function(k){return (PI18N[k]||{bn:k,en:k})[pLang]||k;};
+ return '<article class="profile-card card-3d" aria-label="'+esc(name)+'">'
+  +'<div class="pc-photo">'+photo+'</div>'
+  +'<div class="pc-main">'
+  +'<h3 class="pc-name">'+esc(name)+'</h3>'
+  +'<p class="pc-trade">'+esc(trade)+'</p>'
+  +'<span class="pill pill-orange pc-verified">'+esc(L('p.profileVerified'))+'</span>'
+  +'<div class="pc-facts">'
+  +'<div class="pc-fact"><b>'+esc(jobs)+'</b><span>'+esc(L('p.profileJobs'))+'</span></div>'
+  +'<div class="pc-fact"><b>'+esc(hirers)+'</b><span>'+esc(L('p.profileHirers'))+'</span></div>'
+  +'<div class="pc-fact"><b>'+esc(since)+'</b><span>'+esc(L('p.profileSince'))+'</span></div>'
+  +'</div></div></article>';
+}
 /* Completed jobs as objects on a shelf: one card per job, big numeral first
    (the amount when the worker enabled it, else the job number), then trade,
    date, and the client name only when enabled. No invented figures. */
@@ -102,6 +168,10 @@ async function load(){
  try{var r=await fetch('/api/passport/'+encodeURIComponent(profileId));var d=await r.json();
   if(!r.ok)throw new Error((d&&(d.error||d.message))||('HTTP '+r.status));
   var p=d.passport||d;
+  /* Profile card above the ID card, from the workerProfile on this
+     same response (falls back to the passport fields if absent). */
+  pLastProfile=d.workerProfile||{name:p.workerName||null,trade:(p.trades&&p.trades[0])||null,photoUrl:null,phoneVerified:true,completedJobs:p.completedJobs,distinctHirers:p.distinctHirers,memberSince:d.memberSince||null};
+  var profBox=$('p-profile'); if(profBox)profBox.innerHTML=pRenderProfileCard(pLastProfile);
   $('p-name').textContent=p.workerName||p.name||(pLang==='bn'?'DealCraft ওয়ার্কার':'DealCraft worker');
   $('p-count').textContent=p.completedJobs!=null?p.completedJobs:(p.count!=null?p.count:0);
   /* Distinct hirers (Part 2, item 11): ten jobs for one cousin reads
@@ -141,7 +211,8 @@ $('lang-en').addEventListener('click',function(){pLang='en';pApplyLang();});
    card.style.setProperty('--shine','-90px');
   });
  }else{
-  window.addEventListener('scroll',function(){
+  var sc=document.getElementById('p-scroll')||window;
+  sc.addEventListener('scroll',function(){
    var r=card.getBoundingClientRect();
    var p=Math.max(0,Math.min(1,1-r.top/window.innerHeight));
    card.style.setProperty('--shine',((p*1.3-0.3)*r.width).toFixed(1)+'px');

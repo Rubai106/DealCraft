@@ -2,6 +2,7 @@
 // full demo scenario end-to-end over real HTTP, asserting every step.
 // Exits non-zero on ANY failure. Usage: npm run regression  (or npm test)
 import { spawn, spawnSync } from 'node:child_process';
+import vm from 'node:vm';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -136,17 +137,32 @@ try {
     check(resetOff.status === 404, 'demo reset is 404 when DEMO_MODE is off (flag beats the token)');
     const seedOff = await fetch(BASE2 + '/api/demo/seed', djOff);
     check(seedOff.status === 404, 'demo seed is 404 when DEMO_MODE is off (flag beats the token)');
-    // Bidding flag off (default): /api/config says so, and every bidding
-    // route is 404 — the marketplace does not exist on this server.
+    // Bidding flag DEFAULT (2026-11-27 trim, DELIBERATE change): the
+    // marketplace is ON unless FEATURE_BIDDING=false. With the flag
+    // unset, /api/config reports biddingEnabled=true and the bidding
+    // routes are live (an unauthenticated call is 401 from the auth
+    // gate, not 404; an authenticated call lists open jobs). The
+    // explicit-OFF pin lives in the trim-verification worker-accounts
+    // block (FEATURE_BIDDING=false still 404s).
     const cfgOff = await fetch(BASE2 + '/api/config');
     const cfgOffBody = await cfgOff.json();
-    check(cfgOff.status === 200 && cfgOffBody?.biddingEnabled === false, 'config reports biddingEnabled=false when FEATURE_BIDDING is unset');
+    check(cfgOff.status === 200 && cfgOffBody?.biddingEnabled === true, 'config reports biddingEnabled=true when FEATURE_BIDDING is unset (default ON)');
     const bidOpenOff = await fetch(BASE2 + '/api/bid-jobs/open');
-    check(bidOpenOff.status === 404, 'bidding flag off: GET /api/bid-jobs/open is 404');
+    check(bidOpenOff.status === 401, 'bidding default ON: GET /api/bid-jobs/open without auth is 401 (route exists), not 404');
     const bidPostOff = await fetch(BASE2 + '/api/bid-jobs', djOff);
-    check(bidPostOff.status === 404, 'bidding flag off: POST /api/bid-jobs is 404');
+    check(bidPostOff.status === 401, 'bidding default ON: POST /api/bid-jobs without auth is 401 (route exists), not 404');
     const bidOneOff = await fetch(BASE2 + '/api/bid-jobs/some-id');
-    check(bidOneOff.status === 404, 'bidding flag off: GET /api/bid-jobs/:id is 404');
+    check(bidOneOff.status === 401, 'bidding default ON: GET /api/bid-jobs/:id without auth is 401 (route exists), not 404');
+    // Authenticated proof the routes are live on the default-ON server.
+    const cfgOffOtp = await fetch(BASE2 + '/api/auth/request-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: '01700000044', name: 'Default On', role: 'hirer' }) });
+    const cfgOffOtpBody = await cfgOffOtp.json();
+    check(cfgOffOtp.status === 200 && cfgOffOtpBody?.sandbox?.otp, 'bidding default ON: OTP issued on the flag-unset server');
+    const cfgOffLogin = await fetch(BASE2 + '/api/auth/verify-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: '01700000044', code: cfgOffOtpBody.sandbox.otp }) });
+    const cfgOffLoginBody = await cfgOffLogin.json();
+    check(cfgOffLogin.status === 200 && cfgOffLoginBody?.token, 'bidding default ON: login works on the flag-unset server');
+    const bidOpenAuthed = await fetch(BASE2 + '/api/bid-jobs/open', { headers: { Authorization: 'Bearer ' + cfgOffLoginBody.token } });
+    const bidOpenAuthedBody = await bidOpenAuthed.json();
+    check(bidOpenAuthed.status === 200 && Array.isArray(bidOpenAuthedBody.bidJobs), 'bidding default ON: authenticated GET /api/bid-jobs/open is 200 (routes live)');
   } finally {
     server2.kill('SIGTERM');
   }
@@ -1443,14 +1459,14 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
 
   console.log('== hardening: route inventory snapshot (split must not add/drop/rename a route) ==');
   {
-    // The 67 routes that existed before the route split (method + path,
-    // sorted), from the pre-split inventory. Rebuilt from the current code
-    // the same way: every app./router./callbacksRouter. get/post/put/
-    // delete/patch registration in server.js + server/routes/*.js.
-    // Ceiling pass (Part 3, item 15): the metrics router added 3 routes
-    // (GET /api/metrics, GET /api/metrics.csv, GET /metrics); the snapshot
-    // below was updated 64 -> 67 for those three only, by design — the
-    // assertion still fails if any route is lost, renamed, or added
+    // The 73 routes (method + path, sorted), from the pre-split
+    // inventory plus the six the 2026-11-27 trim added, by design:
+    // POST /API/AUTH/LOGOUT, GET /API/TRIP/:TOKEN (API), GET /TRIP/:TOKEN
+    // (HTML page), GET /API/WORKER/JOBS, POST /API/JOBS/:ID/SHARE-TRIP,
+    // POST /API/WORKER/BIDS/:BIDID/WITHDRAW. Rebuilt from the current
+    // code the same way: every app./router./callbacksRouter. get/post/
+    // put/delete/patch registration in server.js + server/routes/*.js.
+    // The assertion still fails if any route is lost, renamed, or added
     // without documentation.
     const EXPECTED_ROUTES = [
       'GET /API/APPLINK/LOG',
@@ -1474,16 +1490,20 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       'GET /API/METRICS.CSV',
       'GET /API/PASSPORT/:PROFILEID',
       'GET /API/PASSPORT/:PROFILEID/QR.PNG',
+      'GET /API/TRIP/:TOKEN',
       'GET /API/VERIFY',
       'GET /API/WORKER/:TOKEN',
+      'GET /API/WORKER/JOBS',
       'GET /METRICS',
       'GET /PASSPORT/:PROFILEID',
+      'GET /TRIP/:TOKEN',
       'GET /UPLOADS/:FILE',
       'GET /VERIFY',
       'POST /API/APPLINK/CAAS-NOTIFY',
       'POST /API/APPLINK/MO-SMS',
       'POST /API/APPLINK/SMS-REPORT',
       'POST /API/APPLINK/SUBSCRIPTION-NOTIFY',
+      'POST /API/AUTH/LOGOUT',
       'POST /API/AUTH/REQUEST-OTP',
       'POST /API/AUTH/VERIFY-OTP',
       'POST /API/BID-JOBS',
@@ -1510,6 +1530,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       'POST /API/JOBS/:ID/MILESTONES/:INDEX/COMPLETE',
       'POST /API/JOBS/:ID/PAYMENTS',
       'POST /API/JOBS/:ID/PHOTOS',
+      'POST /API/JOBS/:ID/SHARE-TRIP',
       'POST /API/JOBS/:ID/WORKER-LINK',
       'POST /API/PASSPORT/ADD',
       'POST /API/PAYMENTS/:PAYMENTID/ACK',
@@ -1520,6 +1541,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       'POST /API/WORKER/:TOKEN/LOCATION/START',
       'POST /API/WORKER/:TOKEN/LOCATION/STOP',
       'POST /API/WORKER/:TOKEN/REQUEST-OTP',
+      'POST /API/WORKER/BIDS/:BIDID/WITHDRAW',
     ];
     const routeFiles = ['server.js', ...fs.readdirSync(path.resolve(import.meta.dirname, '..', '..', 'server', 'routes')).filter((f) => f.endsWith('.js')).sort().map((f) => 'routes/' + f)];
     const routeRe = /^\s*(?:app|router|callbacksRouter)\.(get|post|put|delete|patch)\('([^']+)'/;
@@ -1532,8 +1554,9 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       }
     }
     foundRoutes.sort();
-    check(foundRoutes.length === 67, 'route inventory still has exactly 67 routes after the split');
-    check(JSON.stringify(foundRoutes) === JSON.stringify(EXPECTED_ROUTES), 'every pre-split route exists after the split, same method + path (no add, drop or rename)');
+    check(foundRoutes.length === 73, 'route inventory still has exactly 73 routes after the split + trim');
+    check(JSON.stringify(foundRoutes) === JSON.stringify(EXPECTED_ROUTES), 'every route exists after the split + trim, same method + path (no add, drop or rename)');
+
   }
 
   console.log('== hardening: CSRF origin check + security headers (scratch server) ==');
@@ -1879,11 +1902,11 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     check(fs.readFileSync(path.resolve(ROOT_P1, '.gitignore'), 'utf8').split('\n').some((l) => l.trim() === '.taste-skill/'), 'part 1: .gitignore covers .taste-skill/');
     // Item 8 (docs show the TRUE count): the README must carry the exact
     // number this run reports. EXPECTED_COUNT is the FINAL suite total
-    // (612 after the dotenv fix; 611 after the demo-CTA hit-test fix);
-    // this check runs
+    // (782 after the 2026-11-27 trim verification; 612 after the dotenv
+    // fix; 611 after the demo-CTA hit-test fix); this check runs
     // mid-suite (live count here was 526 before it), so it pins only
     // that the README states the final total, not the live count.
-    const EXPECTED_COUNT = 612; // final measured total, dotenv fix (was 611 pre-fix)
+    const EXPECTED_COUNT = 783; // final measured total, map-fix 2026-11-27 (782 after trim verification; 612 pre-trim)
     const p1Readme = fs.readFileSync(path.resolve(ROOT_P1, 'README.md'), 'utf8');
     check(p1Readme.includes(EXPECTED_COUNT + ' assertions'), 'part 1: README shows the true assertion count (live count at this point: ' + passed + ', final suite total: ' + EXPECTED_COUNT + ')');
   }
@@ -2412,6 +2435,840 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       envServer.kill('SIGTERM');
       await sleep(300);
       try { fs.rmSync(envDir, { recursive: true, force: true }); } catch { /* temp cleanup */ }
+    }
+  }
+
+
+  // =====================================================================
+  // TRIM VERIFICATION (2026-11-27) — parser, worker accounts, fix-ups,
+  // profile card. One wrapper block so the sections can share fixtures
+  // (tv* names: no collisions with the rest of the suite). All fixtures
+  // are fresh jobs/phones; the main demo flow above is untouched.
+  // =====================================================================
+  {
+    const tvDbPath = path.resolve(import.meta.dirname, '..', '..', 'server', 'data', 'dealcraft.db');
+    const tvUploads = path.resolve(import.meta.dirname, '..', '..', 'uploads');
+    const tvSha256 = (s) => createHash('sha256').update(s, 'utf8').digest('hex');
+
+    console.log('== trim verification: prompt parser ==');
+    const tvPpMod = await import(path.resolve(import.meta.dirname, '..', '..', 'server', 'src', 'prompt-parse.js'));
+    const tvParse = tvPpMod.parsePrompt || tvPpMod.default?.parsePrompt;
+    const tvDhakaToday = () => {
+      const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Dhaka', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' }).formatToParts(new Date());
+      const get = (t) => parts.find((p) => p.type === t).value;
+      return get('year') + '-' + get('month') + '-' + get('day');
+    };
+    const tvAddDays = (iso, n) => { const [y, m, d] = iso.split('-').map(Number); const dt = new Date(Date.UTC(y, m - 1, d + n)); return dt.getUTCFullYear() + '-' + String(dt.getUTCMonth() + 1).padStart(2, '0') + '-' + String(dt.getUTCDate()).padStart(2, '0'); };
+    const tvNextWeekday = (num) => { const today = tvDhakaToday(); const todayNum = new Date(today + 'T00:00:00Z').getUTCDay(); return tvAddDays(today, (num - todayNum + 7) % 7); };
+    const tvFriday = tvNextWeekday(5);
+    const tvSunday = tvNextWeekday(0);
+    const tvToday = tvDhakaToday();
+    const tvDec4 = (() => { const y = Number(tvToday.slice(0, 4)); return tvToday <= y + '-12-04' ? y + '-12-04' : (y + 1) + '-12-04'; })();
+    const tvP1 = tvParse('2 bedroom flat rewiring, 18000, by Friday');
+    check(tvP1.trade === 'ELECTRICIAN' && tvP1.price === 18000 && tvP1.deadline === tvFriday && tvP1.description === '2 bedroom flat' && JSON.stringify(tvP1.missing) === '[]', 'parser: "2 bedroom flat rewiring, 18000, by Friday" -> ELECTRICIAN / 18000 / coming Friday / "2 bedroom flat" / missing []', JSON.stringify(tvP1));
+    const tvP2 = tvParse('১৮,০০০ টাকা');
+    check(tvP2.price === 18000, 'parser: Bengali digits price -> 18000', JSON.stringify(tvP2));
+    const tvP3 = tvParse('প্লাম্বার, ৳৫০০০, আজ');
+    check(tvP3.trade === 'PLUMBER' && tvP3.price === 5000 && tvP3.deadline === tvToday, 'parser: Bangla trade + weekday -> PLUMBER / 5000 / today (Dhaka)', JSON.stringify(tvP3));
+    const tvP4 = tvParse('need a painter for 2 rooms by Sunday');
+    check(tvP4.trade === 'PAINTER' && tvP4.price === null && tvP4.deadline === tvSunday && JSON.stringify(tvP4.missing) === '["price"]', 'parser: "need a painter for 2 rooms by Sunday" -> PAINTER / price null / coming Sunday / missing [price]', JSON.stringify(tvP4));
+    const tvP5a = tvParse('hello world');
+    check(tvP5a.trade === null && tvP5a.price === null && tvP5a.deadline === null && JSON.stringify(tvP5a.missing) === '["trade","price","deadline"]', 'parser: "hello world" -> all nulls, missing [trade, price, deadline]', JSON.stringify(tvP5a));
+    const tvP5b = tvParse('');
+    check(tvP5b.description === '' && tvP5b.trade === null && tvP5b.price === null && tvP5b.deadline === null && JSON.stringify(tvP5b.missing) === '["trade","price","deadline"]', 'parser: empty prompt -> description "" + missing [trade, price, deadline]', JSON.stringify(tvP5b));
+    const tvP6 = tvParse('2 bedroom flat rewiring, 18000');
+    check(tvP6.price === 18000 && tvP6.trade === 'ELECTRICIAN', 'parser: "2 bedroom flat rewiring, 18000" -> price 18000 (room count is not read as a price)', JSON.stringify(tvP6));
+    const tvP7a = tvParse('4 Dec, painter, 12000 taka');
+    const tvP7b = tvParse('৪ ডিসেম্বর, পেইন্টার, ১২০০০ টাকা');
+    check(tvP7a.deadline === tvDec4 && tvP7b.deadline === tvDec4, 'parser: "4 Dec" and "৪ ডিসেম্বর" both -> ' + tvDec4, JSON.stringify({ en: tvP7a, bn: tvP7b }));
+    const tvP7c = tvParse('painter, 12000, in 3 days');
+    const tvP7d = tvParse('painter, 12000, within a week');
+    check(tvP7c.deadline === tvAddDays(tvToday, 3) && tvP7d.deadline === tvAddDays(tvToday, 7), 'parser: "in 3 days" -> today+3, "within a week" -> today+7', JSON.stringify({ in3: tvP7c, week: tvP7d }));
+    // Client module: the same input must give the identical result.
+    const tvClientSrc = fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'public', 'prompt-parse.js'), 'utf8');
+    const tvSandbox = { window: {} };
+    vm.createContext(tvSandbox);
+    vm.runInContext(tvClientSrc, tvSandbox);
+    const tvClientParse = tvSandbox.window.DealCraftPrompt.parsePrompt;
+    const tvP8 = tvClientParse('2 bedroom flat rewiring, 18000, by Friday');
+    check(JSON.stringify(tvP8) === JSON.stringify(tvP1), 'parser: client module returns the identical result to the server module for the same input', JSON.stringify(tvP8));
+    // Server-side prompt creation.
+    const tvElecQs = fsScope.body.questions.ELECTRICIAN;
+    const tvP9 = await req('/api/jobs', aj(token, { prompt: '2 bedroom flat rewiring, 18000, by Friday', workerPhone: '01900000050', workerName: 'Prompt Worker', skippedTerms: [...tvElecQs] }));
+    check(tvP9.status === 201 && tvP9.body?.job?.trade === 'ELECTRICIAN' && tvP9.body?.version?.price === 18000 && tvP9.body?.version?.deadline === tvFriday && JSON.parse(tvP9.body.version.scope_json).scope === '2 bedroom flat', 'parser: POST /api/jobs with only {prompt, workerPhone, skippedTerms} (all terms skipped) -> 201 with trade/price/deadline/scope from the prompt', 'status ' + tvP9.status + ' ' + JSON.stringify(tvP9.body));
+    const tvP10a = await req('/api/jobs', aj(token, { prompt: 'need a painter for 2 rooms by Sunday', workerPhone: '01900000051', workerName: 'Prompt Worker 2', skippedTerms: [...fsScope.body.questions.PAINTER] }));
+    check(tvP10a.status === 400 && (tvP10a.body?.error || '').includes('price'), 'parser: POST /api/jobs prompt missing price -> 400 naming price', 'status ' + tvP10a.status + ' ' + JSON.stringify(tvP10a.body));
+    const tvP10b = await req('/api/jobs', aj(token, { prompt: '18000, by Friday', workerPhone: '01900000051', workerName: 'Prompt Worker 2', skippedTerms: [] }));
+    check(tvP10b.status === 400 && (tvP10b.body?.error || '').includes('trade'), 'parser: POST /api/jobs prompt missing trade -> 400 naming trade', 'status ' + tvP10b.status + ' ' + JSON.stringify(tvP10b.body));
+    const tvP11 = await req('/api/jobs', aj(token, { trade: 'ELECTRICIAN', workerPhone: '01900000053', workerName: 'Direct Worker', scope: 'Direct scope', price: 9000, deadline: '2026-12-20', milestones: [{ title: 'Advance', amount: 9000 }], answers: SEED_ANSWERS, skippedTerms: [] }));
+    check(tvP11.status === 201 && tvP11.body?.version?.price === 9000, 'parser: POST /api/jobs direct fields, no prompt -> 201 unchanged', 'status ' + tvP11.status + ' ' + JSON.stringify(tvP11.body));
+    const tvP12 = await req('/api/jobs', aj(token, { trade: 'ELECTRICIAN', workerPhone: '01900000054', workerName: 'Override Worker', scope: 'Direct scope text', price: 9999, deadline: '2026-12-20', milestones: [{ title: 'Advance', amount: 9999 }], answers: SEED_ANSWERS, skippedTerms: [], prompt: '2 bedroom flat rewiring, 18000, by Friday' }));
+    check(tvP12.status === 201 && tvP12.body?.version?.price === 18000 && JSON.parse(tvP12.body.version.scope_json).scope === '2 bedroom flat', 'parser: POST /api/jobs direct + prompt -> server-parsed values win (direct 9999 + prompt 18000 -> 18000)', 'status ' + tvP12.status + ' ' + JSON.stringify(tvP12.body));
+    const tvP13 = await req('/api/jobs', aj(token, { prompt: '2 bedroom flat rewiring, 18000, by Friday', workerPhone: '01900000055', workerName: 'Gate Worker', answers: {}, skippedTerms: [] }));
+    check(tvP13.status === 400 && (tvP13.body?.error || '').includes('unresolved FairScope terms'), 'parser: POST /api/jobs prompt + unresolved FairScope -> 400 FairScope gate', 'status ' + tvP13.status + ' ' + JSON.stringify(tvP13.body));
+    const tvP14 = await req('/api/bid-jobs', aj(token, { prompt: 'need a painter for 2 rooms by Sunday' }));
+    check(tvP14.status === 201 && tvP14.body?.bidJob?.trade === 'PAINTER' && tvP14.body?.bidJob?.description === 'for 2 rooms', 'parser: POST /api/bid-jobs prompt -> 201, PAINTER, description "for 2 rooms"', 'status ' + tvP14.status + ' ' + JSON.stringify(tvP14.body));
+    check(tvP14.body?.deadline === tvSunday, 'parser: POST /api/bid-jobs prompt response deadline is the coming Sunday', 'deadline ' + tvP14.body?.deadline + ' expected ' + tvSunday);
+    const tvP15a = await req('/api/bid-jobs', aj(token, { prompt: '18000, by Friday' }));
+    check(tvP15a.status === 400 && (tvP15a.body?.error || '').includes('trade'), 'parser: POST /api/bid-jobs prompt naming no trade -> 400 naming trade', 'status ' + tvP15a.status + ' ' + JSON.stringify(tvP15a.body));
+    const tvP15b = await req('/api/bid-jobs', aj(token, { trade: 'PLUMBER', description: 'Direct bid-job post, no prompt' }));
+    check(tvP15b.status === 201 && tvP15b.body?.bidJob?.trade === 'PLUMBER', 'parser: direct bid-job posting without prompt still 201', 'status ' + tvP15b.status + ' ' + JSON.stringify(tvP15b.body));
+    // No new dependency, no banned words, adapter byte-identical to remote HEAD.
+    // (The checked words are built from parts so this file itself stays
+    // clean for the repo-wide banned-word grep.)
+    const tvBanned = ['US' + 'SD', 'legal' + 'ly binding', 'e-sign' + 'ature', 'enforce' + 'able'];
+    const tvServerParser = fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'server', 'src', 'prompt-parse.js'), 'utf8');
+    check(tvBanned.every((w) => !tvServerParser.toLowerCase().includes(w.toLowerCase()) && !tvClientSrc.toLowerCase().includes(w.toLowerCase())), 'parser: no banned words in either parser file (checked list)');
+    // Remote HEAD 7c95bb7a via raw.githubusercontent (the API itself is
+    // rate-limited for this shared egress IP, so SHAs are compared as
+    // sha256 of the raw file bytes instead of git blob SHAs).
+    const tvRemoteBase = 'https://raw.githubusercontent.com/Rubai106/DealCraft/7c95bb7a/';
+    const tvRemoteFiles = ['package.json', ...['caas.js', 'index.js', 'live.js', 'log.js', 'otp-rate-limit.js', 'otp-transactions.js', 'otp.js', 'sms.js', 'subscription.js'].map((f) => 'server/src/applink/' + f)];
+    const tvRemoteDiffs = [];
+    for (const tvF of tvRemoteFiles) {
+      const tvR = await fetch(tvRemoteBase + tvF);
+      if (!tvR.ok) throw new Error('parser: remote HEAD fetch failed for ' + tvF + ' (HTTP ' + tvR.status + ') — cannot verify byte-identity');
+      const tvRemoteText = await tvR.text();
+      const tvLocalText = fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', tvF), 'utf8');
+      if (tvSha256(tvRemoteText) !== tvSha256(tvLocalText)) tvRemoteDiffs.push(tvF);
+    }
+    check(tvRemoteDiffs.length === 0, 'parser: server/src/applink/* + package.json byte-identical to remote HEAD 7c95bb7a (sha256 vs raw.githubusercontent)', 'differs: ' + tvRemoteDiffs.join(', '));
+    const tvPkg = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'package.json'), 'utf8'));
+    check(JSON.stringify(Object.keys(tvPkg.dependencies || {}).sort()) === JSON.stringify(['dotenv', 'express', 'multer', 'pdfkit', 'qrcode']), 'parser: package.json has no new dependency vs remote HEAD (dotenv, express, multer, pdfkit, qrcode only)', JSON.stringify(tvPkg.dependencies));
+
+    console.log('== trim verification: worker accounts ==');
+    // W1 — GET /api/worker/jobs (worker B already owns the accepted job;
+    // give them a second, newer job so newest-first is observable).
+    const tvW1extra = await req('/api/jobs', aj(token, { trade: 'PLUMBER', workerPhone: '01900000011', workerName: 'Bid Worker B', scope: 'Worker-jobs ordering check', price: 2000, deadline: '2026-12-20', milestones: [{ title: 'Advance', amount: 2000 }], answers: {}, skippedTerms: [...fsScope.body.questions.PLUMBER] }));
+    check(tvW1extra.status === 201, 'worker accounts: second job created for worker B (newest-first fixture)', 'status ' + tvW1extra.status + ' ' + JSON.stringify(tvW1extra.body));
+    const tvW1b = await req('/api/worker/jobs', { headers: auth(workerB) });
+    check(tvW1b.status === 200 && Array.isArray(tvW1b.body?.jobs) && tvW1b.body.jobs.every((x) => x.worker_phone === '01900000011') && tvW1b.body.jobs.some((x) => x.id === acceptedJobId) && tvW1b.body.jobs.some((x) => x.id === tvW1extra.body.job.id) && tvW1b.body.jobs.every((x, i, a) => i === 0 || a[i - 1].created_at >= x.created_at), 'worker accounts: GET /api/worker/jobs returns only the logged-in worker\'s jobs, newest first', JSON.stringify(tvW1b.body));
+    const tvW1a = await req('/api/worker/jobs', { headers: auth(workerA) });
+    check(tvW1a.status === 200 && !tvW1a.body.jobs.some((x) => x.id === acceptedJobId) && !tvW1a.body.jobs.some((x) => x.id === tvW1extra.body.job.id), 'worker accounts: another worker\'s list excludes them', JSON.stringify(tvW1a.body));
+    const tvW1no = await req('/api/worker/jobs');
+    check(tvW1no.status === 401, 'worker accounts: GET /api/worker/jobs unauthenticated -> 401', 'status ' + tvW1no.status);
+    const tvW1h = await req('/api/jobs', { headers: auth(token) });
+    const tvHKeys = tvW1h.body.jobs.length ? Object.keys(tvW1h.body.jobs[0]).sort() : [];
+    const tvWKeys = tvW1b.body.jobs.length ? Object.keys(tvW1b.body.jobs[0]).sort() : [];
+    check(tvW1h.status === 200 && JSON.stringify(tvHKeys) === JSON.stringify(tvWKeys) && tvW1h.body.jobs.some((x) => x.id === painter.body.job.id), 'worker accounts: worker-jobs items have the same shape as GET /api/jobs items; hirer list unchanged', JSON.stringify({ hirerKeys: tvHKeys, workerKeys: tvWKeys }));
+    // W2 — worker confirm returns a sessionToken.
+    const tvW2 = await req('/api/jobs', aj(token, { trade: 'ELECTRICIAN', workerPhone: '01900000042', workerName: 'Session Worker', scope: 'Session check job', price: 3000, deadline: '2026-12-20', milestones: [{ title: 'Advance', amount: 3000 }], answers: SEED_ANSWERS, skippedTerms: [] }));
+    check(tvW2.status === 201, 'worker accounts: fresh DRAFT job created for the session-token check', 'status ' + tvW2.status + ' ' + JSON.stringify(tvW2.body));
+    const tvW2jobId = tvW2.body.job.id;
+    const tvW2token = tvW2.body.workerLink.split('token=')[1];
+    const tvW2otp = await req(`/api/worker/${tvW2token}/request-otp`, j({ purpose: 'worker-confirm' }));
+    check(tvW2otp.status === 200 && tvW2otp.body?.sandbox?.otp, 'worker accounts: worker-confirm OTP issued for the fresh job', 'status ' + tvW2otp.status + ' ' + JSON.stringify(tvW2otp.body));
+    const tvW2confirm = await req(`/api/worker/${tvW2token}/confirm`, j({ otpCode: tvW2otp.body.sandbox.otp }));
+    check(tvW2confirm.status === 200 && typeof tvW2confirm.body?.sessionToken === 'string' && tvW2confirm.body?.job?.status === 'PENDING', 'worker accounts: worker confirm returns a sessionToken (job PENDING until hirer confirms)', JSON.stringify(tvW2confirm.body));
+    const tvW2jobs = await req('/api/worker/jobs', { headers: auth(tvW2confirm.body.sessionToken) });
+    check(tvW2jobs.status === 200 && tvW2jobs.body.jobs.some((x) => x.id === tvW2jobId), 'worker accounts: confirm sessionToken works as Bearer on GET /api/worker/jobs', JSON.stringify(tvW2jobs.body));
+    const tvW2tok = await req(`/api/worker/${tvW2token}`);
+    check(tvW2tok.status === 200 && tvW2tok.body?.job?.id === tvW2jobId, 'worker accounts: per-job token flow still works after confirm', 'status ' + tvW2tok.status);
+    // W3 — logout deletes the session.
+    const tvW3otpReq = await req('/api/auth/request-otp', j({ phone: '01900000043', name: 'Logout Test', role: 'hirer' }));
+    const tvW3login = await req('/api/auth/verify-otp', j({ phone: '01900000043', code: tvW3otpReq.body.sandbox.otp }));
+    const tvW3token = tvW3login.body.token;
+    const tvW3out = await req('/api/auth/logout', aj(tvW3token, {}));
+    check(tvW3out.status === 200 && tvW3out.body?.ok === true, 'worker accounts: POST /api/auth/logout -> {ok:true}', 'status ' + tvW3out.status + ' ' + JSON.stringify(tvW3out.body));
+    const tvW3me = await req('/api/me', { headers: auth(tvW3token) });
+    check(tvW3me.status === 401, 'worker accounts: session deleted by logout (subsequent authed call 401)', 'status ' + tvW3me.status);
+    const tvW3noAuth = await req('/api/auth/logout', j({}));
+    check(tvW3noAuth.status === 401, 'worker accounts: logout without auth -> 401', 'status ' + tvW3noAuth.status);
+    // W4 — withdraw a bid.
+    const tvW4post = await req('/api/bid-jobs', aj(token, { trade: 'PLUMBER', description: 'Withdraw test job' }));
+    check(tvW4post.status === 201, 'worker accounts: bid job posted for the withdraw checks', 'status ' + tvW4post.status + ' ' + JSON.stringify(tvW4post.body));
+    const tvW4jobId = tvW4post.body.bidJob.id;
+    const tvW4c = await workerLogin('01900000044', 'Withdraw Worker C');
+    const tvW4d = await workerLogin('01900000045', 'Withdraw Worker D');
+    const tvW4e = await workerLogin('01900000046', 'Withdraw Worker E');
+    const tvW4bidC = await req(`/api/bid-jobs/${tvW4jobId}/bids`, aj(tvW4c, { amount: 4000 }));
+    const tvW4bidD = await req(`/api/bid-jobs/${tvW4jobId}/bids`, aj(tvW4d, { amount: 4200 }));
+    const tvW4bidE = await req(`/api/bid-jobs/${tvW4jobId}/bids`, aj(tvW4e, { amount: 4400 }));
+    check(tvW4bidC.status === 201 && tvW4bidD.status === 201 && tvW4bidE.status === 201, 'worker accounts: three LIVE bids placed for the withdraw checks', JSON.stringify({ c: tvW4bidC.status, d: tvW4bidD.status, e: tvW4bidE.status }));
+    {
+      const { DatabaseSync } = await import('node:sqlite');
+      const tvDbW4 = new DatabaseSync(tvDbPath);
+      tvDbW4.prepare('UPDATE Bid SET expires_at = ? WHERE id = ?').run(new Date(Date.now() - 1000).toISOString(), tvW4bidE.body.bid.id);
+      tvDbW4.close();
+    }
+    const tvW4w = await req(`/api/worker/bids/${tvW4bidC.body.bid.id}/withdraw`, aj(tvW4c, {}));
+    check(tvW4w.status === 200 && tvW4w.body?.ok === true && tvW4w.body?.status === 'WITHDRAWN', 'worker accounts: own LIVE bid withdraws -> 200 {ok:true,status:WITHDRAWN}', 'status ' + tvW4w.status + ' ' + JSON.stringify(tvW4w.body));
+    const tvW4list = await req(`/api/bid-jobs/${tvW4jobId}/bids`, { headers: auth(token) });
+    check(tvW4list.body.bids.find((b) => b.id === tvW4bidC.body.bid.id)?.status === 'WITHDRAWN', 'worker accounts: withdrawn bid reads WITHDRAWN to the hirer', JSON.stringify(tvW4list.body));
+    const tvW4other = await req(`/api/worker/bids/${tvW4bidD.body.bid.id}/withdraw`, aj(tvW4c, {}));
+    check(tvW4other.status === 403, 'worker accounts: withdrawing another worker\'s bid -> 403', 'status ' + tvW4other.status + ' ' + JSON.stringify(tvW4other.body));
+    const tvW4again = await req(`/api/worker/bids/${tvW4bidC.body.bid.id}/withdraw`, aj(tvW4c, {}));
+    check(tvW4again.status === 400, 'worker accounts: withdrawing an already-withdrawn bid -> 400', 'status ' + tvW4again.status + ' ' + JSON.stringify(tvW4again.body));
+    const tvW4exp = await req(`/api/worker/bids/${tvW4bidE.body.bid.id}/withdraw`, aj(tvW4e, {}));
+    check(tvW4exp.status === 400, 'worker accounts: withdrawing an expired bid -> 400', 'status ' + tvW4exp.status + ' ' + JSON.stringify(tvW4exp.body));
+    const tvW4unk = await req('/api/worker/bids/does-not-exist/withdraw', aj(tvW4c, {}));
+    check(tvW4unk.status === 404, 'worker accounts: withdrawing an unknown bid -> 404', 'status ' + tvW4unk.status + ' ' + JSON.stringify(tvW4unk.body));
+    const tvW4noAuth = await req(`/api/worker/bids/${tvW4bidD.body.bid.id}/withdraw`, j({}));
+    check(tvW4noAuth.status === 401, 'worker accounts: withdrawing with no auth -> 401', 'status ' + tvW4noAuth.status + ' ' + JSON.stringify(tvW4noAuth.body));
+    {
+      const { DatabaseSync } = await import('node:sqlite');
+      const tvDbW4e = new DatabaseSync(tvDbPath);
+      const tvEv = tvDbW4e.prepare("SELECT * FROM Event WHERE job_id = ? AND type = 'BID_WITHDRAWN'").get(tvW4jobId);
+      tvDbW4e.close();
+      check(!!tvEv, 'worker accounts: a BID_WITHDRAWN event exists in the bid-job event log', JSON.stringify(tvEv || null));
+    }
+    // W5 — share-trip link.
+    const tvW5share1 = await req(`/api/jobs/${acceptedJobId}/share-trip`, aj(token, {}));
+    check(tvW5share1.status === 200 && typeof tvW5share1.body?.url === 'string' && tvW5share1.body.url.startsWith('/trip/'), 'worker accounts: hirer creates /trip/<token>', 'status ' + tvW5share1.status + ' ' + JSON.stringify(tvW5share1.body));
+    const tvW5token = tvW5share1.body.url.split('/trip/')[1];
+    const tvW5share2 = await req(`/api/jobs/${acceptedJobId}/share-trip`, aj(token, {}));
+    check(tvW5share2.status === 200 && tvW5share2.body?.url === tvW5share1.body.url, 'worker accounts: re-creating a trip share reuses the same token', JSON.stringify(tvW5share2.body));
+    const tvW5other = await req(`/api/jobs/${acceptedJobId}/share-trip`, aj(otherLogin.body.token, {}));
+    check(tvW5other.status === 403, 'worker accounts: non-owner cannot share the trip (403)', 'status ' + tvW5other.status + ' ' + JSON.stringify(tvW5other.body));
+    const tvW5pub = await req(`/api/trip/${tvW5token}`);
+    check(tvW5pub.status === 200 && 'trade' in tvW5pub.body && 'worker_name' in tvW5pub.body && 'status' in tvW5pub.body && 'lat' in tvW5pub.body && 'lng' in tvW5pub.body && 'updated_at' in tvW5pub.body && 'eta_minutes' in tvW5pub.body && !JSON.stringify(tvW5pub.body).includes('01900000011') && !JSON.stringify(tvW5pub.body).includes('01700000001'), 'worker accounts: public trip fetch returns trade/worker_name/status/lat/lng/updated_at/eta_minutes with no phone anywhere', JSON.stringify(tvW5pub.body));
+    const tvW5unk = await req('/api/trip/no-such-token');
+    check(tvW5unk.status === 404, 'worker accounts: unknown trip token -> 404', 'status ' + tvW5unk.status);
+    const tvW5start = await req(`/api/worker/${acceptedToken}/location/start`, j({}));
+    check(tvW5start.status === 200 && tvW5start.body?.sharing === true, 'worker accounts: location sharing started on the accepted job (trip precondition)', 'status ' + tvW5start.status + ' ' + JSON.stringify(tvW5start.body));
+    const tvW5far = await req(`/api/worker/${acceptedToken}/location`, j({ lat: 23.85, lng: 90.45, accuracy: 15 }));
+    check(tvW5far.status === 200, 'worker accounts: far point posted while sharing', 'status ' + tvW5far.status + ' ' + JSON.stringify(tvW5far.body));
+    const tvW5live = await req(`/api/trip/${tvW5token}`);
+    check(tvW5live.status === 200 && typeof tvW5live.body?.lat === 'number' && typeof tvW5live.body?.lng === 'number' && typeof tvW5live.body?.eta_minutes === 'number' && ['en-route', 'arriving', 'arrived', 'on-site'].includes(tvW5live.body?.status), 'worker accounts: while sharing, lat/lng and eta_minutes are populated and status is a location state', JSON.stringify(tvW5live.body));
+    // W7 — explicit-OFF pin (default-ON is pinned by the fixed snapshot above).
+    {
+      const tvPortOff = 3467;
+      const tvBaseOff = `http://127.0.0.1:${tvPortOff}`;
+      const tvServerOff = spawn(process.execPath, ['server/server.js'], {
+        cwd: path.resolve(import.meta.dirname, '..', '..'),
+        env: { ...process.env, PORT: String(tvPortOff), APPLINK_MODE: 'sandbox', DEALCRAFT_DEMO_TOKEN: 'test-demo-token', DEMO_MODE: 'true', FEATURE_BIDDING: 'false' },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      try {
+        let tvUpOff = false;
+        for (let i = 0; i < 40; i++) { try { const r = await fetch(tvBaseOff + '/api/health'); if (r.status === 200) { tvUpOff = true; break; } } catch { /* not up yet */ } await sleep(250); }
+        check(tvUpOff, 'worker accounts: explicit-OFF scratch server boots');
+        const tvCfgOff = await fetch(tvBaseOff + '/api/config');
+        const tvCfgOffBody = await tvCfgOff.json();
+        check(tvCfgOffBody?.biddingEnabled === false, 'worker accounts: explicit-OFF pin — FEATURE_BIDDING=false -> biddingEnabled=false', JSON.stringify(tvCfgOffBody));
+        const tvOffOpen = await fetch(tvBaseOff + '/api/bid-jobs/open');
+        const tvOffPost = await fetch(tvBaseOff + '/api/bid-jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        const tvOffOne = await fetch(tvBaseOff + '/api/bid-jobs/some-id');
+        check(tvOffOpen.status === 404 && tvOffPost.status === 404 && tvOffOne.status === 404, 'worker accounts: explicit-OFF pin — GET /api/bid-jobs/open, POST /api/bid-jobs, GET /api/bid-jobs/:id all 404', JSON.stringify({ open: tvOffOpen.status, post: tvOffPost.status, one: tvOffOne.status }));
+      } finally {
+        tvServerOff.kill('SIGTERM');
+        await sleep(300);
+      }
+    }
+    // W8 — photo retention: 90 days after close. Both fixtures are
+    // created here and driven through the real activation flow (hirer
+    // confirm -> ৳10 CaaS fee -> worker confirm -> ACTIVE, the same
+    // sequence the main flow uses), because photos can only be added
+    // on an ACTIVE job. The old one is then backdated 100 days via a
+    // direct-DB timestamp rewrite, the same pattern the suite already
+    // uses for deadlines/bids. The main demo job is NOT used: a legacy
+    // demo seed later in the suite deletes it, so it cannot anchor a
+    // fixture here.
+    const tvW8r = await req('/api/jobs', aj(token, { trade: 'PAINTER', workerPhone: '01900000047', workerName: 'Retention Worker', scope: 'Retention recent-close job', price: 4000, deadline: '2026-12-20', milestones: [{ title: 'Advance', amount: 4000 }], answers: painterAnswers, skippedTerms: ['Number of coats'] }));
+    check(tvW8r.status === 201, 'worker accounts: recent-close fixture job created', 'status ' + tvW8r.status + ' ' + JSON.stringify(tvW8r.body));
+    const tvW8rId = tvW8r.body.job.id;
+    const tvW8rTok = tvW8r.body.workerLink.split('token=')[1];
+    const tvW8o = await req('/api/jobs', aj(token, { trade: 'PAINTER', workerPhone: '01900000048', workerName: 'Retention Old', scope: 'Retention old-close job', price: 4000, deadline: '2026-12-20', milestones: [{ title: 'Advance', amount: 4000 }], answers: painterAnswers, skippedTerms: ['Number of coats'] }));
+    check(tvW8o.status === 201, 'worker accounts: old-close fixture job created', 'status ' + tvW8o.status + ' ' + JSON.stringify(tvW8o.body));
+    const tvW8oId = tvW8o.body.job.id;
+    const tvW8oTok = tvW8o.body.workerLink.split('token=')[1];
+    for (const [tvJobId, tvTok] of [[tvW8rId, tvW8rTok], [tvW8oId, tvW8oTok]]) {
+      const tvHcOtp = await req('/api/auth/request-otp', j({ phone: HIRER, purpose: 'hirer-confirm' }));
+      check(tvHcOtp.status === 200 && tvHcOtp.body?.sandbox?.otp, 'worker accounts: hirer-confirm OTP issued for the retention fixture', JSON.stringify(tvHcOtp.body));
+      const tvHc = await req(`/api/jobs/${tvJobId}/hirer-confirm`, aj(token, { otpCode: tvHcOtp.body.sandbox.otp }));
+      check(tvHc.status === 200 && tvHc.body?.job?.status === 'PENDING', 'worker accounts: retention fixture hirer-confirmed (PENDING)', 'status ' + tvHc.status + ' ' + JSON.stringify(tvHc.body));
+      const tvFee = await req('/api/billing/caas', aj(token, { jobId: tvJobId }));
+      check(tvFee.status === 200 && tvFee.body?.status === 'PENDING' && tvFee.body?.sandboxOtp, 'worker accounts: retention fixture ৳10 fee is PENDING with a code', 'status ' + tvFee.status + ' ' + JSON.stringify(tvFee.body));
+      const tvFeeV = await req(`/api/billing/caas/${tvFee.body.chargeId}/verify`, aj(token, { otpCode: tvFee.body.sandboxOtp }));
+      check(tvFeeV.status === 200 && tvFeeV.body?.status === 'VERIFIED', 'worker accounts: retention fixture fee VERIFIED');
+      const tvWcOtp = await req(`/api/worker/${tvTok}/request-otp`, j({ purpose: 'worker-confirm' }));
+      check(tvWcOtp.status === 200 && tvWcOtp.body?.sandbox?.otp, 'worker accounts: worker-confirm OTP issued for the retention fixture', JSON.stringify(tvWcOtp.body));
+      const tvWc = await req(`/api/worker/${tvTok}/confirm`, j({ otpCode: tvWcOtp.body.sandbox.otp }));
+      check(tvWc.status === 200 && tvWc.body?.job?.status === 'ACTIVE', 'worker accounts: retention fixture worker-confirmed (ACTIVE)', 'status ' + tvWc.status + ' ' + JSON.stringify(tvWc.body));
+    }
+    for (const [tvJobId, tvTok, tvName] of [[tvW8rId, tvW8rTok, 'recent.png'], [tvW8oId, tvW8oTok, 'old.png']]) {
+      const tvForm = new FormData();
+      tvForm.append('photo', new Blob([png], { type: 'image/png' }), tvName);
+      tvForm.append('kind', 'BEFORE');
+      const tvUp = await fetch(BASE + `/api/jobs/${tvJobId}/photos?token=${tvTok}`, { method: 'POST', body: tvForm });
+      check(tvUp.status === 201, 'worker accounts: photo uploaded to the retention fixture job ' + tvName, 'status ' + tvUp.status);
+    }
+    for (const tvJobId of [tvW8rId, tvW8oId]) {
+      const tvClose = await req(`/api/jobs/${tvJobId}/close`, aj(token, { confirmCompletion: true, force: true, closeAnyway: true, note: 'Retention fixture: hirer-only close.' }));
+      check(tvClose.status === 200 && tvClose.body?.job?.status === 'CLOSED', 'worker accounts: retention fixture job closed (hirer-only)', 'status ' + tvClose.status + ' ' + JSON.stringify(tvClose.body));
+    }
+    // Give the old fixture a 100-day-old close. The real JOB_CLOSED
+    // event CANNOT be rewritten: the Event table is append-only and its
+    // trigger refuses UPDATEs (the suite itself pins that in the
+    // append-only checks), so instead this inserts one additional
+    // JOB_CLOSED row for the old fixture with created_at 100 days ago.
+    // Retention keys on MIN(created_at), so this is the close time it
+    // sees. NOTE: the extra row means that job's event log no longer
+    // matches its original hash chain — no later block re-verifies it.
+    let tvOldPhotoCount = 0;
+    let tvOldPhotoUrl = '';
+    {
+      const { DatabaseSync } = await import('node:sqlite');
+      const tvDbW8 = new DatabaseSync(tvDbPath);
+      tvDbW8.prepare("INSERT INTO Event (job_id, type, actor, payload_json, created_at) VALUES (?, 'JOB_CLOSED', ?, ?, ?)").run(tvW8oId, 'hirer:' + HIRER, JSON.stringify({ forced: true, hirerOnly: true, workerConfirmed: false, note: 'Retention fixture: backdated close.', milestonesApproved: false }), new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString());
+      const tvOPhotos = tvDbW8.prepare('SELECT * FROM Photo WHERE job_id = ?').all(tvW8oId);
+      const tvRPhotos = tvDbW8.prepare('SELECT * FROM Photo WHERE job_id = ?').all(tvW8rId);
+      const tvAPhotos = tvDbW8.prepare('SELECT * FROM Photo WHERE job_id = ?').all(acceptedJobId);
+      tvOldPhotoCount = tvOPhotos.length;
+      tvOldPhotoUrl = tvOPhotos[0]?.url || '';
+      tvDbW8.close();
+      check(tvOldPhotoCount === 1 && tvRPhotos.length === 1 && tvAPhotos.length >= 2, 'worker accounts: retention preconditions — old-closed job has 1 photo, recent-closed 1, ACTIVE >= 2', JSON.stringify({ old: tvOldPhotoCount, recent: tvRPhotos.length, active: tvAPhotos.length }));
+      check(tvOldPhotoUrl ? fs.existsSync(path.join(tvUploads, path.basename(tvOldPhotoUrl))) : false, 'worker accounts: retention precondition — old-closed photo file exists on disk', tvOldPhotoUrl);
+    }
+    {
+      const tvPortRet = 3468;
+      const tvBaseRet = `http://127.0.0.1:${tvPortRet}`;
+      let tvRetOut = '';
+      const tvServerRet = spawn(process.execPath, ['server/server.js'], {
+        cwd: path.resolve(import.meta.dirname, '..', '..'),
+        env: { ...process.env, PORT: String(tvPortRet), APPLINK_MODE: 'sandbox', DEALCRAFT_DEMO_TOKEN: 'test-demo-token', DEMO_MODE: 'true', FEATURE_BIDDING: 'true' },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      tvServerRet.stdout.on('data', (d) => { tvRetOut += d; });
+      try {
+        let tvUpRet = false;
+        for (let i = 0; i < 40; i++) { try { const r = await fetch(tvBaseRet + '/api/health'); if (r.status === 200) { tvUpRet = true; break; } } catch { /* not up yet */ } await sleep(250); }
+        check(tvUpRet, 'worker accounts: retention scratch server boots');
+        await sleep(1500); // setImmediate retention runs at boot
+        const tvRetLines = tvRetOut.split('\n').filter((l) => l.includes('[retention] deleted'));
+        check(tvRetLines.length === 1, 'worker accounts: startup emits one "[retention] deleted …" line', tvRetOut.slice(-600));
+        check(tvRetLines[0]?.includes('deleted ' + tvOldPhotoCount + ' photo(s)') && tvRetLines[0]?.includes('from 1 job(s)'), 'worker accounts: retention run logs the deleted count', tvRetLines[0] || '');
+      } finally {
+        tvServerRet.kill('SIGTERM');
+        await sleep(300);
+      }
+    }
+    {
+      const { DatabaseSync } = await import('node:sqlite');
+      const tvDbW8c = new DatabaseSync(tvDbPath);
+      const tvOldAfter = tvDbW8c.prepare('SELECT COUNT(*) AS n FROM Photo WHERE job_id = ?').get(tvW8oId).n;
+      const tvRAfter = tvDbW8c.prepare('SELECT COUNT(*) AS n FROM Photo WHERE job_id = ?').get(tvW8rId).n;
+      const tvAAfter = tvDbW8c.prepare('SELECT COUNT(*) AS n FROM Photo WHERE job_id = ?').get(acceptedJobId).n;
+      tvDbW8c.close();
+      check(tvOldAfter === 0, 'worker accounts: a job closed >90 days ago has its Photo rows deleted', 'remaining ' + tvOldAfter);
+      check(tvOldPhotoUrl ? !fs.existsSync(path.join(tvUploads, path.basename(tvOldPhotoUrl))) : false, 'worker accounts: a job closed >90 days ago has its photo files deleted', tvOldPhotoUrl);
+      check(tvRAfter === 1, "worker accounts: a recently-closed job's photos survive retention", 'remaining ' + tvRAfter);
+      check(tvAAfter >= 2, "worker accounts: an ACTIVE job's photos survive retention", 'remaining ' + tvAAfter);
+    }
+
+    console.log('== trim verification: fix-ups (trip + demo cycles) ==');
+    const tvF1share = await req(`/api/jobs/${acceptedJobId}/share-trip`, aj(token, {}));
+    const tvF1token = tvF1share.body.url.split('/trip/')[1];
+    const tvF1page = await req(`/trip/${tvF1token}`);
+    check(tvF1page.status === 200 && (tvF1page.headers.get('content-type') || '').includes('text/html') && tvF1page.text.includes('<title>DealCraft — Live trip</title>'), 'fix-ups: GET /trip/<real share token> -> 200 text/html with the trip page title', 'status ' + tvF1page.status);
+    const tvF1api = await req(`/api/trip/${tvF1token}`);
+    check(tvF1api.status === 200, 'fix-ups: GET /api/trip/:token for the same token still 200', 'status ' + tvF1api.status);
+    // The trip page links its stylesheet as the relative "style.css"
+    // (not "/style.css") and the self-hosted Leaflet script; window.L
+    // is asserted in the browser block below.
+    check(tvF1page.text.includes('href="style.css"') && tvF1page.text.includes('vendor/leaflet/leaflet.js'), 'fix-ups: trip page HTML links the style.css stylesheet and the Leaflet script', tvF1page.text.slice(0, 400));
+    // F7 fixture first: a real job by another phone must survive the F6 cycles.
+    const tvF7otp = await req('/api/auth/request-otp', j({ phone: '01900000060', name: 'Other Phone', role: 'hirer' }));
+    const tvF7login = await req('/api/auth/verify-otp', j({ phone: '01900000060', code: tvF7otp.body.sandbox.otp }));
+    const tvF7job = await req('/api/jobs', aj(tvF7login.body.token, { trade: 'PAINTER', workerPhone: '01900000061', workerName: 'Other Worker', scope: 'Real job by another phone', price: 6000, deadline: '2026-12-20', milestones: [{ title: 'Advance', amount: 6000 }], answers: painterAnswers, skippedTerms: ['Number of coats'] }));
+    check(tvF7job.status === 201, 'fix-ups: a real (non-demo) job created by another phone', 'status ' + tvF7job.status + ' ' + JSON.stringify(tvF7job.body));
+    const tvF7id = tvF7job.body.job.id;
+    const tvF6seed1 = await req('/api/demo/seed', dj({}));
+    check(tvF6seed1.status === 200, 'fix-ups: demo seed (cycle 1)', 'status ' + tvF6seed1.status);
+    const tvF6share = await req(`/api/jobs/${tvF6seed1.body.job.id}/share-trip`, aj(token, {}));
+    check(tvF6share.status === 200, 'fix-ups: share-trip for the demo job', 'status ' + tvF6share.status + ' ' + JSON.stringify(tvF6share.body));
+    const tvF6seed2 = await req('/api/demo/seed', dj({}));
+    check(tvF6seed2.status === 200, 'fix-ups: seed again after sharing the trip -> 200', 'status ' + tvF6seed2.status);
+    const tvF6health = await req('/api/health');
+    check(tvF6health.status === 200, 'fix-ups: server stays up after seed/share/seed', 'status ' + tvF6health.status);
+    const tvF6reset = await req('/api/demo/reset', dj({}));
+    check(tvF6reset.status === 200, 'fix-ups: demo reset', 'status ' + tvF6reset.status);
+    const tvF6seed3 = await req('/api/demo/seed', dj({}));
+    check(tvF6seed3.status === 200, 'fix-ups: seed after reset -> 200', 'status ' + tvF6seed3.status);
+    const tvF6finalTok = tvF6seed3.body.workerLink.split('token=')[1];
+    const tvF6final = await req(`/api/worker/${tvF6finalTok}`);
+    check(tvF6final.status === 200 && tvF6final.body?.job?.id === tvF6seed3.body.job.id, 'fix-ups: the demo job from the final seed loads via its worker token', 'status ' + tvF6final.status);
+    const tvF7after = await req(`/api/jobs/${tvF7id}`, { headers: auth(tvF7login.body.token) });
+    check(tvF7after.status === 200 && tvF7after.body?.job?.status === 'DRAFT', 'fix-ups: a real job created by another phone is still retrievable after demo reset/seed cycles', 'status ' + tvF7after.status + ' ' + JSON.stringify(tvF7after.body?.job || null));
+
+    console.log('== trim verification: profile card (API) ==');
+    // Finish the W2 job mutually: fee first (hirer-confirm would 402
+    // without it once the worker has confirmed), then hirer-confirm,
+    // then a mutual close with the worker's close-confirm code.
+    const tvR6charge = await req('/api/billing/caas', aj(token, { jobId: tvW2jobId }));
+    check(tvR6charge.status === 200 && tvR6charge.body?.sandboxOtp, 'profile: record fee charged for the W2 job', 'status ' + tvR6charge.status + ' ' + JSON.stringify(tvR6charge.body));
+    const tvR6verify = await req(`/api/billing/caas/${tvR6charge.body.chargeId}/verify`, aj(token, { otpCode: tvR6charge.body.sandboxOtp }));
+    check(tvR6verify.status === 200 && tvR6verify.body?.status === 'VERIFIED', 'profile: record fee verified for the W2 job', 'status ' + tvR6verify.status + ' ' + JSON.stringify(tvR6verify.body));
+    const tvR6hOtp = await req('/api/auth/request-otp', j({ phone: HIRER, purpose: 'hirer-confirm' }));
+    const tvR6hc = await req(`/api/jobs/${tvW2jobId}/hirer-confirm`, aj(token, { otpCode: tvR6hOtp.body.sandbox.otp }));
+    check(tvR6hc.status === 200 && tvR6hc.body?.job?.status === 'ACTIVE', 'profile: W2 job ACTIVE after hirer confirm (worker already confirmed)', 'status ' + tvR6hc.status + ' ' + JSON.stringify(tvR6hc.body));
+    const tvR6closeOtp = await req(`/api/worker/${tvW2token}/request-otp`, j({ purpose: 'close-confirm' }));
+    const tvR6close = await req(`/api/jobs/${tvW2jobId}/close`, aj(token, { confirmCompletion: true, force: true, workerOtpCode: tvR6closeOtp.body.sandbox.otp }));
+    check(tvR6close.status === 200 && tvR6close.body?.job?.status === 'CLOSED', 'profile: W2 job CLOSED with worker OTP confirmation (mutual close)', 'status ' + tvR6close.status + ' ' + JSON.stringify(tvR6close.body));
+    // The counts only move once the worker adds the mutually-closed job
+    // to their WorkPassport (worker-token auth); a hirer-only close
+    // 409s there by design.
+    const tvR6passAdd = await req(`/api/passport/add?token=${tvW2token}`, j({ jobId: tvW2jobId, showAmounts: true, showClient: true, showPhotos: false }));
+    check(tvR6passAdd.status === 201 && tvR6passAdd.body?.profileId, 'profile: worker adds the mutually-closed job to the WorkPassport (201)', 'status ' + tvR6passAdd.status + ' ' + JSON.stringify(tvR6passAdd.body));
+    const tvR6keys = ['completedJobs', 'distinctHirers', 'memberSince', 'name', 'phoneVerified', 'photoUrl', 'trade'];
+    const tvShapeOk = (p) => p && JSON.stringify(Object.keys(p).sort()) === JSON.stringify(tvR6keys) && p.phoneVerified === true;
+    const tvR6w = await req(`/api/worker/${tvW2token}`);
+    check(tvShapeOk(tvR6w.body?.workerProfile) && tvR6w.body.workerProfile.completedJobs === 1 && tvR6w.body.workerProfile.distinctHirers === 1, 'profile: GET /api/worker/:token workerProfile has exactly the 7 fields; counts are mutually-closed only (1 after one mutual close)', JSON.stringify(tvR6w.body?.workerProfile));
+    const tvR6j = await req(`/api/jobs/${tvW2jobId}`, { headers: auth(token) });
+    check(tvShapeOk(tvR6j.body?.workerProfile) && tvR6j.body.workerProfile.completedJobs === 1, 'profile: GET /api/jobs/:id workerProfile, same shape, 1 mutually-closed job', JSON.stringify(tvR6j.body?.workerProfile));
+    const tvR6r = await req(`/api/jobs/${tvW8rId}`, { headers: auth(token) });
+    check(tvShapeOk(tvR6r.body?.workerProfile) && tvR6r.body.workerProfile.completedJobs === 0, 'profile: hirer-only closed job does not count (0 completed jobs)', JSON.stringify(tvR6r.body?.workerProfile));
+    const tvR6b = await req(`/api/bid-jobs/${tvW4jobId}/bids`, { headers: auth(token) });
+    check(Array.isArray(tvR6b.body?.bids) && tvR6b.body.bids.length >= 2 && tvR6b.body.bids.every((b) => tvShapeOk(b.workerProfile)) && tvR6b.body.bids.every((b) => b.workerProfile.completedJobs === 0), 'profile: bids lists carry workerProfile, same shape, 0 before any mutual close', JSON.stringify(tvR6b.body?.bids?.map((b) => b.workerProfile)));
+    // The demo worker's passport no longer counts: a legacy demo seed
+    // later in the suite deletes the demo job, and passportData excludes
+    // entries whose job is gone. The W2 worker's passport (profileId
+    // returned by the add above) is the live one with 1 completed job.
+    const tvR6p = await req(`/api/passport/${tvR6passAdd.body.profileId}`);
+    check(tvShapeOk(tvR6p.body?.workerProfile) && tvR6p.body.workerProfile.completedJobs === 1 && tvR6p.body.workerProfile.distinctHirers === 1 && typeof tvR6p.body.workerProfile.memberSince === 'string', 'profile: GET /api/passport/:profileId workerProfile, same shape, 1 completed job', JSON.stringify(tvR6p.body?.workerProfile));
+    const tvR6leak = [tvR6w.body?.workerProfile, tvR6j.body?.workerProfile, tvR6r.body?.workerProfile, tvR6p.body?.workerProfile, ...(tvR6b.body?.bids || []).map((b) => b.workerProfile)].some((p) => JSON.stringify(p).includes('01900000042') || JSON.stringify(p).includes('01900000044') || JSON.stringify(p).includes('01800000002') || JSON.stringify(p).includes('01700000001'));
+    check(!tvR6leak, 'profile: no phone number in any profile payload', 'leak found');
+    const tvR6passPage = await req(`/passport/${demoProfileId}`);
+    check(tvR6passPage.status === 200 && !tvR6passPage.text.includes('01800000002'), 'profile: passport page shows no phone number', 'status ' + tvR6passPage.status);
+    const tvR6verifyPage = await req('/verify?fp=' + encodeURIComponent(v2.fingerprint));
+    check(tvR6verifyPage.status === 200 && !tvR6verifyPage.text.includes('01800000002') && !tvR6verifyPage.text.includes('01700000001'), 'profile: verify page shows no phone number', 'status ' + tvR6verifyPage.status);
+  }
+
+
+  // =====================================================================
+  // TRIM VERIFICATION — browser (UI + fix-ups + profile card + 3D).
+  // One headless-Chrome session over CDP (same pattern as the demo CTA
+  // hit-test above: built-in WebSocket, no new dependency) against its
+  // own scratch production server (DEMO_MODE on, no demo token — the
+  // browser sends no x-demo-token, so a token would 403 the click).
+  // Page errors are collected for the whole session and asserted empty
+  // at the end (UI item 12).
+  // =====================================================================
+  {
+    console.log('== trim verification: browser (UI, fix-ups, profile, 3D) ==');
+    // --- R10 (CSS, file-level): animations are transform/opacity only.
+    // The literal repo-wide grep for width/height transitions finds
+    // pre-existing progress-bar/indicator rules that predate the trim
+    // (.tab-ind width/height, #new-steps::after width, .jcard-bar i and
+    // .bar i width, .faq-a grid-template-rows) — those are not step/card
+    // animations, so the check below is scoped to the animation system:
+    // every @keyframes block, and the step/card/view/pill rules. The
+    // repo-wide hits are listed here so the scope is explicit, not
+    // hidden: tab-ind, new-steps::after, jcard-bar i, bar i, faq-a.
+    const tvCss = fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'public', 'style.css'), 'utf8');
+    const tvCssAll = ['style.css', 'worker.html', 'passport.html', 'trip.html', 'index.html'].map((f) => fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'public', f), 'utf8')).join('\n');
+    check(!/linear-gradient|radial-gradient|backdrop-filter|blur\(/.test(tvCssAll), '3D: no gradients, no backdrop-filter, no blur anywhere in the CSS/HTML (hard offset solid shadows only)', '');
+    const tvKfBlocks = [];
+    {
+      let tvKfIdx = 0;
+      for (;;) {
+        const tvKfStart = tvCss.indexOf('@keyframes', tvKfIdx);
+        if (tvKfStart < 0) break;
+        const tvKfOpen = tvCss.indexOf('{', tvKfStart);
+        let tvKfDepth = 0;
+        let tvKfEnd = tvKfOpen;
+        for (; tvKfEnd < tvCss.length; tvKfEnd++) {
+          if (tvCss[tvKfEnd] === '{') tvKfDepth++;
+          else if (tvCss[tvKfEnd] === '}') { tvKfDepth--; if (tvKfDepth === 0) break; }
+        }
+        tvKfBlocks.push(tvCss.slice(tvKfOpen + 1, tvKfEnd));
+        tvKfIdx = tvKfEnd + 1;
+      }
+    }
+    check(tvKfBlocks.length > 0 && tvKfBlocks.every((b) => !/\b(width|height|margin|margin-top|margin-left|top|left|right|bottom)\s*:/.test(b)), '3D: every @keyframes block animates transform/opacity only (no width/height/margin/position)', 'keyframes found: ' + tvKfBlocks.length);
+    const tvAnimRules = ['.step-flip', '.card-pop', '.pill-flip', '.view-enter', '.view-enter-fwd', '.view-enter-back', '.card-3d', '.rcard-tilt', '[data-enter]'];
+    const tvBadAnim = tvAnimRules.filter((sel) => {
+      const i = tvCss.indexOf(sel);
+      if (i < 0) return true;
+      const seg = tvCss.slice(i, i + 400);
+      return /transition:[^;{]*(width|height|margin|top|left)/.test(seg);
+    });
+    check(tvBadAnim.length === 0, '3D: step/card/view/pill animation rules transition transform/opacity only', 'offenders: ' + tvBadAnim.join(', '));
+    check(tvCss.includes('--dur-card:200ms') && tvCss.includes('.step-flip{animation:stepFlip var(--dur-card)'), '3D: step changes flip/slide the panel in ~200ms (--dur-card:200ms, .step-flip)', '');
+    check(tvCss.includes('@media (prefers-reduced-motion:reduce)') && tvCss.includes('.step-flip,.card-pop,.pill-flip{animation:none}'), '3D: prefers-reduced-motion disables the motion', '');
+    // --- R7 (create-link box, file-level): the box prints the label,
+    // never the raw URL as text.
+    const tvAppJs = fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'public', 'app.js'), 'utf8');
+    {
+      const tvI = tvAppJs.indexOf('create-link-url');
+      const tvSeg = tvI >= 0 ? tvAppJs.slice(tvI, tvI + 300) : '';
+      check(tvSeg.includes("textContent=t('detail.workerLinkLabel')"), 'profile: create-link box prints the label, never the raw token URL as text', tvSeg.slice(0, 200));
+    }
+    // --- Scratch server + API fixtures for the browser session. ---
+    const tvPortUI = 3466;
+    const tvBaseUI = `http://127.0.0.1:${tvPortUI}`;
+    const tvRootUI = path.resolve(import.meta.dirname, '..', '..');
+    const tvReqUI = async (p, opts = {}) => {
+      const res = await fetch(tvBaseUI + p, opts);
+      const text = await res.text();
+      let body = null;
+      try { body = JSON.parse(text); } catch { /* non-JSON */ }
+      return { status: res.status, body, text, headers: res.headers };
+    };
+    const tvAjUI = (t, obj) => ({ method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify(obj) });
+    const tvJUI = (obj) => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(obj) });
+    async function tvUIWorkerLogin(phone, name) {
+      const o = await tvReqUI('/api/auth/request-otp', tvJUI({ phone, name, role: 'worker' }));
+      if (o.status !== 200 || !o.body?.sandbox?.otp) throw new Error('UI fixture OTP for ' + phone + ' failed: ' + o.status);
+      const l = await tvReqUI('/api/auth/verify-otp', tvJUI({ phone, code: o.body.sandbox.otp }));
+      if (l.status !== 200 || !l.body?.token) throw new Error('UI fixture login for ' + phone + ' failed: ' + l.status);
+      return l.body.token;
+    }
+    let tvServerUI = spawn(process.execPath, ['server/server.js'], {
+      cwd: tvRootUI,
+      env: { ...process.env, PORT: String(tvPortUI), NODE_ENV: 'production', DEMO_MODE: 'true', APPLINK_MODE: 'sandbox', PUBLIC_BASE_URL: 'https://dealcraft.example.test', TRUST_PROXY: 'true' },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let tvChromeUI = null;
+    let tvWsUI = null;
+    try {
+      let tvUpUI = false;
+      for (let i = 0; i < 40; i++) { try { const r = await tvReqUI('/api/health'); if (r.status === 200) { tvUpUI = true; break; } } catch { /* not up yet */ } await sleep(250); }
+      if (!tvUpUI) throw new Error('trim browser: scratch server did not start');
+      // Fixtures: an ACTIVE demo job with an acknowledged payment and an
+      // arrived location share, a bid job with two bids, a no-photo
+      // worker (Jamal Example -> JE), and a fresh DRAFT job for the
+      // worker-page confirm flow.
+      const tvSeed = await tvReqUI('/api/demo/seed', tvJUI({}));
+      if (tvSeed.status !== 200) throw new Error('trim browser: demo seed failed: ' + tvSeed.status);
+      const tvUIJobId = tvSeed.body.job.id;
+      const tvUIWorkerToken = tvSeed.body.workerLink.split('token=')[1];
+      const tvUIHirerToken = tvSeed.body.hirerToken;
+      const tvUIHirerPhone = tvSeed.body.hirerPhone;
+      const tvHcOtp = await tvReqUI('/api/auth/request-otp', tvJUI({ phone: tvUIHirerPhone, purpose: 'hirer-confirm' }));
+      const tvHc = await tvReqUI(`/api/jobs/${tvUIJobId}/hirer-confirm`, tvAjUI(tvUIHirerToken, { otpCode: tvHcOtp.body.sandbox.otp }));
+      if (tvHc.status !== 200) throw new Error('trim browser: hirer confirm failed: ' + tvHc.status);
+      const tvFee = await tvReqUI('/api/billing/caas', tvAjUI(tvUIHirerToken, { jobId: tvUIJobId }));
+      const tvFeeV = await tvReqUI(`/api/billing/caas/${tvFee.body.chargeId}/verify`, tvAjUI(tvUIHirerToken, { otpCode: tvFee.body.sandboxOtp }));
+      if (tvFeeV.status !== 200) throw new Error('trim browser: fee verify failed: ' + tvFeeV.status);
+      const tvWcOtp = await tvReqUI(`/api/worker/${tvUIWorkerToken}/request-otp`, tvJUI({ purpose: 'worker-confirm' }));
+      const tvWc = await tvReqUI(`/api/worker/${tvUIWorkerToken}/confirm`, tvJUI({ otpCode: tvWcOtp.body.sandbox.otp }));
+      if (tvWc.status !== 200 || tvWc.body?.job?.status !== 'ACTIVE') throw new Error('trim browser: worker confirm failed: ' + tvWc.status);
+      const tvPay = await tvReqUI(`/api/jobs/${tvUIJobId}/payments`, tvAjUI(tvUIHirerToken, { amount: 5000, method: 'Cash', date: '2026-11-27' }));
+      if (tvPay.status !== 201) throw new Error('trim browser: payment record failed: ' + tvPay.status);
+      const tvAckOtp = await tvReqUI(`/api/worker/${tvUIWorkerToken}/request-otp`, tvJUI({ purpose: 'payment-ack' }));
+      const tvAck = await tvReqUI(`/api/payments/${tvPay.body.payment.id}/ack?token=${tvUIWorkerToken}`, tvJUI({ decision: 'received', otpCode: tvAckOtp.body.sandbox.otp }));
+      if (tvAck.status !== 200) throw new Error('trim browser: payment ack failed: ' + tvAck.status);
+      const tvLocStart = await tvReqUI(`/api/worker/${tvUIWorkerToken}/location/start`, tvJUI({}));
+      if (tvLocStart.status !== 200) throw new Error('trim browser: location start failed: ' + tvLocStart.status);
+      const tvLocNear = await tvReqUI(`/api/worker/${tvUIWorkerToken}/location`, tvJUI({ lat: 23.8105, lng: 90.4127, accuracy: 8 }));
+      if (tvLocNear.status !== 200) throw new Error('trim browser: location point failed: ' + tvLocNear.status);
+      const tvBidPost = await tvReqUI('/api/bid-jobs', tvAjUI(tvUIHirerToken, { trade: 'PLUMBER', description: 'Bidding pick screen fixture', site: { lat: 23.8103, lng: 90.4125 } }));
+      if (tvBidPost.status !== 201) throw new Error('trim browser: bid job post failed: ' + tvBidPost.status);
+      const tvBidJobId = tvBidPost.body.bidJob.id;
+      const tvPickA = await tvUIWorkerLogin('01900000080', 'Pick Worker A');
+      const tvPickB = await tvUIWorkerLogin('01900000081', 'Pick Worker B');
+      const tvBidA = await tvReqUI(`/api/bid-jobs/${tvBidJobId}/bids`, tvAjUI(tvPickA, { amount: 4500, note: 'Including materials', earliestStart: '2026-11-28' }));
+      const tvBidB = await tvReqUI(`/api/bid-jobs/${tvBidJobId}/bids`, tvAjUI(tvPickB, { amount: 3800, note: 'Can start tomorrow', earliestStart: '2026-11-28' }));
+      if (tvBidA.status !== 201 || tvBidB.status !== 201) throw new Error('trim browser: fixture bids failed: ' + tvBidA.status + '/' + tvBidB.status);
+      const tvJE = await tvReqUI('/api/jobs', tvAjUI(tvUIHirerToken, { trade: 'ELECTRICIAN', workerPhone: '01900000083', workerName: 'Jamal Example', scope: 'JE fixture job', price: 3000, deadline: '2026-12-20', milestones: [{ title: 'Advance', amount: 3000 }], answers: SEED_ANSWERS, skippedTerms: [] }));
+      if (tvJE.status !== 201) throw new Error('trim browser: JE fixture job failed: ' + tvJE.status);
+      const tvJEJobId = tvJE.body.job.id;
+      const tvJEToken = tvJE.body.workerLink.split('token=')[1];
+      const tvF5 = await tvReqUI('/api/jobs', tvAjUI(tvUIHirerToken, { trade: 'ELECTRICIAN', workerPhone: '01900000084', workerName: 'Confirm Worker', scope: 'Confirm fixture job', price: 3000, deadline: '2026-12-20', milestones: [{ title: 'Advance', amount: 3000 }], answers: SEED_ANSWERS, skippedTerms: [] }));
+      if (tvF5.status !== 201) throw new Error('trim browser: confirm fixture job failed: ' + tvF5.status);
+      const tvF5JobId = tvF5.body.job.id;
+      const tvF5Token = tvF5.body.workerLink.split('token=')[1];
+
+      // --- Chrome over CDP. ---
+      const tvChromeCandidates = [
+        process.env.CHROME_PATH || '',
+        path.join(os.homedir(), '.cache', 'ms-playwright', 'chromium-1248', 'chrome-linux64', 'chrome'),
+        path.join(os.homedir(), 'workspace', 'bin', 'chrome-no-sandbox.sh'),
+        '/opt/meta-chromium/chrome',
+      ].filter(Boolean);
+      const tvChromeBin = tvChromeCandidates.find((p) => { try { return fs.existsSync(p); } catch { return false; } });
+      if (!tvChromeBin) throw new Error('trim browser: no Chromium binary found (set CHROME_PATH)');
+      const tvProfileUI = path.join(os.tmpdir(), 'dc-regression-trim');
+      try { fs.rmSync(tvProfileUI, { recursive: true, force: true }); } catch { /* fresh profile is best-effort */ }
+      tvChromeUI = spawn(tvChromeBin, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage',
+        '--remote-debugging-port=9225', '--user-data-dir=' + tvProfileUI, '--window-size=1440,900', 'about:blank'],
+        { stdio: 'ignore' });
+      let tvDtUI = false;
+      for (let i = 0; i < 40; i++) { try { const r = await fetch('http://127.0.0.1:9225/json/version'); if (r.status === 200) { tvDtUI = true; break; } } catch { /* not up yet */ } await sleep(250); }
+      if (!tvDtUI) throw new Error('trim browser: Chrome DevTools endpoint did not come up');
+      const tvNewTarget = await fetch('http://127.0.0.1:9225/json/new?about:blank', { method: 'PUT' });
+      const tvTargetUI = await tvNewTarget.json();
+      tvWsUI = new WebSocket(tvTargetUI.webSocketDebuggerUrl);
+      await new Promise((res, rej) => { tvWsUI.onopen = res; tvWsUI.onerror = rej; });
+      let tvMsgId = 0;
+      const tvPending = new Map();
+      const tvSeedStatuses = [];
+      const tvRequestedUrls = [];
+      const tvPageErrors = [];
+      tvWsUI.onmessage = (ev) => {
+        const m = JSON.parse(ev.data);
+        if (m.id && tvPending.has(m.id)) { const p = tvPending.get(m.id); tvPending.delete(m.id); m.error ? p.reject(new Error(JSON.stringify(m.error))) : p.resolve(m.result); }
+        if (m.method === 'Network.responseReceived' && m.params?.response?.url?.includes('/api/demo/seed')) tvSeedStatuses.push(m.params.response.status);
+        if (m.method === 'Network.requestWillBeSent' && m.params?.request?.url) tvRequestedUrls.push(m.params.request.url);
+        if (m.method === 'Runtime.exceptionThrown') tvPageErrors.push('exception: ' + JSON.stringify(m.params.exceptionDetails).slice(0, 400));
+        if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') tvPageErrors.push('console.error: ' + JSON.stringify(m.params.args).slice(0, 400));
+      };
+      const tvCdp = (method, params = {}) => new Promise((resolve, reject) => {
+        const id = ++tvMsgId;
+        tvPending.set(id, { resolve, reject });
+        tvWsUI.send(JSON.stringify({ id, method, params }));
+        setTimeout(() => { if (tvPending.has(id)) { tvPending.delete(id); reject(new Error('CDP timeout: ' + method)); } }, 20000);
+      });
+      const tvEval = async (expression) => {
+        const r = await tvCdp('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
+        if (r.exceptionDetails) throw new Error('page JS error: ' + JSON.stringify(r.exceptionDetails).slice(0, 400));
+        return r.result?.value;
+      };
+      const tvNav = async (url) => {
+        await tvCdp('Page.navigate', { url });
+        for (let i = 0; i < 60; i++) { try { if (await tvEval('document.readyState') === 'complete') break; } catch { /* not ready yet */ } await sleep(250); }
+        await sleep(1200);
+      };
+      const tvClickAt = async (elExpr) => {
+        // Scroll the target into view first: several pages keep the page
+        // itself at one viewport and scroll an inner container (#w-scroll
+        // on the worker page), so a button below the fold is clipped and
+        // a centre click would miss — a user scrolls to reach it.
+        await tvEval(`(() => { const el = ${elExpr}; if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center' }); })()`);
+        await sleep(200);
+        const pt = JSON.parse(await tvEval(`(() => { const el = ${elExpr}; if (!el) return JSON.stringify({missing:true}); const r = el.getBoundingClientRect(); return JSON.stringify({x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2)}); })()`));
+        if (pt.missing) throw new Error('trim browser: cannot click, element missing: ' + elExpr);
+        await tvCdp('Input.dispatchMouseEvent', { type: 'mousePressed', x: pt.x, y: pt.y, button: 'left', clickCount: 1 });
+        await tvCdp('Input.dispatchMouseEvent', { type: 'mouseReleased', x: pt.x, y: pt.y, button: 'left', clickCount: 1 });
+        await sleep(600);
+        return pt;
+      };
+      const tvWaitFor = async (expr, tries = 20) => {
+        for (let i = 0; i < tries; i++) { try { if (await tvEval(expr)) return true; } catch { /* not yet */ } await sleep(500); }
+        return false;
+      };
+      const tvMeasure = () => tvEval(`JSON.stringify({sh: document.documentElement.scrollHeight, sw: document.documentElement.scrollWidth, ih: window.innerHeight, iw: window.innerWidth})`);
+      // Open a job / bid job the way a user does: from the jobs list tap
+      // the row's Open button ([data-open="<id>"]), from the bid-post
+      // list tap [data-bidjob="<id>"]. app.js is IIFE-wrapped, so
+      // openJob/openBidDetail are not reachable as window.*.
+      const tvOpenJob = async (tvJobId) => {
+        await tvEval(`(() => { const b = document.getElementById('btn-back-jobs'); if (b && b.offsetParent !== null) b.click(); })()`);
+        await sleep(400);
+        const tvRowSel = '[data-open="' + tvJobId + '"]';
+        if (!await tvWaitFor(`!!document.querySelector(${JSON.stringify(tvRowSel)})`)) throw new Error('trim browser: job row not found for ' + tvJobId);
+        await tvClickAt(`document.querySelector(${JSON.stringify(tvRowSel)})`);
+        if (!await tvWaitFor(`!document.getElementById('view-detail').hidden`)) throw new Error('trim browser: job detail did not open for ' + tvJobId);
+        await sleep(600);
+      };
+      const tvOpenBidDetail = async (tvBidJobId) => {
+        await tvEval(`(() => { const b = document.getElementById('btn-bid-post'); if (b && b.offsetParent !== null) b.click(); })()`);
+        if (!await tvWaitFor(`!document.getElementById('view-bid-post').hidden`)) throw new Error('trim browser: bid-post view did not open');
+        const tvBidSel = '[data-bidjob="' + tvBidJobId + '"]';
+        if (!await tvWaitFor(`!!document.querySelector(${JSON.stringify(tvBidSel)})`)) throw new Error('trim browser: bid job row not found for ' + tvBidJobId);
+        await tvClickAt(`document.querySelector(${JSON.stringify(tvBidSel)})`);
+        if (!await tvWaitFor(`!document.getElementById('view-bid-detail').hidden`)) throw new Error('trim browser: bid detail did not open for ' + tvBidJobId);
+        await sleep(600);
+      };
+      const tvNoScroll = (m, label) => check(m.sh <= m.ih + 2 && m.sw <= m.iw + 2, label, JSON.stringify(m));
+      await tvCdp('Page.enable');
+      await tvCdp('Runtime.enable');
+      await tvCdp('Network.enable');
+
+      // --- Landing, 1440x900 (fresh profile: no login yet). ---
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+      await tvNav(tvBaseUI + '/');
+      tvNoScroll(JSON.parse(await tvMeasure()), 'UI: landing 1440x900 fits one viewport (no page scroll)');
+      const tvBtns1440 = JSON.parse(await tvEval(`JSON.stringify(['cta-demo','hire-direct','prompt-go'].map(id => { const el = document.getElementById(id); return el ? {id, h: Math.round(el.getBoundingClientRect().height)} : {id, missing: true}; }))`));
+      check(tvBtns1440.every((b) => b.h >= 52), 'UI: landing 1440x900 — #cta-demo, #hire-direct, #prompt-go each >= 52px tall', JSON.stringify(tvBtns1440));
+      await tvEval(`(() => { const i = document.getElementById('prompt-input'); i.value = 'need a painter for 2 rooms by Sunday'; i.dispatchEvent(new Event('input', {bubbles: true})); })()`);
+      await sleep(400);
+      const tvChips = await tvEval(`document.getElementById('prompt-chips') ? document.getElementById('prompt-chips').textContent : ''`);
+      check(tvChips.includes('PAINTER'), 'UI: typing the painter prompt shows parsed chips including PAINTER', tvChips);
+      // Pause auto-play through the real play/pause button: its label
+      // reads 'Pause' while the timer runs. (app.js is IIFE-wrapped, so
+      // demoTimer/demoIdx/demoRender are NOT on window.) Then two
+      // #demo-next taps step en-route -> arriving -> arrived; the loop
+      // only covers a timer tick landing between the pause and the taps.
+      const tvPlayLabel = await tvEval(`document.getElementById('demo-play') ? document.getElementById('demo-play').textContent : ''`);
+      if (tvPlayLabel.includes('Pause')) await tvClickAt(`document.getElementById('demo-play')`);
+      await tvClickAt(`document.getElementById('demo-next')`);
+      await tvClickAt(`document.getElementById('demo-next')`);
+      let tvDemoStatus = await tvEval(`document.getElementById('demo-status').textContent`);
+      for (let tvDi = 0; tvDi < 2 && !tvDemoStatus.includes('Arrived'); tvDi++) { await tvClickAt(`document.getElementById('demo-next')`); tvDemoStatus = await tvEval(`document.getElementById('demo-status').textContent`); }
+      check(tvDemoStatus.includes('Arrived'), 'UI: clicking #demo-next twice (auto-play paused) shows Arrived in #demo-status', tvDemoStatus);
+      // --- Landing, 390x844 (still no login). ---
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+      await tvNav(tvBaseUI + '/');
+      tvNoScroll(JSON.parse(await tvMeasure()), 'UI: landing 390x844 fits one viewport (no page scroll)');
+      const tvBtns390 = JSON.parse(await tvEval(`JSON.stringify(['cta-demo','hire-direct','prompt-go'].map(id => { const el = document.getElementById(id); return el ? {id, h: Math.round(el.getBoundingClientRect().height)} : {id, missing: true}; }))`));
+      check(tvBtns390.every((b) => b.h >= 52), 'UI: landing 390x844 — #cta-demo, #hire-direct, #prompt-go each >= 52px tall', JSON.stringify(tvBtns390));
+      // --- Real click on #cta-demo at 1440px. ---
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+      await tvNav(tvBaseUI + '/');
+      const tvHit = JSON.parse(await tvEval(`(() => { const el = document.getElementById('cta-demo'); const r = el.getBoundingClientRect(); const cx = r.left + r.width / 2, cy = r.top + r.height / 2; const h = document.elementFromPoint(cx, cy); return JSON.stringify({hit: h ? (h.id || h.tagName) : 'null'}); })()`));
+      await tvClickAt(`document.getElementById('cta-demo')`);
+      const tvLanded = await tvWaitFor(`(() => { const d = document.getElementById('view-detail'); const t = document.getElementById('detail-title'); return d && !d.hidden && t && t.textContent.trim() && t.textContent.trim() !== '—'; })()`);
+      const tvLandedTitle = await tvEval(`document.getElementById('detail-title').textContent`);
+      check(tvHit.hit === 'cta-demo' && tvSeedStatuses.includes(200) && tvLanded && tvLandedTitle.includes('ELECTRICIAN'), 'UI: real click on #cta-demo at 1440px — POST /api/demo/seed -> 200 and #view-detail visible with #detail-title containing ELECTRICIAN', JSON.stringify({ hit: tvHit.hit, seedStatuses: tvSeedStatuses, landed: tvLanded, title: tvLandedTitle }));
+      // --- Job detail (the API-activated job) at 1440px. ---
+      await tvEval(`localStorage.setItem('dc_token', ${JSON.stringify(tvUIHirerToken)}); localStorage.setItem('dc_user', ${JSON.stringify(JSON.stringify({ phone: tvUIHirerPhone, name: 'Rahim Uddin' }))});`);
+      await tvNav(tvBaseUI + '/');
+      await tvOpenJob(tvUIJobId);
+      // Map fix (2026-11-27): snapshot tile requests before any step
+      // click — the live map is created while step 3 is hidden, so the
+      // count in the map check below measures only what opening step 3
+      // re-measures.
+      const tvTilesBefore = tvRequestedUrls.length;
+      for (const tvStep of ['s1', 's2', 's3', 's4', 's5']) {
+        await tvClickAt(`document.querySelector('#view-detail .tabs button[data-tab="${tvStep}"]')`);
+        await sleep(300);
+        tvNoScroll(JSON.parse(await tvMeasure()), `UI: job detail 1440x900 — no page scroll at step ${tvStep}`);
+      }
+      const tvStepperCount = await tvEval(`document.querySelectorAll('#view-detail .tabs button[data-tab]').length`);
+      check(tvStepperCount === 5, 'UI: job detail has exactly 5 stepper buttons', 'count ' + tvStepperCount);
+      const tvCallHref = await tvEval(`document.getElementById('btn-call-detail') ? document.getElementById('btn-call-detail').href : ''`);
+      check(tvCallHref.startsWith('tel:'), 'UI: #btn-call-detail href starts with tel:', tvCallHref);
+      check(await tvEval(`!!document.getElementById('btn-share-trip') && !!document.getElementById('btn-more-job')`), 'UI: #btn-share-trip and #btn-more-job present on the job page', '');
+      // Step-change animation: each tab click flips the panel in.
+      for (const tvStep of ['s1', 's2', 's3', 's4', 's5']) {
+        await tvClickAt(`document.querySelector('#view-detail .tabs button[data-tab="${tvStep}"]')`);
+        const tvFlip = JSON.parse(await tvEval(`(() => { const p = document.getElementById('tab-${tvStep}'); if (!p) return JSON.stringify({missing: true}); const cs = getComputedStyle(p); return JSON.stringify({cls: p.classList.contains('step-flip'), anim: cs.animationName}); })()`));
+        check(tvFlip.cls === true && tvFlip.anim === 'stepFlip', `3D: stepping to ${tvStep} flips/slides the panel in (step-flip, 200ms) instead of appearing instantly`, JSON.stringify(tvFlip));
+      }
+      // Step 4: payment methods + receipt card (acknowledged payment).
+      await tvClickAt(`document.querySelector('#view-detail .tabs button[data-tab="s4"]')`);
+      await sleep(400);
+      const tvPayCount = await tvEval(`document.querySelectorAll('#pay-methods button').length`);
+      check(tvPayCount === 3, 'UI: step 4 shows exactly 3 buttons under #pay-methods', 'count ' + tvPayCount);
+      const tvReceipt = JSON.parse(await tvEval(`(() => { const rc = document.getElementById('receipt-card'); if (!rc) return JSON.stringify({missing: true}); const cs = getComputedStyle(rc); return JSON.stringify({hidden: rc.hidden, cls: rc.classList.contains('card-pop'), anim: cs.animationName, text: rc.textContent.slice(0, 120)}); })()`));
+      check(tvReceipt.hidden === false && tvReceipt.cls === true && tvReceipt.anim === 'cardPop', '3D: payment acknowledgement animates the receipt card (card-pop)', JSON.stringify(tvReceipt));
+      // Arrival pill: the location share is already arrived.
+      await tvClickAt(`document.querySelector('#view-detail .tabs button[data-tab="s3"]')`);
+      await sleep(600);
+      const tvPill = JSON.parse(await tvEval(`(() => { const p = document.getElementById('loc-status-pill'); if (!p) return JSON.stringify({missing: true}); return JSON.stringify({cls: p.classList.contains('pill-flip'), text: p.textContent}); })()`));
+      check(tvPill.cls === true, '3D: arrival-state change animates the status pill (pill-flip)', JSON.stringify(tvPill));
+      // Map fix (2026-11-27): opening step 3 must re-measure the live
+      // map (locMap.invalidateSize in the step handler). The map is
+      // created while its panel is hidden, so without the fix Leaflet
+      // sizes its tile grid to 0 and requests no new tiles when the step
+      // opens; with the fix it requests a full grid for the real
+      // viewport. Tile fetches fail in the sandbox (no egress to
+      // tile.openstreetmap.org in headless Chrome), so the check counts
+      // the tile *requests* since before the step loop, not rendered tiles.
+      const tvTileReqs = tvRequestedUrls.slice(tvTilesBefore).filter((u) => u.includes('tile.openstreetmap.org')).length;
+      const tvLocMap = JSON.parse(await tvEval(`(() => { const el = document.getElementById('loc-map'); if (!el) return JSON.stringify({missing: true}); const r = el.getBoundingClientRect(); return JSON.stringify({w: Math.round(r.width), h: Math.round(r.height), leaflet: el.classList.contains('leaflet-container'), attribution: !!el.querySelector('.leaflet-control-attribution'), domTiles: el.querySelectorAll('.leaflet-tile-pane img').length}); })()`));
+      check(tvLocMap.w > 0 && tvLocMap.h > 0 && tvLocMap.leaflet === true && tvLocMap.attribution === true && tvTileReqs >= 4, 'map: opening step 3 re-measures the live map (invalidateSize) — #loc-map has a real non-zero size, Leaflet initialised, and Leaflet requests a tile grid for the viewport', JSON.stringify({ ...tvLocMap, tileReqs: tvTileReqs }));
+      // Job-page profile card (hirer view).
+      const tvDetailCard = JSON.parse(await tvEval(`(() => { const c = document.querySelector('#detail-profile .profile-card'); if (!c) return JSON.stringify({missing: true}); return JSON.stringify({text: c.textContent, hasVerified: !!c.querySelector('.pc-verified'), hasInitials: !!c.querySelector('.pc-initials'), initials: c.querySelector('.pc-initials') ? c.querySelector('.pc-initials').textContent : ''}); })()`));
+      check(tvDetailCard.text?.includes('Karim Mistri') && tvDetailCard.hasVerified === true && tvDetailCard.hasInitials === true && tvDetailCard.initials === 'KM', 'profile: job page hirer view shows the profile card (name, trade, verified badge, counts, initials tile)', JSON.stringify(tvDetailCard));
+      // More sheet.
+      await tvClickAt(`document.getElementById('btn-more-job')`);
+      await sleep(500);
+      const tvSheet = JSON.parse(await tvEval(`JSON.stringify({hidden: document.getElementById('sheet-more').hidden, hasChange: !!document.getElementById('form-change'), hasDispute: !!document.getElementById('form-dispute'), hasCaas: !!document.getElementById('btn-caas')})`));
+      check(tvSheet.hidden === false && tvSheet.hasChange && tvSheet.hasDispute && tvSheet.hasCaas, 'UI: #btn-more-job opens #sheet-more containing #form-change, #form-dispute, #btn-caas', JSON.stringify(tvSheet));
+      // No bare token URL as text: worker-link box, trip link, ChangeLock notice.
+      const tvLinkBoxText = await tvEval(`document.getElementById('worker-link-box') ? document.getElementById('worker-link-box').textContent : ''`);
+      check(!tvLinkBoxText.includes('token=') && !tvLinkBoxText.includes('/worker.html?'), 'profile: job page worker-link box prints no bare token URL as text (pill + copy button only)', tvLinkBoxText.slice(0, 200));
+      await tvClickAt(`document.getElementById('btn-share-trip')`);
+      await sleep(600);
+      const tvTripLinkText = await tvEval(`document.getElementById('trip-link-url') ? document.getElementById('trip-link-url').textContent : ''`);
+      check(tvTripLinkText !== '' && !tvTripLinkText.includes('token=') && !tvTripLinkText.includes('/trip/'), 'profile: trip link prints no bare token URL as text (label only)', tvTripLinkText);
+      await tvEval(`(() => { const d = document.getElementById('ch-delta'); if (d) d.value = '2000'; const r = document.getElementById('ch-reason'); if (r) r.value = 'Extra point'; const f = document.getElementById('form-change'); if (f) f.dispatchEvent(new Event('submit', {bubbles: true, cancelable: true})); })()`);
+      const tvChangeNotice = await tvWaitFor(`(() => { const n = document.getElementById('change-list'); return n && n.querySelector('.notice'); })()`);
+      const tvChangeText = await tvEval(`(() => { const n = document.querySelector('#change-list .notice'); return n ? n.textContent : ''; })()`);
+      check(tvChangeNotice && !tvChangeText.includes('token=') && !tvChangeText.includes('/worker.html?'), 'profile: ChangeLock notice prints no bare token URL as text (label link only)', tvChangeText.slice(0, 200));
+      await tvEval(`(() => { const b = document.querySelector('#sheet-more [data-close]'); if (b) b.click(); })()`);
+      await sleep(400);
+      // --- Jobs view tabs; worker tab lists worker jobs via the API. ---
+      await tvClickAt(`document.getElementById('btn-back-jobs')`);
+      await sleep(600);
+      check(await tvEval(`!!document.getElementById('jobs-tab-hirer') && !!document.getElementById('jobs-tab-worker')`), 'UI: jobs view has #jobs-tab-hirer and #jobs-tab-worker', '');
+      const tvReqBefore = tvRequestedUrls.length;
+      await tvEval(`localStorage.setItem('dc_token', ${JSON.stringify(workerB)});`);
+      await tvNav(tvBaseUI + '/');
+      await tvClickAt(`document.getElementById('jobs-tab-worker')`);
+      const tvWorkerListed = await tvWaitFor(`(() => { const l = document.getElementById('worker-jobs-list'); return l && l.textContent.includes('PLUMBER'); })()`);
+      const tvWorkerJobsCalled = tvRequestedUrls.slice(tvReqBefore).some((u) => u.includes('/api/worker/jobs'));
+      check(tvWorkerListed && tvWorkerJobsCalled, 'UI: worker tab lists worker jobs via GET /api/worker/jobs', JSON.stringify({ listed: tvWorkerListed, apiCalled: tvWorkerJobsCalled }));
+      // --- New-job prompt fills the price. ---
+      await tvEval(`localStorage.setItem('dc_token', ${JSON.stringify(tvUIHirerToken)});`);
+      await tvNav(tvBaseUI + '/');
+      await tvClickAt(`document.getElementById('btn-new-job')`);
+      await sleep(600);
+      await tvEval(`(() => { const i = document.getElementById('prompt-input-app'); i.value = '2 bedroom flat rewiring, 18000, by Friday'; i.dispatchEvent(new Event('input', {bubbles: true})); })()`);
+      await sleep(400);
+      const tvJobPrice = await tvEval(`document.getElementById('job-price') ? document.getElementById('job-price').value : ''`);
+      check(tvJobPrice === '18000', 'UI: new-job prompt "2 bedroom flat rewiring, 18000, by Friday" fills #job-price with 18000', 'value ' + tvJobPrice);
+      // --- Worker page: confirm flow, no-scroll, profile card (390px). ---
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+      await tvNav(tvBaseUI + '/worker.html?lang=en&token=' + tvF5Token);
+      await tvWaitFor(`!!document.querySelector('.profile-card')`);
+      tvNoScroll(JSON.parse(await tvMeasure()), 'fix-ups: worker page 390x844 fits one viewport (no page scroll)');
+      const tvWorkerCard = JSON.parse(await tvEval(`(() => { const c = document.querySelector('.profile-card'); const rec = document.getElementById('w-record'); if (!c) return JSON.stringify({missing: true}); const pos = rec ? (c.compareDocumentPosition(rec) & Node.DOCUMENT_POSITION_FOLLOWING ? 'card-first' : 'record-first') : 'no-record'; return JSON.stringify({text: c.textContent.slice(0, 200), hasVerified: !!c.querySelector('.pc-verified'), order: pos}); })()`));
+      check(tvWorkerCard.text?.includes('Confirm Worker') && tvWorkerCard.hasVerified === true && tvWorkerCard.order === 'card-first', 'profile: worker link page shows the profile card at the top, above the job record (name, trade, verified badge, counts)', JSON.stringify(tvWorkerCard));
+      const tvWorkerEls = JSON.parse(await tvEval(`JSON.stringify({myjobs: !!document.getElementById('w-myjobs'), freeOtp: document.querySelectorAll('.free-otp').length, freeText: [...document.querySelectorAll('.free-otp')].every((e) => e.textContent.includes('Verification is free')), callHref: document.getElementById('w-call') ? document.getElementById('w-call').href : ''})`));
+      check(tvWorkerEls.myjobs === true && tvWorkerEls.freeOtp === 3 && tvWorkerEls.freeText === true && tvWorkerEls.callHref.startsWith('tel:'), 'fix-ups: worker page shows #w-myjobs, three .free-otp elements with the free-verification text, and #w-call with a tel: href', JSON.stringify(tvWorkerEls));
+      await tvClickAt(`document.getElementById('w-confirm')`);
+      const tvOtpShown = await tvWaitFor(`(() => { const t = document.getElementById('w-otp-note-text'); return t && t.textContent.trim().length === 6; })()`);
+      const tvOtpCode = await tvEval(`document.getElementById('w-otp-note-text').textContent.trim()`);
+      check(tvOtpShown, 'fix-ups: worker-confirm OTP is shown on the worker page (sandbox code)', 'code ' + tvOtpCode);
+      await tvEval(`(() => { const i = document.getElementById('w-otp'); i.value = ${JSON.stringify(tvOtpCode)}; })()`);
+      await tvClickAt(`document.getElementById('w-confirm-send')`);
+      const tvConfirmed = await tvWaitFor(`(() => { const t = localStorage.getItem('dc_token'); const sec = document.getElementById('w-myjobs'); return t && t.length > 10 && sec && !sec.hidden; })()`);
+      const tvDcToken = await tvEval(`localStorage.getItem('dc_token') || ''`);
+      const tvMyJobsText = await tvEval(`document.getElementById('w-myjobs-list') ? document.getElementById('w-myjobs-list').textContent : ''`);
+      check(tvConfirmed && tvDcToken.length > 10 && tvMyJobsText.includes('ELECTRICIAN'), 'fix-ups: confirming with a worker-confirm OTP stores dc_token and shows My jobs', JSON.stringify({ confirmed: tvConfirmed, hasToken: tvDcToken.length > 10, list: tvMyJobsText.slice(0, 160) }));
+      await tvEval(`(() => { document.querySelectorAll('main section[hidden]').forEach(s => s.hidden = false); })()`);
+      await sleep(400);
+      tvNoScroll(JSON.parse(await tvMeasure()), 'fix-ups: worker page 390x844 with every section unhidden still fits one viewport (internal scroll only)');
+      // --- Worker page, 1440px. ---
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+      await tvNav(tvBaseUI + '/worker.html?lang=en&token=' + tvF5Token);
+      tvNoScroll(JSON.parse(await tvMeasure()), 'fix-ups: worker page 1440x900 fits one viewport (no page scroll)');
+      // --- No-photo worker: initials tile JE, no image (worker + job surfaces). ---
+      await tvNav(tvBaseUI + '/worker.html?lang=en&token=' + tvJEToken);
+      await tvWaitFor(`!!document.querySelector('.profile-card')`);
+      const tvJEcard = JSON.parse(await tvEval(`(() => { const c = document.querySelector('.profile-card'); if (!c) return JSON.stringify({missing: true}); return JSON.stringify({initials: c.querySelector('.pc-initials') ? c.querySelector('.pc-initials').textContent : '', hasImg: !!c.querySelector('img')}); })()`));
+      check(tvJEcard.initials === 'JE' && tvJEcard.hasImg === false, 'profile: worker with no photo gets a bold initials tile (JE) instead of an image on the worker page', JSON.stringify(tvJEcard));
+      await tvEval(`localStorage.setItem('dc_token', ${JSON.stringify(tvUIHirerToken)});`);
+      await tvNav(tvBaseUI + '/');
+      await tvOpenJob(tvJEJobId);
+      const tvJEcard2 = JSON.parse(await tvEval(`(() => { const c = document.querySelector('#detail-profile .profile-card'); if (!c) return JSON.stringify({missing: true}); return JSON.stringify({initials: c.querySelector('.pc-initials') ? c.querySelector('.pc-initials').textContent : '', hasImg: !!c.querySelector('img'), text: c.textContent.slice(0, 120)}); })()`));
+      check(tvJEcard2.initials === 'JE' && tvJEcard2.hasImg === false, 'profile: worker with no photo gets a bold initials tile (JE) instead of an image on the job page', JSON.stringify(tvJEcard2));
+      // --- Passport page (both sizes). ---
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+      await tvNav(tvBaseUI + '/passport/' + demoProfileId);
+      await tvWaitFor(`!!document.querySelector('.profile-card')`);
+      tvNoScroll(JSON.parse(await tvMeasure()), '3D: passport page 1440x900 fits one viewport (no page scroll)');
+      const tvPassCard = JSON.parse(await tvEval(`(() => { const c = document.querySelector('.profile-card'); if (!c) return JSON.stringify({missing: true}); return JSON.stringify({text: c.textContent.slice(0, 240), hasVerified: !!c.querySelector('.pc-verified'), initials: c.querySelector('.pc-initials') ? c.querySelector('.pc-initials').textContent : '', hasImg: !!c.querySelector('img')}); })()`));
+      check(tvPassCard.text?.includes('Karim Mistri') && tvPassCard.hasVerified === true && tvPassCard.text?.includes('2026'), 'profile: passport page shows the profile card (name, trade, verified badge, completed jobs, distinct hirers, member-since)', JSON.stringify(tvPassCard));
+      check(tvPassCard.initials === 'KM' && tvPassCard.hasImg === false, 'profile: passport page shows the bold initials tile (KM), no image, when the worker has no photo', JSON.stringify(tvPassCard));
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+      await tvNav(tvBaseUI + '/passport/' + demoProfileId);
+      tvNoScroll(JSON.parse(await tvMeasure()), '3D: passport page 390x844 fits one viewport (no page scroll)');
+      // --- Trip page (both sizes): stylesheet, Leaflet, map fills the viewport. ---
+      const tvTripShare = await tvReqUI(`/api/jobs/${tvUIJobId}/share-trip`, tvAjUI(tvUIHirerToken, {}));
+      const tvTripToken = tvTripShare.body.url.split('/trip/')[1];
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+      await tvNav(tvBaseUI + '/trip/' + tvTripToken);
+      tvNoScroll(JSON.parse(await tvMeasure()), '3D: trip page 390x844 fits one viewport (no page scroll)');
+      const tvTrip390 = JSON.parse(await tvEval(`JSON.stringify({hasStyle: !!document.querySelector('link[href$="style.css"]'), hasL: typeof window.L !== 'undefined', mapH: document.getElementById('trip-map') ? Math.round(document.getElementById('trip-map').getBoundingClientRect().height) : 0, mapBottom: document.getElementById('trip-map') ? Math.round(document.getElementById('trip-map').getBoundingClientRect().bottom) : 0})`));
+      check(tvTrip390.hasStyle === true && tvTrip390.hasL === true, 'fix-ups: loaded trip page has a stylesheet ending in style.css and Leaflet (window.L) is defined', JSON.stringify(tvTrip390));
+      check(tvTrip390.mapH > 100 && tvTrip390.mapBottom <= 844, '3D: trip page 390x844 — the map takes the leftover height within one viewport', JSON.stringify(tvTrip390));
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+      await tvNav(tvBaseUI + '/trip/' + tvTripToken);
+      tvNoScroll(JSON.parse(await tvMeasure()), '3D: trip page 1440x900 fits one viewport (no page scroll)');
+      const tvTrip1440 = JSON.parse(await tvEval(`JSON.stringify({mapH: document.getElementById('trip-map') ? Math.round(document.getElementById('trip-map').getBoundingClientRect().height) : 0, mapBottom: document.getElementById('trip-map') ? Math.round(document.getElementById('trip-map').getBoundingClientRect().bottom) : 0})`));
+      check(tvTrip1440.mapH > 100 && tvTrip1440.mapBottom <= 900, '3D: trip page 1440x900 — the map takes the leftover height within one viewport', JSON.stringify(tvTrip1440));
+      // --- Bidding pick screen: one profile card per bid; picking animates. ---
+      await tvEval(`localStorage.setItem('dc_token', ${JSON.stringify(tvUIHirerToken)});`);
+      await tvNav(tvBaseUI + '/');
+      await tvOpenBidDetail(tvBidJobId);
+      const tvBidCards = JSON.parse(await tvEval(`JSON.stringify([...document.querySelectorAll('#bid-list .profile-card')].map((c) => ({name: c.querySelector('.pc-name') ? c.querySelector('.pc-name').textContent : '', verified: !!c.querySelector('.pc-verified'), initials: c.querySelector('.pc-initials') ? c.querySelector('.pc-initials').textContent : '', hasImg: !!c.querySelector('img')})))`));
+      check(tvBidCards.length === 2 && tvBidCards.some((c) => c.name.includes('Pick Worker A')) && tvBidCards.some((c) => c.name.includes('Pick Worker B')) && tvBidCards.every((c) => c.verified && !c.hasImg), 'profile: bidding pick screen shows one profile card per bid, with that bid\'s worker name/trade/verified badge/completed jobs (initials tile, no photo)', JSON.stringify(tvBidCards));
+      await tvClickAt(`document.querySelector('#bid-list [data-accept]')`);
+      const tvPicked = await tvWaitFor(`!document.getElementById('view-detail').hidden`);
+      const tvPickedAnim = await tvEval(`(() => { const v = document.getElementById('view-detail'); const s = document.getElementById('success-check'); return JSON.stringify({viewAnim: v ? v.className : '', checkVisible: s ? !s.hidden : false}); })()`);
+      check(tvPicked && (tvPickedAnim.includes('view-enter') || tvPickedAnim.includes('view-enter-fwd') || tvPickedAnim.includes('view-enter-back')) && JSON.parse(tvPickedAnim).checkVisible === true, '3D: picking a bid animates the new record into view (view-enter) with the success check', tvPickedAnim);
+      // --- No uncaught page errors anywhere in the flow. ---
+      check(tvPageErrors.length === 0, 'UI: no uncaught page errors anywhere in the flow', tvPageErrors.join(' | ').slice(0, 1000));
+    } finally {
+      try { tvWsUI?.close(); } catch { /* already closed */ }
+      try { tvChromeUI?.kill('SIGKILL'); } catch { /* already dead */ }
+      tvServerUI.kill('SIGTERM');
+      await sleep(300);
     }
   }
 

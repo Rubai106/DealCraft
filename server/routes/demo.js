@@ -117,6 +117,21 @@ function clearDemoNamespace(visitor) {
     db.prepare('DELETE FROM ChangeProposal WHERE job_id = ?').run(id);
     db.prepare('DELETE FROM Billing WHERE job_id = ?').run(id);
     db.prepare('DELETE FROM PassportEntry WHERE job_id = ?').run(id);
+    // FK children that were missed: a shared live-trip link
+    // (TripShare.job_id REFERENCES Job) and a bid job accepted into
+    // this job (BidJob.job_id REFERENCES Job) both block DELETE FROM
+    // Job — re-seeding a demo that had shared its trip crashed the
+    // server with FOREIGN KEY constraint failed. Delete them (and the
+    // linked bid job's own bids/photos, and the job's SMS log rows)
+    // before the parent Job row.
+    db.prepare('DELETE FROM TripShare WHERE job_id = ?').run(id);
+    db.prepare('DELETE FROM SmsLog WHERE job_id = ?').run(id);
+    const linkedBidJobs = db.prepare('SELECT id FROM BidJob WHERE job_id = ?').all(id);
+    for (const b of linkedBidJobs) {
+      db.prepare('DELETE FROM Bid WHERE bid_job_id = ?').run(b.id);
+      db.prepare('DELETE FROM BidJobPhoto WHERE bid_job_id = ?').run(b.id);
+      db.prepare('DELETE FROM BidJob WHERE id = ?').run(b.id);
+    }
     const disputes = db.prepare('SELECT id FROM Dispute WHERE job_id = ?').all(id);
     for (const d of disputes) {
       db.prepare('DELETE FROM DisputeResolution WHERE dispute_id = ?').run(d.id);

@@ -130,7 +130,29 @@ router.post('/api/passport/add', (req, res) => {
 router.get('/api/passport/:profileId', (req, res) => {
   const phone = profilePhone(req.params.profileId);
   if (!phone) return err(res, 404, 'passport not found');
-  res.json(passportData(phone));
+  const data = passportData(phone);
+  // Profile facts, same shape as the worker/job/bid responses: name and
+  // trade were already present (workerName / trades); memberSince is new
+  // (User account creation, month + year). No phone number anywhere.
+  let memberSince = null;
+  try {
+    const user = db.prepare('SELECT created_at FROM User WHERE phone = ?').get(phone);
+    const d = user ? new Date(user.created_at) : null;
+    if (d && !Number.isNaN(d.getTime())) memberSince = d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+  } catch (_e) { /* memberSince stays null — never invent a date */ }
+  res.json({
+    ...data,
+    memberSince,
+    workerProfile: {
+      name: data.workerName || null,
+      trade: (data.trades && data.trades[0]) || null,
+      photoUrl: null,
+      phoneVerified: true,
+      completedJobs: data.completedJobs,
+      distinctHirers: data.distinctHirers,
+      memberSince,
+    },
+  });
 });
 
 router.get('/api/passport/:profileId/qr.png', async (req, res) => {

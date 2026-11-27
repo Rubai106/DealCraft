@@ -20,6 +20,37 @@
 /* .big-btn{display:block} in style.css beats the UA [hidden] rule, so
    hidden buttons (Pause/Resume/Stop, OTP boxes) would show. Restore it here. */
 [hidden]{display:none!important}
+/* GAP FIX — one viewport (same approach as the rebuilt app: 100dvh
+   screen, internal scroll only inside one content region). The page is
+   a flex column: topbar fixed, title + transient notices fixed, and
+   .w-scroll takes the leftover height and scrolls internally when
+   several sections are visible at once (record + milestones + live
+   location cannot all fit 844px even compacted). The document itself
+   never scrolls: body is 100dvh with overflow hidden, main is flex:1
+   (overriding the global main{height:100dvh}, which stacked on top of
+   the topbar and pushed the page past the viewport). */
+body.worker-page{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+body.worker-page .topbar{flex:none;flex-wrap:nowrap;padding:10px 16px}
+body.worker-page main{flex:1;min-height:0;height:auto;display:flex;flex-direction:column;padding:10px 16px 12px;overflow:hidden}
+body.worker-page #w-title,body.worker-page #w-err,body.worker-page #w-check,body.worker-page #w-otp-note{flex:none}
+.w-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:8px}
+/* Compact so the common states fit with as little internal scroll as
+   possible: smaller title/buttons/inputs, tighter rows and notices. */
+body.worker-page .big-btn{min-height:52px;font-size:17px;margin:8px 0}
+body.worker-page main section h2{font-size:22px;margin:12px 0 6px}
+body.worker-page .job-row{padding:12px}
+body.worker-page .job-row .t{font-size:17px}
+body.worker-page .notice{padding:12px 14px;margin:10px 0}
+body.worker-page .record{padding:12px 0;margin:10px 0}
+body.worker-page .record td,body.worker-page .record th{padding:7px 4px}
+@media(max-width:520px){
+  /* Brand + language toggle + role tag do not fit 390px on one line
+     (the topbar wrapped to 76px); the role tag goes — the page title
+     already says this is the worker's record. */
+  body.worker-page .topbar [data-i18n="w.roleTag"]{display:none}
+  body.worker-page .topbar{padding:10px 12px}
+  body.worker-page main{padding:8px 12px 10px}
+}
 /* Sections enter masked/slide/fade when unhidden, staggered ≤90ms apart. */
 main section:not([hidden]){animation:wIn var(--dur-em) var(--ease-out) both}
 main section:nth-of-type(2):not([hidden]){animation-delay:70ms}
@@ -40,7 +71,7 @@ main section:nth-of-type(n+5):not([hidden]){animation-delay:260ms}
 .success-check svg{animation:wPop var(--dur-std) var(--ease-spring) both}
 @keyframes wPop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
 /* Big tap targets. */
-input:not([type=checkbox]),select,textarea{min-height:52px}
+input:not([type=checkbox]),select,textarea{min-height:48px}
 input[type=checkbox]{min-height:0}
 .lang-toggle button{transition:background-color var(--dur-micro) var(--ease-out),color var(--dur-micro) var(--ease-out)}
 @media (prefers-reduced-motion:reduce){
@@ -49,25 +80,40 @@ input[type=checkbox]{min-height:0}
 }
 </style>
 </head>
-<body class="light-page">
+<body class="light-page worker-page">
 <header class="topbar"><span style="font-family:'Oswald',sans-serif;font-size:20px">DEALCRAFT<span style="color:#FF5A1F">.</span></span><div class="lang-toggle" role="group" aria-label="Language / ভাষা"><button type="button" id="lang-bn" aria-pressed="false">বাংলা</button><button type="button" id="lang-en" aria-pressed="true">EN</button></div><span class="mono" style="color:#bbb" data-i18n="w.roleTag">WORKER</span></header>
 <main>
-  <h1 id="w-title" data-i18n="w.title" style="font-family:'Oswald','Noto Sans Bengali',sans-serif;font-size:34px;line-height:1.1;text-transform:uppercase;margin:8px 0">Work record</h1>
+  <h1 id="w-title" data-i18n="w.title" style="font-family:'Oswald','Noto Sans Bengali',sans-serif;font-size:26px;line-height:1.1;text-transform:uppercase;margin:2px 0 6px">Work record</h1>
   <div id="w-err" class="error" hidden></div>
   <!-- P4: success checkmark only — no card stacks, tilt or heavy shadows here. -->
   <div id="w-check" class="success-check" hidden aria-hidden="true"></div>
   <div class="notice" id="w-otp-note" hidden><b data-i18n="w.otpCode">Your code</b><br><span id="w-otp-note-text"></span></div>
 
+  <!-- All sections live inside the one internal-scroll region (see the
+       one-viewport rules in <style> above): the document never scrolls. -->
+  <div class="w-scroll" id="w-scroll">
+  <!-- Worker profile card — first thing on the page, record below it.
+       Same shared renderer as the app (identical markup + .profile-card);
+       fed by GET /api/worker/:token workerProfile. -->
+  <div id="w-profile"></div>
   <section id="w-record" hidden>
     <div class="record" id="w-summary"></div>
     <button class="big-btn ghost" id="w-listen" type="button" data-i18n="w.listen">শুনুন</button>
+    <a class="big-btn ghost" id="w-call" href="tel:" hidden data-i18n="w.callHirer">📞 Call hirer</a>
     <div id="w-missing" class="warn" hidden><h4 data-i18n="w.missingTitle">Missing terms</h4><ul id="w-missing-list"></ul></div>
     <button class="big-btn orange" id="w-confirm" type="button" data-i18n="w.confirm">Agree — confirm with OTP</button>
     <div id="w-otp-box" hidden>
       <label for="w-otp" data-i18n="w.otpLabel">OTP কোড</label>
       <input id="w-otp" type="text" inputmode="numeric" placeholder="6-digit code">
       <button class="big-btn" id="w-confirm-send" type="button" data-i18n="w.confirmSend">Confirm</button>
+      <p class="free-otp" data-i18n="w.otpFree">Verification is free — no charge for this code.</p>
     </div>
+  </section>
+
+  <section id="w-myjobs" hidden>
+    <h2 data-i18n="w.myJobs" style="font-family:'Oswald',sans-serif;text-transform:uppercase">My jobs</h2>
+    <div id="w-myjobs-list"></div>
+    <p class="small" id="w-myjobs-empty" hidden data-i18n="w.myJobsEmpty">No jobs yet.</p>
   </section>
 
   <section id="w-change" hidden>
@@ -80,6 +126,7 @@ input[type=checkbox]{min-height:0}
       <label for="w-ch-otp" data-i18n="w.otpLabel">OTP কোড</label>
       <input id="w-ch-otp" type="text" inputmode="numeric" placeholder="6-digit code">
       <button class="big-btn" id="w-ch-send" type="button" data-i18n="w.chSend">Send with OTP</button>
+      <p class="free-otp" data-i18n="w.otpFree">Verification is free — no charge for this code.</p>
     </div>
   </section>
 
@@ -92,6 +139,7 @@ input[type=checkbox]{min-height:0}
       <label for="w-pay-otp" data-i18n="w.otpLabel">OTP কোড</label>
       <input id="w-pay-otp" type="text" inputmode="numeric" placeholder="6-digit code">
       <button class="big-btn" id="w-pay-send" type="button" data-i18n="w.paySend">Confirm</button>
+      <p class="free-otp" data-i18n="w.otpFree">Verification is free — no charge for this code.</p>
     </div>
   </section>
 
@@ -150,6 +198,7 @@ input[type=checkbox]{min-height:0}
   </section>
 
   <p class="small"><a href="index.html" data-i18n="w.homeLink">DealCraft home</a> · <a href="passport.html">WorkPassport</a></p>
+  </div>
 </main>
 <script src="read-aloud.js"></script>
 <script>
@@ -209,7 +258,16 @@ var WI18N={
  'w.listen':{bn:'শুনুন',en:'Listen'},
  'w.stopListen':{bn:'থামুন',en:'Stop'},
  'w.homeLink':{bn:'DealCraft হোম',en:'DealCraft home'},
- 'w.roleTag':{bn:'শ্রমিক',en:'WORKER'}
+ 'w.roleTag':{bn:'শ্রমিক',en:'WORKER'},
+ 'w.otpFree':{bn:'যাচাইকরণ ফ্রি — এই কোডের জন্য কোনো চার্জ নেই।',en:'Verification is free — no charge for this code.'},
+ 'w.myJobs':{bn:'আমার কাজ',en:'My jobs'},
+ 'w.myJobsEmpty':{bn:'এখনো কোনো কাজ নেই।',en:'No jobs yet.'},
+ 'w.callHirer':{bn:'📞 হায়ারারকে কল করুন',en:'📞 Call hirer'},
+ 'w.profileVerified':{bn:'✓ ফোন যাচাই করা',en:'✓ Phone verified'},
+ 'w.profileJobs':{bn:'সম্পন্ন কাজ',en:'Completed jobs'},
+ 'w.profileHirers':{bn:'আলাদা হায়ারার',en:'Distinct hirers'},
+ 'w.profileSince':{bn:'সদস্য',en:'Member since'},
+ 'w.profileWorker':{bn:'DealCraft ওয়ার্কার',en:'DealCraft worker'}
 };
 function wApplyLang(){document.documentElement.lang=wLang;
  document.title=wLang==='bn'?'DealCraft — ওয়ার্কার':'DealCraft — Worker';
@@ -218,6 +276,8 @@ function wApplyLang(){document.documentElement.lang=wLang;
  if(b)b.setAttribute('aria-pressed',wLang==='bn'?'true':'false');
  if(e)e.setAttribute('aria-pressed',wLang==='en'?'true':'false');
  localStorage.setItem('dc_lang',wLang);
+ /* Re-render the profile card in the new language (same renderer). */
+ var wpBox0=$('w-profile'); if(wpBox0&&typeof wLastProfile!=='undefined'&&wLastProfile)wpBox0.innerHTML=wRenderProfileCard(wLastProfile);
  /* Re-render the location pill for the current share state (never reset it),
     and localise placeholders, which are not data-i18n text. */
  locSet(locState);
@@ -230,6 +290,7 @@ function wFsLabel(qEn){return wLang==='bn'?(W_FS_Q[qEn]||qEn):qEn;}
 var W_MS={'APPROVED':{bn:'অনুমোদিত',en:'Approved'},'COMPLETE':{bn:'সম্পূর্ণ',en:'Complete'},'PENDING':{bn:'অপেক্ষায়',en:'Pending'}};
 function wMsLabel(st){var d=W_MS[st];return d?(d[wLang]||d.en):st;}
 var payDecision='received', payId=q.get('paymentId')||null, changeId=null, changeDecision=null;
+var wLastProfile=null;
 var jobId=null, disputeId=null, wListenRecord=null;
 function $(id){return document.getElementById(id);}
 function err(m){var e=$('w-err');e.hidden=false;e.textContent=m;}
@@ -240,6 +301,37 @@ function wShowCheck(){var box=$('w-check'); if(!box)return;
  box.hidden=false;
  setTimeout(function(){box.hidden=true;box.innerHTML='';},1500);}
 function taka(n){return n==null?'—':'৳'+Number(n).toLocaleString('en-IN');}
+/* Worker profile card — identical markup to app.js renderProfileCard
+   (this page does not load app.js). Verified facts only; no phone
+   number; initials tile while photoUrl is null (no photo upload). */
+function wProfileInitials(name){
+ var parts=String(name||'').trim().split(/\s+/).filter(Boolean);
+ if(!parts.length)return 'D';
+ return (parts[0].charAt(0)+(parts.length>1?parts[parts.length-1].charAt(0):'')).toUpperCase();
+}
+function wRenderProfileCard(p){
+ if(!p)return '';
+ var name=p.name||((WI18N['w.profileWorker']||{bn:'DealCraft ওয়ার্কার',en:'DealCraft worker'})[wLang]||'DealCraft worker');
+ var trade=wTradeLabel(p.trade)||'—';
+ var photo=p.photoUrl
+  ?'<img src="'+esc(p.photoUrl)+'" alt="">'
+  :'<span class="pc-initials" aria-hidden="true">'+esc(wProfileInitials(name))+'</span>';
+ var jobs=p.completedJobs!=null?p.completedJobs:0;
+ var hirers=p.distinctHirers!=null?p.distinctHirers:0;
+ var since=p.memberSince||'—';
+ var L=function(k){return (WI18N[k]||{bn:k,en:k})[wLang]||k;};
+ return '<article class="profile-card card-3d" aria-label="'+esc(name)+'">'
+  +'<div class="pc-photo">'+photo+'</div>'
+  +'<div class="pc-main">'
+  +'<h3 class="pc-name">'+esc(name)+'</h3>'
+  +'<p class="pc-trade">'+esc(trade)+'</p>'
+  +'<span class="pill pill-orange pc-verified">'+esc(L('w.profileVerified'))+'</span>'
+  +'<div class="pc-facts">'
+  +'<div class="pc-fact"><b>'+esc(jobs)+'</b><span>'+esc(L('w.profileJobs'))+'</span></div>'
+  +'<div class="pc-fact"><b>'+esc(hirers)+'</b><span>'+esc(L('w.profileHirers'))+'</span></div>'
+  +'<div class="pc-fact"><b>'+esc(since)+'</b><span>'+esc(L('w.profileSince'))+'</span></div>'
+  +'</div></div></article>';
+}
 function wt(){return '?token='+encodeURIComponent(token);}
 /* The backend reads the worker token from ?token= (or x-worker-token header). */
 async function api(p,o){o=o||{};o.headers={'Content-Type':'application/json'};
@@ -251,10 +343,45 @@ async function requestOtp(purpose){
  var r=await api('/api/worker/'+encodeURIComponent(token)+'/request-otp',{method:'POST',body:JSON.stringify({purpose:purpose})});
  if(r&&r.sandbox&&r.sandbox.otp){$('w-otp-note').hidden=false;$('w-otp-note-text').textContent=(r.sandbox.otp||'—');}
  return r;}
+/* Worker "My jobs": the SMS link lands the worker in their account —
+   confirming stores the session token, and this list (GET /api/worker/jobs)
+   shows every job they worked, hirer jobs and worker jobs separate in the
+   main app. Tapping one re-opens it here from the same record data. */
+async function fetchWorkerJobs(){
+ var tok=null; try{tok=localStorage.getItem('dc_token');}catch(e){}
+ if(!tok)return;
+ try{var res=await fetch('/api/worker/jobs',{headers:{Authorization:'Bearer '+tok}});
+  if(!res.ok)return;
+  var d=await res.json(); var jobs=d.jobs||d.data||[];
+  var sec=$('w-myjobs'); if(!sec)return;
+  sec.hidden=false;
+  $('w-myjobs-empty').hidden=jobs.length>0;
+  $('w-myjobs-list').innerHTML=jobs.map(function(j){
+   var id=j.id||j._id;
+   return '<div class="job-row"><div><div class="t">'+esc(wTradeLabel(j.trade)+' — '+(j.worker_name||j.workerName||''))+'</div><div class="m">'+esc(j.status||'')+'</div></div><button class="big-btn" style="max-width:220px" data-wjob="'+esc(id)+'">'+(wLang==='bn'?'খুলুন':'Open')+'</button></div>';
+  }).join('');
+  $('w-myjobs-list').querySelectorAll('[data-wjob]').forEach(function(b){b.addEventListener('click',async function(){
+   try{var res2=await fetch('/api/jobs/'+encodeURIComponent(b.getAttribute('data-wjob')),{headers:{Authorization:'Bearer '+tok}});
+    if(!res2.ok)throw new Error('HTTP '+res2.status);
+    var d2=await res2.json(); renderWorker(d2);
+   }catch(e){err(e.message);}
+  });});
+ }catch(e){/* worker jobs list is best-effort — the record itself still loads */}
+}
 async function load(){
  if(!token){err(wLang==='bn'?'কোনো লিংক নেই। হায়ারারকে আবার লিংক পাঠাতে বলুন।':'No worker link token. Ask the hirer to send your link again.');return;}
  try{var r=await api('/api/worker/'+encodeURIComponent(token));
+  renderWorker(r);
+ }catch(e){err((wLang==='bn'?'রেকর্ড খোলা যায়নি: ':'Could not open record: ')+e.message);}
+ fetchWorkerJobs();
+}
+function renderWorker(r){
+ try{
   var job=r.job||r; jobId=job.id||job._id;
+  /* Profile card first, record below it — from the workerProfile on
+     this same response (name/trade/verified/jobs/hirers/member-since). */
+  wLastProfile=r.workerProfile||null;
+  var wpBox=$('w-profile'); if(wpBox)wpBox.innerHTML=wLastProfile?wRenderProfileCard(wLastProfile):'';
   /* Price/deadline/scope live on the current version, not on the job row. */
   var ver=r.version||{};
   var scope={}; try{scope=typeof ver.scope_json==='string'?JSON.parse(ver.scope_json||'{}'):(ver.scope||{});}catch(e){}
@@ -265,6 +392,9 @@ async function load(){
    '<tr><th>'+(wLang==='bn'?'সংস্করণ':'Version')+'</th><td>V'+esc(job.current_version||ver.version_no||1)+'</td></tr>'+
    '<tr><th>'+(wLang==='bn'?'বিবরণ':'Scope')+'</th><td>'+esc(scope.scope||job.scope||'—')+'</td></tr></table>'+
    '<p class="small">'+(wLang==='bn'?'হায়ারার: ':'Hirer: ')+esc(job.hirerName||job.hirerPhone||'—')+'</p>';
+  /* One-tap call: a real tel: link to the hirer, from the record. */
+  var wCall=$('w-call'); var hirerPh=job.hirerPhone||job.hirer_phone||'';
+  if(wCall){if(hirerPh){wCall.href='tel:'+String(hirerPh).replace(/[^0-9+]/g,'');wCall.hidden=false;}else wCall.hidden=true;}
   /* Read-aloud (Part 2, item 13): the record's own fields, for the Listen
      button below the summary. Paid / remaining come from the balance. */
   var wPaid=(r.balance&&r.balance.acknowledgedPaid)||0;
@@ -378,8 +508,13 @@ $('w-listen').addEventListener('click',function(){
  $('w-listen').textContent=(WI18N['w.stopListen']||{bn:'থামুন',en:'Stop'})[wLang];
  setTimeout(function(){var b=$('w-listen');if(b)b.textContent=(WI18N['w.listen']||{bn:'শুনুন',en:'Listen'})[wLang];},Math.min(60000,Math.max(8000,said.length*150)));
 });
-$('w-confirm-send').addEventListener('click',async function(){try{await api('/api/worker/'+encodeURIComponent(token)+'/confirm',{method:'POST',body:JSON.stringify({otpCode:$('w-otp').value.trim()})});
-  wShowCheck();$('w-confirm').disabled=true;$('w-confirm').textContent=wLang==='bn'?'নিশ্চিত হয়েছে':'Confirmed';}catch(e){err(e.message);}});
+$('w-confirm-send').addEventListener('click',async function(){try{var cr=await api('/api/worker/'+encodeURIComponent(token)+'/confirm',{method:'POST',body:JSON.stringify({otpCode:$('w-otp').value.trim()})});
+  /* The confirm response carries sessionToken: store it exactly like the
+     login token, so the worker lands in their account with "My jobs". */
+  if(cr&&cr.sessionToken){try{localStorage.setItem('dc_token',cr.sessionToken);if(cr.user)localStorage.setItem('dc_user',JSON.stringify(cr.user));}catch(e){}}
+  wShowCheck();$('w-confirm').disabled=true;$('w-confirm').textContent=wLang==='bn'?'নিশ্চিত হয়েছে':'Confirmed';
+  fetchWorkerJobs();
+ }catch(e){err(e.message);}});
 /* Change response: accept/reject need an OTP (purpose change-approve); clarify does not. */
 function startChange(decision){return async function(){
  changeDecision=decision;

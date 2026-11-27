@@ -2,15 +2,59 @@
 // (route split; no behaviour change). Paths, middleware and responses
 // are identical to the monolith.
 const express = require('express');
-const { db, now, fingerprint, newId, questionsFor, computeMissingTerms, getAdapter, requireBidding, err, baseUrl, addEvent, getJob, createWorkerToken, normalizeBdPhone, requireAuth, validLatLng, upsertUser, isRealImage, upload, getBidJob, bidJobPhotos, expireBids, addBiddingEvent, bidJobPublic, bidPublic, parseBidCoords, MAX_BID_PHOTOS, MAX_LIVE_BIDS_PER_JOB, BID_TTL_MS } = require('../src/shared');
+const { db, now, fingerprint, newId, questionsFor, computeMissingTerms, getAdapter, requireBidding, err, baseUrl, addEvent, getJob, createWorkerToken, normalizeBdPhone, requireAuth, validLatLng, upsertUser, isRealImage, upload, getBidJob, bidJobPhotos, expireBids, addBiddingEvent, bidJobPublic, bidPublic, parseBidCoords, MAX_BID_PHOTOS, MAX_LIVE_BIDS_PER_JOB, BID_TTL_MS, passportData } = require('../src/shared');
+const { parsePrompt } = require('../src/prompt-parse');
 const router = express.Router();
+
+// Worker profile facts — same shape as worker.js (see its comment).
+// bidPublic (shared.js) already carries passport counts; the full
+// workerProfile object is added here in the route, so shared.js stays
+// untouched.
+function formatMemberSince(createdAt) {
+  try {
+    const d = new Date(createdAt);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+  } catch (_e) { return null; }
+}
+function workerProfileFor(phone, trade, nameFallback) {
+  const user = db.prepare('SELECT name, created_at FROM User WHERE phone = ?').get(phone);
+  const pass = passportData(phone);
+  return {
+    name: (user && user.name) || nameFallback || null,
+    trade: trade || null,
+    photoUrl: null,
+    phoneVerified: true,
+    completedJobs: pass.completedJobs,
+    distinctHirers: pass.distinctHirers,
+    memberSince: formatMemberSince(user && user.created_at),
+  };
+}
+function withWorkerProfile(bids, trade) {
+  return bids.map((b) => ({ ...b, workerProfile: workerProfileFor(b.workerPhone, trade, b.workerName) }));
+}
 
 
 // Hirer posts a job for bids: 1–3 problem photos, trade, short Bangla
 // description, job site (map pin / current location / address). No price
 // is set by the hirer — workers bid the price.
 router.post('/api/bid-jobs', requireBidding, requireAuth, (req, res) => {
-  const { trade, description, site } = req.body || {};
+  let { trade, description, site } = req.body || {};
+  // Prompt-based posting: parsed server-side; client-parsed values are
+  // advisory only. The hirer sets no price here — workers bid it — so
+  // only trade/description/deadline come from the prompt. BidJob has no
+  // deadline column, so a parsed deadline is carried in the posted
+  // event and echoed in the response.
+  let promptDeadline = null;
+  if (typeof (req.body || {}).prompt === 'string' && req.body.prompt.trim()) {
+    const parsed = parsePrompt(req.body.prompt);
+    if (parsed.trade) trade = parsed.trade;
+    if (parsed.description) description = parsed.description;
+    promptDeadline = parsed.deadline;
+    if (!trade) {
+      return err(res, 400, 'prompt is missing trade — say which trade, e.g. "need a painter for 2 rooms by Sunday"');
+    }
+  }
   if (!trade || !questionsFor(trade).length) return err(res, 400, 'trade must be one of ELECTRICIAN, PAINTER, PLUMBER');
   if (typeof description !== 'string' || !description.trim() || description.trim().length > 500) {
     return err(res, 400, 'description is required (max 500 characters)');
@@ -30,8 +74,11 @@ router.post('/api/bid-jobs', requireBidding, requireAuth, (req, res) => {
   addBiddingEvent(bidJobId, 'BID_JOB_POSTED', 'hirer:' + req.user.phone, {
     trade: trade.toUpperCase(), description: description.trim(),
     site: siteLat != null ? { lat: siteLat, lng: siteLng, address: siteAddress } : null,
+    deadline: promptDeadline,
   });
-  res.status(201).json({ bidJob: getBidJob(bidJobId) });
+  const out = { bidJob: getBidJob(bidJobId) };
+  if (promptDeadline) out.deadline = promptDeadline;
+  res.status(201).json(out);
 });
 
 // Problem photos on a bid job: same 5 MB image-only upload as milestones,
@@ -100,7 +147,7 @@ router.get('/api/bid-jobs/:id', requireBidding, requireAuth, (req, res) => {
   if (bidJob.hirer_id === req.user.id) {
     const bids = db.prepare('SELECT * FROM Bid WHERE bid_job_id = ? ORDER BY amount ASC, created_at ASC').all(bidJob.id)
       .map((b) => bidPublic(b, pub.site));
-    return res.json({ bidJob: { ...pub, jobId: bidJob.job_id || null }, bids });
+    return res.json({ bidJob: { ...pub, jobId: bidJob.job_id || null }, bids: withWorkerProfile(bids, bidJob.trade) });
   }
   return res.json({ bidJob: pub });
 });
@@ -115,7 +162,7 @@ router.get('/api/bid-jobs/:id/bids', requireBidding, requireAuth, (req, res) => 
   const site = bidJob.site_lat != null ? { lat: bidJob.site_lat, lng: bidJob.site_lng } : null;
   const bids = db.prepare('SELECT * FROM Bid WHERE bid_job_id = ? ORDER BY amount ASC, created_at ASC').all(bidJob.id)
     .map((b) => bidPublic(b, site));
-  res.json({ bids });
+  res.json({ bids: withWorkerProfile(bids, bidJob.trade) });
 });
 
 // A worker places a bid: OTP-verified session only (no new account — the

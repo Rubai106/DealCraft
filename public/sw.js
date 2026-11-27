@@ -5,7 +5,7 @@ var CACHE='dealcraft-v3';
    cache.addAll fails ATOMICALLY — one missing file left the whole shell
    uncached and offline broken. Fonts runtime-cache through the fetch
    handler below the first time the page loads them. */
-var SHELL=['./','index.html','style.css','fonts.css','app.js','worker.html','passport.html','manifest.json','icon.svg'];
+var SHELL=['./','index.html','style.css','fonts.css','app.js','worker.html','passport.html','verify.html','trip.html','manifest.json','icon.svg'];
 self.addEventListener('install',function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(SHELL);}).then(function(){return self.skipWaiting();}).catch(function(){}));
 });
