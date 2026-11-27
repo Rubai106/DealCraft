@@ -2,7 +2,7 @@
 // (route split; no behaviour change). Paths, middleware and responses
 // are identical to the monolith.
 const express = require('express');
-const { db, now, newId, getAdapter, getMode, err, getJob, requireAuth } = require('../src/shared');
+const { db, now, newId, getAdapter, getMode, err, getJob, requireAuth, feeStateForJob } = require('../src/shared');
 const router = express.Router();
 
 
@@ -68,7 +68,7 @@ router.post('/api/billing/caas/:chargeId/verify', requireAuth, async (req, res) 
     return err(res, 502, e.message);
   }
   if (result.status === 'VERIFIED') {
-    db.prepare("UPDATE Billing SET status = 'VERIFIED' WHERE id = ?").run(req.params.chargeId);
+    db.prepare("UPDATE Billing SET status = 'VERIFIED', verified_at = ? WHERE id = ?").run(now(), req.params.chargeId);
     db.prepare('UPDATE Job SET billing_paid = 1 WHERE id = ?').run(billing.job_id);
     return res.json({ chargeId: req.params.chargeId, status: 'VERIFIED' });
   }
@@ -134,7 +134,14 @@ router.get('/api/billing/status', requireAuth, (req, res) => {
     smsCostNote: 'MT SMS 2.00 BDT per message, charged to the subscriber (AppLink portal default).',
     subscriptionActive: !!sub,
     subscriptionId: sub ? sub.id : null,
-    jobs: jobs.map((j) => ({ jobId: j.id, status: j.status, paid: !!j.billing_paid })),
+    // Per-job record-fee state, from the live CaaS row for that job —
+    // read-only: reading this never creates a charge. `paid` is kept
+    // unchanged for backward compatibility; feePaid is the same fact
+    // from the Billing row, plus amount/status/verification time.
+    jobs: jobs.map((j) => {
+      const fee = feeStateForJob(j.id);
+      return { jobId: j.id, status: j.status, paid: !!j.billing_paid, feePaid: fee.paid, feeAmount: fee.amount, feeStatus: fee.status, feeVerifiedAt: fee.verifiedAt };
+    }),
     paidJobs: jobs.filter((j) => j.billing_paid).length,
     unpaidJobs: jobs.filter((j) => !j.billing_paid).length,
   });

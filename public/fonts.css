@@ -1,15 +1,33 @@
-/* Fonts: Google Fonts is the ONLY webfont source for this app (linked in
-   every page's <head>: Archivo Black, Oswald, Noto Sans Bengali).
-   This file intentionally contains NO @font-face rules.
-   WHY (2026-11-27): the previous version declared 10 self-hosted
-   @font-face rules pointing at public/fonts/*.woff2. Those files exist
-   in a local checkout but are NOT on the GitHub remote — the repo's push
-   route is text-only and rejects binary files — so every page load on
-   the deployed remote requested files that 404 (~5 font requests per
-   page load). Removing the dangling references is the fix that actually
-   reaches zero 404s on the remote; Google Fonts serves the same
-   families, so the design is unchanged.
-   If the .woff2 files are ever uploaded via the GitHub web UI (the only
-   route that can carry binaries), the @font-face rules may be re-added
-   here — and the re-add must be verified against the remote, not just a
-   local checkout. Until then, do not re-add them. */
+/* Fonts — self-hosted woff2 (Item 23, 2026-11-27).
+   @font-face rules pointing at the bundled public/fonts/*.woff2
+   (Archivo Black 400, Oswald 500/600/700, Noto Sans Bengali
+   400/600/800 — latin + bengali subsets). No new dependency, no
+   network font: these files are served from this site.
+   Missing weights (kept on the system-font fallback): Oswald 400
+   (unused — the design only calls 500/600/700) and Noto Sans
+   Bengali 700 (unused — 600/800 bracket it; a 700 request resolves
+   to the 800 face). Archivo Black is a single-weight family (400).
+   NOTE — remote status 2026-11-27: the .woff2 files exist in a
+   local checkout but were NOT on the GitHub remote (verified 404
+   on raw.githubusercontent.com/Rubai106/DealCraft/main). Until
+   Rubai uploads them via the GitHub web UI, the deployed site
+   404s these files — and because the Google Fonts links were
+   removed from index/passport.html (2026-11-27, item a), there is
+   no network font at all: display text on the deployed remote
+   falls back to the system stack until the files are uploaded.
+   All @font-face rules use font-display:swap, so text is never
+   hidden while a font loads, and every font-family stack in
+   style.css and the pages ends in a system fallback
+   (system-ui/sans-serif). worker.html loads no Google Fonts at
+   all, so it relies on these rules entirely. */
+
+@font-face{font-family:'Archivo Black';font-style:normal;font-weight:400;font-display:swap;src:url("fonts/ArchivoBlack-400-latin.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Oswald';font-style:normal;font-weight:500;font-display:swap;src:url("fonts/Oswald-500-latin.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Oswald';font-style:normal;font-weight:600;font-display:swap;src:url("fonts/Oswald-600-latin.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Oswald';font-style:normal;font-weight:700;font-display:swap;src:url("fonts/Oswald-700-latin.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Noto Sans Bengali';font-style:normal;font-weight:400;font-display:swap;src:url("fonts/NotoSansBengali-400-bengali.woff2") format("woff2");unicode-range:U+0980-09FF,U+200C-200D,U+20B9}
+@font-face{font-family:'Noto Sans Bengali';font-style:normal;font-weight:400;font-display:swap;src:url("fonts/NotoSansBengali-400-latin.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Noto Sans Bengali';font-style:normal;font-weight:600;font-display:swap;src:url("fonts/NotoSansBengali-600-bengali.woff2") format("woff2");unicode-range:U+0980-09FF,U+200C-200D,U+20B9}
+@font-face{font-family:'Noto Sans Bengali';font-style:normal;font-weight:600;font-display:swap;src:url("fonts/NotoSansBengali-600-latin.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Noto Sans Bengali';font-style:normal;font-weight:800;font-display:swap;src:url("fonts/NotoSansBengali-800-bengali.woff2") format("woff2");unicode-range:U+0980-09FF,U+200C-200D,U+20B9}
+@font-face{font-family:'Noto Sans Bengali';font-style:normal;font-weight:800;font-display:swap;src:url("fonts/NotoSansBengali-800-latin.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}

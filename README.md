@@ -51,7 +51,7 @@ Built for **AppQuest 2.0** (AppLink / Banglalink) — theme: Human Potential
 ```bash
 npm install
 npm start          # http://localhost:3000
-npm test           # full regression — 783 assertions, PASS (see tests/regression/run-demo.mjs; the count grows as coverage is added)
+npm test           # full regression — 871 assertions, PASS (see tests/regression/run-demo.mjs; the count grows as coverage is added)
 ```
 
 Requires Node.js 24+. No other services. The database is a SQLite file
@@ -106,7 +106,7 @@ so no live call has been made. See
 ## Status
 
 - **Working:** everything in the table above, verified by the regression
-  (783 assertions, PASS — the count grows as coverage is added) and CI on every push to main.
+  (871 assertions, PASS — the count grows as coverage is added) and CI on every push to main.
 - **Sandbox-only:** all AppLink calls, until live credentials exist.
 - **Planned:** real GPS/map tiles, offline PWA re-visit, photo
   retention pass, withdraw-bid endpoint.
@@ -132,7 +132,7 @@ Subscription), GitHub + GitHub Actions (Node 24 CI), Playwright /
 throughout this project: for research and competitor checks, for
 drafting and reviewing code and documentation, for design iterations,
 and for preparing this proposal and the demo script. Every feature was
-verified by the project's own regression suite (783 assertions, PASS)
+verified by the project's own regression suite (871 assertions, PASS)
 and by reading the code and the running app — AI output was never
 submitted unreviewed, and no product claim in this repo rests on an
 AI's word alone. The AppLink adapter was built against AppLink's

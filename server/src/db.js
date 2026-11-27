@@ -151,7 +151,8 @@ function init() {
       amount INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'PENDING'
         CHECK (status IN ('PENDING','VERIFIED','ACTIVE','CANCELLED')),
-      created_at TEXT NOT NULL
+      created_at TEXT NOT NULL,
+      verified_at TEXT
     );
     CREATE TABLE IF NOT EXISTS PassportEntry (
       id TEXT PRIMARY KEY,
@@ -187,6 +188,7 @@ function init() {
       hirer_id TEXT NOT NULL REFERENCES User(id),
       trade TEXT NOT NULL,
       description TEXT NOT NULL,
+      deadline TEXT,
       site_lat REAL,
       site_lng REAL,
       site_address TEXT,
@@ -346,6 +348,14 @@ function init() {
       DROP TABLE Billing_old;
     `);
   }
+  // Migration: Billing.verified_at — when a CaaS charge reached VERIFIED
+  // (the ৳10 record fee was paid). Rows verified before this migration
+  // keep NULL: the verification time was never recorded, so it is
+  // unknown, never backfilled with now(). Placed after the 'CANCELLED'
+  // rebuild above: the rebuild recreates the table from an explicit
+  // column list, so a migration before it would be dropped on old DBs.
+  const billingCols2 = db.prepare('PRAGMA table_info(Billing)').all().map((c) => c.name);
+  if (!billingCols2.includes('verified_at')) db.exec('ALTER TABLE Billing ADD COLUMN verified_at TEXT');
   // Migration: Bid status 'WITHDRAWN' (worker withdraw-bid). Older
   // databases were created with CHECK (status IN
   // ('LIVE','EXPIRED','NOT_SELECTED','ACCEPTED')) and CREATE TABLE IF
@@ -376,6 +386,18 @@ function init() {
       DROP TABLE Bid_old;
     `);
   }
+  // Migration: BidJob deadline (nullable). A table rebuild like the
+  // Billing 'CANCELLED' migration is NOT usable here: Bid and
+  // BidJobPhoto carry FOREIGN KEYs to BidJob, so renaming/dropping the
+  // table fails init() with 'FOREIGN KEY constraint failed' on any
+  // database that already has bids (verified against a pre-change
+  // database with 2 BidJobs / 11 Bids — the rebuild left the server
+  // unable to boot). A nullable column needs no rebuild: ALTER TABLE
+  // ... ADD COLUMN preserves the table, its rows and its indexes,
+  // exactly like the Job site_lat / Session expires_at migrations
+  // above. Fresh databases get the column from the CREATE TABLE.
+  const bidJobCols = db.prepare('PRAGMA table_info(BidJob)').all().map((c) => c.name);
+  if (!bidJobCols.includes('deadline')) db.exec('ALTER TABLE BidJob ADD COLUMN deadline TEXT');
 }
 
 function now() {

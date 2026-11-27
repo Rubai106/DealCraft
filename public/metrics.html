@@ -9,14 +9,14 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <style>
   *{box-sizing:border-box}
-  body{margin:0;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif}
+  body{margin:0;background:#F4F2EE;color:#111;font-family:Arial,Helvetica,sans-serif}
   .wrap{max-width:720px;margin:0 auto;padding:24px 16px 64px}
   .brand{font-weight:900;font-size:22px;letter-spacing:.04em}
   .brand i{color:#FF5A1F;font-style:normal}
   h1{font-size:28px;line-height:1.15;margin:28px 0 8px}
   p{font-size:16px;line-height:1.55;color:#333}
   .small{font-size:13px;color:#666}
-  .card{border:2px solid #111;padding:20px;margin-top:20px}
+  .card{border:2px solid #111;background:#FBFAF7;padding:20px;margin-top:20px}
   table{width:100%;border-collapse:collapse;font-size:15px}
   th,td{text-align:left;padding:10px 4px;border-top:1px solid #ddd;vertical-align:top}
   th{color:#666;font-weight:400}
@@ -25,9 +25,9 @@
   .pill{display:inline-block;background:#FF5A1F;color:#fff;font-size:12px;font-weight:700;letter-spacing:.08em;padding:4px 10px;text-transform:uppercase}
   .pill.grey{background:#eee;color:#333}
   form{margin-top:20px;display:flex;gap:8px;flex-wrap:wrap}
-  input[type=text]{flex:1;min-width:220px;padding:10px 12px;border:2px solid #111;font-size:15px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  input[type=text]{flex:1;min-width:220px;padding:10px 12px;border:2px solid #111;background:#FBFAF7;font-size:15px;font-family:ui-monospace,Menlo,Consolas,monospace}
   button{padding:10px 18px;border:2px solid #111;background:#111;color:#fff;font-size:15px;font-weight:700;cursor:pointer}
-  button.ghost{background:#fff;color:#111}
+  button.ghost{background:#FBFAF7;color:#111}
   a{color:#111}
   .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
   .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;word-break:break-all;color:#333}
@@ -44,6 +44,7 @@
   <div id="token-box" class="card" hidden>
     <p><b>Demo token needed.</b> This page is behind the same demo gate as the demo endpoints. Paste the demo token (or open this page with <span class="mono">?demoToken=…</span>).</p>
     <form id="token-form"><input type="text" id="token-input" placeholder="demo token" autocomplete="off"><button type="submit">Show metrics</button></form>
+    <p class="error" id="token-error" hidden style="color:#c00;margin:12px 0 0"></p>
   </div>
 
   <div id="metrics-box" hidden>
@@ -60,6 +61,7 @@
       <button type="button" class="ghost" id="refresh-btn">Refresh</button>
     </div>
     <p class="small" id="copy-note"></p>
+    <textarea id="copy-fallback" readonly hidden style="width:100%;min-height:120px;margin-top:12px;padding:10px 12px;border:2px solid #111;background:#FBFAF7;font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace" aria-label="Metrics CSV to copy by hand"></textarea>
     <h2 style="font-size:20px;margin-top:32px">What each number means</h2>
     <ul class="defs">
       <li><b>Total records</b> — every work record ever created, all statuses.</li>
@@ -67,7 +69,7 @@
       <li><b>ChangeLock jobs / rate</b> — records with at least one approved ChangeLock (price or deadline change both sides accepted).</li>
       <li><b>Dispute jobs / rate</b> — records with at least one dispute opened.</li>
       <li><b>Passport-qualified jobs</b> — CLOSED records whose close was mutual (a hirer-only close does not qualify).</li>
-      <li><b>Avg SMS segments per record</b> — segments actually sent for the activation summary SMS, per record that got one, counting <i>both</i> parties' messages (today: 3 segments × 2 recipients = 6 per record). The unit-economics number for the summary SMS.</li>
+      <li><b>Avg SMS segments per record</b> — segments actually sent for the activation summary SMS, per record that got one. <span id="avg-segments-note">গড় — সেগমেন্ট / রেকর্ড (দুই পক্ষ মিলে)</span> The unit-economics number for the summary SMS.</li>
     </ul>
   </div>
   <p class="small" id="error" hidden></p>
@@ -90,21 +92,49 @@
     ['summarySmsSegments','Summary SMS segments sent'],
     ['avgSegmentsPerRecord','Avg SMS segments per record']
   ];
+  function showTokenError(msg){
+    var e=document.getElementById('token-error');
+    e.hidden=false;e.textContent=msg;
+    document.getElementById('token-box').hidden=false;
+  }
   function showError(msg){var e=document.getElementById('error');e.hidden=false;e.textContent=msg;}
   function load(){
     if(!token){document.getElementById('token-box').hidden=false;return;}
     fetch('/api/metrics',{headers:{'x-demo-token':token}}).then(function(r){
-      if(r.status===403||r.status===404){document.getElementById('token-box').hidden=false;showError('That token was not accepted (or demo mode is off).');return null;}
+      if(r.status===403||r.status===404){
+        /* M1: the token box stays visible and the error lives inside it,
+           directly under the input — never only in the #error paragraph. */
+        showTokenError('টোকেনটি মেলেনি, বা ডেমো মোড বন্ধ আছে।');
+        return null;}
       if(!r.ok){showError('Metrics failed to load ('+r.status+').');return null;}
       return r.json();
     }).then(function(m){
       if(!m)return;
+      document.getElementById('token-box').hidden=true;
+      document.getElementById('token-error').hidden=true;
       document.getElementById('metrics-box').hidden=false;
+      /* M1: a working token goes into the URL, so Refresh and sharing
+         the link keep working without re-pasting it. */
+      try{history.replaceState(null,'','/metrics?demoToken='+encodeURIComponent(token));}catch(e){}
       document.getElementById('generated-at').textContent='Generated: '+m.generatedAt;
       var tb=document.querySelector('#metrics-table tbody');
-      tb.innerHTML=rows.map(function(pair){
+      /* M3: AppLink mode + generated time lead the table (rendered only
+         when the server returns them). */
+      var head='';
+      if(m.applinkMode!=null){
+        var live=String(m.applinkMode).toLowerCase()==='live';
+        head+='<tr><th>AppLink mode</th><td class="num"><b>'+(live?'<span class="pill">LIVE</span>':'<span class="pill grey">sandbox</span>')+'</b></td></tr>';
+      }
+      if(m.generatedAt!=null){
+        head+='<tr><th>Generated</th><td class="num"><b>'+m.generatedAt+'</b></td></tr>';
+      }
+      tb.innerHTML=head+rows.map(function(pair){
         return '<tr><th>'+pair[1]+'</th><td class="num"><b>'+m[pair[0]]+'</b></td></tr>';
       }).join('');
+      /* M2: the average comes from the fetched data, never a hard-coded
+         "6 per record". */
+      var avgEl=document.getElementById('avg-segments-note');
+      if(avgEl&&m.avgSegmentsPerRecord!=null)avgEl.textContent='গড় '+m.avgSegmentsPerRecord+' সেগমেন্ট / রেকর্ড (দুই পক্ষ মিলে)';
       document.getElementById('csv-link').href='/api/metrics.csv?demoToken='+encodeURIComponent(token);
       window._metricsCsv=rows.map(function(pair){return pair[1]+','+m[pair[0]];}).join('\n');
     }).catch(function(){showError('Metrics failed to load (network error).');});
@@ -119,9 +149,18 @@
   });
   document.getElementById('copy-btn').addEventListener('click',function(){
     if(!window._metricsCsv)return;
+    /* M4: clipboard failure (or absence) falls back to a visible
+       readonly textarea the user can select and copy by hand. Download
+       CSV stays the primary action. */
+    function copyFallback(){
+      var ta=document.getElementById('copy-fallback');
+      ta.value=window._metricsCsv;ta.hidden=false;ta.focus();ta.select();
+      document.getElementById('copy-note').textContent='কপি হয়নি — নিচের লেখাটি সিলেক্ট করে কপি করুন।';
+    }
+    if(!navigator.clipboard||!navigator.clipboard.writeText){copyFallback();return;}
     navigator.clipboard.writeText(window._metricsCsv).then(function(){
       document.getElementById('copy-note').textContent='Copied — paste it into the proposal table.';
-    },function(){document.getElementById('copy-note').textContent='Copy failed — use Download CSV instead.';});
+    },copyFallback);
   });
   document.getElementById('refresh-btn').addEventListener('click',load);
   load();

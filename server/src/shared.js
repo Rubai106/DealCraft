@@ -207,6 +207,7 @@ function jobDetail(job) {
     photos,
     milestones,
     balance: { agreed, acknowledgedPaid, remaining: agreed - acknowledgedPaid },
+    fee: feeStateForJob(job.id),
     disputes,
     priceProtection,
     evidence,
@@ -356,6 +357,22 @@ function hasActiveSubscription(phone) {
   return !!db.prepare(
     "SELECT 1 FROM Billing WHERE kind = 'subscription' AND status = 'ACTIVE' AND user_phone = ? LIMIT 1"
   ).get(phone);
+}
+
+// Per-job ৳10 record-fee state, derived from the live CaaS Billing row
+// (at most one PENDING/VERIFIED row per job — the charge endpoint
+// returns the existing row instead of creating a second). Read-only:
+// calling this never creates a charge. verifiedAt is when the charge
+// reached VERIFIED; rows verified before the verified_at column existed
+// keep null (unknown, never backfilled with now()). amount is 10 even
+// with no row yet — that is the scheduled record fee, not a payment.
+function feeStateForJob(jobId) {
+  const row = db.prepare(
+    "SELECT * FROM Billing WHERE job_id = ? AND kind = 'caas' AND status IN ('PENDING','VERIFIED') ORDER BY created_at DESC LIMIT 1"
+  ).get(jobId);
+  if (!row) return { paid: false, amount: 10, status: null, verifiedAt: null };
+  const paid = row.status === 'VERIFIED';
+  return { paid, amount: row.amount, status: row.status, verifiedAt: paid ? (row.verified_at || null) : null };
 }
 
 function billingSatisfied(job) {
@@ -790,7 +807,7 @@ function bidJobPublic(b, viewerLat, viewerLng) {
   }
   const bidCount = db.prepare("SELECT COUNT(*) AS n FROM Bid WHERE bid_job_id = ? AND status = 'LIVE'").get(b.id).n;
   return {
-    id: b.id, trade: b.trade, description: b.description,
+    id: b.id, trade: b.trade, description: b.description, deadline: b.deadline || null,
     site: b.site_lat != null ? { lat: b.site_lat, lng: b.site_lng, address: b.site_address || null } : null,
     siteArea: b.site_address || null, status: b.status, photos, distanceKm, bidCount,
     created_at: b.created_at,
@@ -979,6 +996,7 @@ module.exports = {
   rescaleMilestones,
   hasActiveSubscription,
   billingSatisfied,
+  feeStateForJob,
   isLoopback,
   demoAllowed,
   requireAuth,

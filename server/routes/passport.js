@@ -86,6 +86,54 @@ router.get('/api/verify', (req, res) => {
   });
 });
 
+// ---------------------------------------------------------------- verify-pack
+// Public pack fetch for the verify page: given a fingerprint from a QR
+// code, return the bare material the page needs to recompute the hash
+// chain in the browser — and nothing else. No job row (no worker phone),
+// no payments, no photos, no disputes. The lookup accepts a full
+// 64-hex fingerprint or a unique 8+ hex prefix, exactly like /api/verify.
+// NOTE on events: each event is returned verbatim (type, actor,
+// payload_json, created_at, hash) because the chain hash is computed
+// over exactly those fields — redacting the actor would make the chain
+// unrecomputable. Actor strings are 'hirer:<phone>' / 'worker:<phone>',
+// so this endpoint does expose phones inside the event log, as the
+// ResolvePack JSON already does; it exposes no other phone field.
+router.get('/api/verify-pack', (req, res) => {
+  const fp = req.query.fp;
+  if (!fp || typeof fp !== 'string') return err(res, 400, 'fp (fingerprint) is required');
+  const clean = fp.trim().toLowerCase();
+  const isHex = /^[0-9a-f]+$/.test(clean);
+  let row = null;
+  let ambiguous = false;
+  if (clean.length === 64 && isHex) {
+    row = db.prepare('SELECT * FROM JobVersion WHERE fingerprint = ?').get(clean);
+  } else if (clean.length >= 8 && clean.length < 64 && isHex) {
+    const rows = db.prepare('SELECT * FROM JobVersion WHERE fingerprint LIKE ?').all(clean + '%');
+    if (rows.length === 1) row = rows[0];
+    else if (rows.length > 1) ambiguous = true;
+  }
+  if (ambiguous) {
+    return res.json({
+      match: false, fingerprint: fp, ambiguous: true,
+      reason: 'several records share this fingerprint prefix — paste the full 64-character fingerprint',
+    });
+  }
+  if (!row) return res.json({ match: false, fingerprint: fp });
+  const versions = db.prepare('SELECT * FROM JobVersion WHERE job_id = ? ORDER BY version_no ASC').all(row.job_id)
+    .map((v) => ({ ...v, scope: parseScopeJson(v) }));
+  const events = db.prepare('SELECT * FROM Event WHERE job_id = ? ORDER BY id ASC').all(row.job_id);
+  const chain = verifyChain(events);
+  res.json({
+    jobId: row.job_id,
+    versions,
+    events: events.map((e) => ({
+      type: e.type, actor: e.actor, payload_json: e.payload_json,
+      created_at: e.created_at, hash: e.hash,
+    })),
+    chainHead: chain.chainHead,
+  });
+});
+
 // Small public verify page (same flat design system). Reads ?fp= from the
 // URL and asks /api/verify — the match/mismatch verdict is rendered
 // client-side from that lookup.

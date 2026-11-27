@@ -1,11 +1,11 @@
-/* DealCraft — hirer app. English default. Defensive fetch against the API contract. */
+/* DealCraft — hirer app. Bangla default (saved choice wins). Defensive fetch against the API contract. */
 (function(){
 'use strict';
 var API=''; // same origin; backend serves public/ statically
 var token=localStorage.getItem('dc_token')||'';
 var user=null; try{user=JSON.parse(localStorage.getItem('dc_user')||'null');}catch(e){}
-var lang=localStorage.getItem('dc_lang')||'en';
-var currentJob=null, currentJobId=null, draft={trade:'ELECTRICIAN',answers:{},skipped:[]};
+var lang=localStorage.getItem('dc_lang')||'bn';
+var currentJob=null, currentJobId=null, draft={trade:'ELECTRICIAN',answers:{},skipped:[],fsIndex:0,answersByTrade:{ELECTRICIAN:{},PAINTER:{},PLUMBER:{}},skippedByTrade:{ELECTRICIAN:[],PAINTER:[],PLUMBER:[]}};
 
 /* ---------- i18n ---------- */
 var I18N={
@@ -44,7 +44,7 @@ var I18N={
 'login.title':{bn:'লগইন — ফোন + OTP',en:'Log in — phone + OTP'},'login.sub':{bn:'হায়ারার হিসেবে লগইন করুন।',en:'Log in as a hirer.'},
 'login.phone':{bn:'ফোন নম্বর',en:'Phone number'},'login.name':{bn:'আপনার নাম (ঐচ্ছিক)',en:'Your name (optional)'},
 'login.send':{bn:'OTP পাঠান',en:'Send OTP'},'login.otp':{bn:'OTP কোড',en:'OTP code'},'login.verify':{bn:'যাচাই করুন ও লগইন করুন',en:'Verify & log in'},'login.back':{bn:'ফিরে যান',en:'Back'},
-'jobs.title':{bn:'আমার কাজ',en:'My jobs'},'jobs.logout':{bn:'লগ আউট',en:'Log out'},'jobs.new':{bn:'+ নতুন কাজ — FairScope',en:'+ New job — FairScope'},'jobs.refresh':{bn:'তালিকা আপডেট করুন',en:'Refresh list'},'jobs.empty':{bn:'এখনো কোনো কাজ নেই। উপরে নতুন রেকর্ড শুরু করুন।',en:'No jobs yet. Start a record above.'},
+'jobs.title':{bn:'আমার কাজ',en:'My jobs'},'jobs.logout':{bn:'লগ আউট',en:'Log out'},'jobs.new':{bn:'+ নতুন কাজ — FairScope',en:'+ New job — FairScope'},'jobs.refresh':{bn:'তালিকা আপডেট করুন',en:'Refresh list'},'jobs.empty':{bn:'এখনো কোনো কাজ নেই। নিচে + নতুন কাজ চাপ দিয়ে প্রথম রেকর্ড শুরু করুন।',en:'No jobs yet. Tap + New job below to start your first record.'},
 'new.s1':{bn:'১ · ব্যবসা',en:'1 · Trade'},'new.s2':{bn:'২ · ফেয়ারস্কোপ',en:'2 · FairScope'},'new.s3':{bn:'৩ · দাম ও তারিখ',en:'3 · Price & dates'},'new.s4':{bn:'৪ · পর্যালোচনা',en:'4 · Review'},
 'new.title':{bn:'নতুন কাজ — FairScope',en:'New job — FairScope'},'new.trade':{bn:'কাজের ধরন',en:'Trade — type of work'},
 'new.workerPhone':{bn:'ওয়ার্কারের ফোন',en:'Worker phone'},'new.workerName':{bn:'ওয়ার্কারের নাম',en:'Worker name'},
@@ -241,7 +241,7 @@ var I18N={
 'j5s3':{bn:'লাইভ লোকেশন',en:'Live location'},
 'j5s4':{bn:'এক ট্যাপে টাকা',en:'One tap paid'},
 'j5s5':{bn:'শেষ',en:'Done'},
-'demo.liveTag':{bn:'লাইভ ডেমো · ঢাকা',en:'LIVE DEMO · DHAKA'},
+'demo.liveTag':{bn:'নমুনা ডেমো · ঢাকা',en:'SIMULATED DEMO · DHAKA'},
 'demo.play':{bn:'▶ চালান',en:'▶ Play'},
 'demo.pause':{bn:'⏸ থামান',en:'⏸ Pause'},
 'demo.next':{bn:'পরের ধাপ →',en:'Next step →'},
@@ -265,7 +265,7 @@ var I18N={
 'profile.linkCopied':{bn:'লিংক কপি হয়েছে।',en:'Link copied.'},
 'trip.copied':{bn:'ট্রিপের লিংক কপি হয়েছে — যাকে পাঠাতে চান, তাকে দিন।',en:'Trip link copied — send it to whoever needs it.'},
 'trip.unavailable':{bn:'এই সার্ভারে ট্রিপ শেয়ারিং এখনো চালু হয়নি।',en:'Trip sharing is not on this server yet.'},
-'detail.call':{bn:'📞 ওয়ার্কারকে কল করুন',en:'📞 Call worker'},
+'detail.call':{bn:'ওয়ার্কারকে কল করুন',en:'Call worker'},
 'jobs.tabHirer':{bn:'আমি নিয়োগ দিয়েছি',en:'Jobs I hired'},
 'jobs.tabWorker':{bn:'আমি কাজ করেছি',en:'Jobs I worked'},
 'jobs.workerEmpty':{bn:'আপনি এখনো কোনো কাজ করেননি।',en:'No jobs you worked yet.'},
@@ -282,8 +282,93 @@ var I18N={
 'receipt.copy':{bn:'রসিদ কপি করুন',en:'Copy receipt'},
 'receipt.copied':{bn:'রসিদ কপি হয়েছে।',en:'Receipt copied.'},
 'receipt.fp':{bn:'রেকর্ড ফিঙ্গারপ্রিন্ট',en:'Record fingerprint'},
-'price.note':{bn:'এই ফ্লোতে একমাত্র চার্জ ৳১০ রেকর্ড ফি — একবার, দুই পক্ষ নিশ্চিত করার পর। যাচাইকরণ ফ্রি — কোডের জন্য কোনো চার্জ নেই।',en:'The only charge in the flow is the ৳10 record fee, once, after both sides confirm. Verification is free — no charge for a code.'},
-'about.note':{bn:'দুই পক্ষের সম্মতিতে লেখা ডিজিটাল কাজের রেকর্ড — চুক্তিপত্র নয়। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়।',en:'A mutually confirmed digital work record — not a contract. AppLink reaches Banglalink subscribers only.'}
+'price.note':{bn:'এই ফ্লোতে একমাত্র চার্জ ৳১০ রেকর্ড ফি — একবার, দুই পক্ষ নিশ্চিত করার পর। যাচাইকরণ ফ্রি — কোডের জন্য কোনো চার্জ নেই। AppLink শুধু Banglalink নম্বরে পৌঁছায় — অন্য অপারেটরে OTP/SMS যাবে না।',en:'The only charge in the flow is the ৳10 record fee, once, after both sides confirm. Verification is free — no charge for a code. AppLink reaches Banglalink subscribers only — OTP and SMS will not reach other operators.'},
+'about.note':{bn:'দুই পক্ষের সম্মতিতে লেখা ডিজিটাল কাজের রেকর্ড — চুক্তিপত্র নয়। AppLink শুধু Banglalink গ্রাহকদের কাছে পৌঁছায়।',en:'A mutually confirmed digital work record — not a contract. AppLink reaches Banglalink subscribers only.'},
+'demo.simNote':{bn:'নমুনা — আসল মিস্ত্রি নয়।',en:'Simulated — not a real worker.'},
+'demo.replay':{bn:'আবার দেখুন',en:'Replay'},
+'demo.preparing':{bn:'ডেমো তৈরি হচ্ছে…',en:'Preparing demo…'},
+'demo.off':{bn:'এই সার্ভারে ডেমো বন্ধ আছে। নিজের নম্বর দিয়ে লগইন করে আসল রেকর্ড শুরু করুন।',en:'Demo is off on this server. Log in with your own number to start a real record.'},
+'demo.banner':{bn:'ডেমো — আসল রেকর্ড নয়। এখানে কিছুই গণ্য হবে না।',en:'DEMO — not a real record. Nothing here counts.'},
+'demo.restart':{bn:'ডেমো আবার শুরু করুন',en:'Restart demo'},
+'demo.exit':{bn:'ডেমো থেকে বের হন',en:'Exit demo'},
+'demo.blocked':{bn:'আসল রেকর্ড শুরু করতে ডেমো থেকে বের হন।',en:'Exit the demo to start a real record.'},
+'demo.tryThis':{bn:'এটা চেষ্টা করুন:',en:'Try this:'},
+'otp.resend':{bn:'কোড আবার পাঠান',en:'Resend code'},
+'otp.valid':{bn:'কোড ৫ মিনিট কাজ করবে।',en:'Code works for 5 minutes.'},
+'otp.resent':{bn:'নতুন কোড পাঠানো হয়েছে — SMS দেখুন।',en:'New code sent — check SMS.'},
+'otp.resendIn':{bn:'{n} সেকেন্ড পর আবার পাঠান…',en:'Resend in {n}s…'},
+'login.phoneErr':{bn:'01 দিয়ে শুরু ১১ অঙ্কের মোবাইল নম্বর দিন — যেমন 017XXXXXXXX।',en:'Enter an 11-digit mobile number starting with 01 — e.g. 017XXXXXXXX.'},
+'login.wrongCode':{bn:'ভুল কোড — SMS দেখে আবার চেষ্টা করুন।',en:'Wrong code — check the SMS and try again.'},
+'login.tooMany':{bn:'অনেকবার চেষ্টা হয়েছে — ৫ মিনিট পর আবার কোড নিন।',en:'Too many tries — wait 5 minutes, then resend the code.'},
+'jobs.retry':{bn:'আবার চেষ্টা করুন',en:'Retry'},
+'jobs.workerErr':{bn:'আপনার কাজের তালিকা আনা যায়নি — নেট দেখে Refresh চাপুন।',en:'Could not load jobs you worked — check connection, then tap Refresh.'},
+'jobs.fAll':{bn:'সব',en:'All'},
+'jobs.fWaiting':{bn:'অপেক্ষায়',en:'Waiting'},
+'jobs.fActive':{bn:'চালু',en:'Active'},
+'jobs.fDone':{bn:'শেষ',en:'Done'},
+'new.workerLabel':{bn:'ওয়ার্কার',en:'Worker'},
+'new.edit':{bn:'বদলান',en:'Edit'},
+'prompt.siteToggle':{bn:'কাজের জায়গা যোগ করুন (ঐচ্ছিক)',en:'Add job site (optional)'},
+'prompt.msToggle':{bn:'মাইলস্টোন যোগ করুন (ঐচ্ছিক)',en:'Add milestones (optional)'},
+'prompt.parseFail':{bn:'লাইনটি পড়া যায়নি — নিচের প্রশ্নগুলোর উত্তর দিন।',en:'Could not read the job line — answer the questions below.'},
+'draft.restored':{bn:'অসমাপ্ত কাজটি আবার শুরু হচ্ছে।',en:'Continuing your unfinished job.'},
+'site.nomap2':{bn:'ম্যাপ আসেনি — ঠিকানাটা লিখে দিন।',en:'Map did not load — type the address instead.'},
+'detail.nextConfirm':{bn:'পরের ধাপ: নিশ্চিতকরণ →',en:'Next: Confirm →'},
+'detail.nextWay':{bn:'পরের ধাপ: পথে →',en:'Next: On the way →'},
+'detail.nextPay':{bn:'পরের ধাপ: পেমেন্ট →',en:'Next: Payment →'},
+'detail.nextDone':{bn:'পরের ধাপ: শেষ →',en:'Next: Done →'},
+'detail.backJobs':{bn:'সব কাজে ফিরুন',en:'Back to My jobs'},
+'detail.protectionSummary':{bn:'দামের ইতিহাস',en:'Price history'},
+'detail.evidenceSummary':{bn:'প্রমাণের প্যাক',en:'Evidence pack'},
+'detail.closeWithCode':{bn:'Worker-এর কোড দিয়ে বন্ধ করুন',en:'Close with the worker’s code'},
+'detail.closeAloneWarn':{bn:'একা বন্ধ করলে এই কাজ WorkPassport-এ যোগ হবে না।',en:'Closing alone will not add this job to the WorkPassport.'},
+'detail.closeHint':{bn:'Worker-এর কোড লিখুন, অথবা “একা বন্ধ করুন” বেছে নিন।',en:'Enter the worker’s code, or tick ‘Close alone’.'},
+'detail.passportHirerNote':{bn:'WorkPassport ওয়ার্কারের নিজের — কাজ শেষ হলে ওয়ার্কার নিজের লিংক থেকে যোগ করবেন।',en:'The WorkPassport belongs to the worker — after the job closes, the worker adds it from their own link.'},
+'detail.passportResend':{bn:'Worker-কে লিংক আবার পাঠান',en:'Resend the link to the worker'},
+'detail.confirmWrong':{bn:'ভুল কোড — SMS দেখে আবার চেষ্টা করুন।',en:'Wrong code — check the SMS and try again.'},
+'detail.confirmExpired':{bn:'কোডের মেয়াদ শেষ — Resend code চাপুন।',en:'Code expired — tap Resend code.'},
+'otp.tooMany':{bn:'অনেকগুলো কোড পাঠানো হয়েছে — ৫ মিনিট অপেক্ষা করে Resend চাপুন।',en:'Too many codes sent — wait 5 minutes and tap Resend.'},
+'otp.demoPrefix':{bn:'ডেমো কোড — শুধু পরীক্ষার জন্য। ',en:'Demo code — test only. '},
+'loc.retry':{bn:'ম্যাপ আবার চেষ্টা করুন',en:'Try map again'},
+'loc.fbWorkerWaiting':{bn:'WORKER HAS NOT SHARED YET',en:'WORKER HAS NOT SHARED YET'},
+'loc.fbWaiting':{bn:'WAITING FOR WORKER TO SHARE',en:'WAITING FOR WORKER TO SHARE'},
+'pay.confirmYes':{bn:'হ্যাঁ, রেকর্ড করুন',en:'Yes, record it'},
+'pay.change':{bn:'বদলান',en:'Change'},
+'pay.fullRem':{bn:'পুরো বাকি {amt}',en:'Full remaining {amt}'},
+'pay.summaryTitle':{bn:'পেমেন্টের সারাংশ',en:'Payment summary'},
+'pay.remAfter':{bn:'এই পেমেন্টের পর বাকি',en:'Remaining after this payment'},
+'pay.photoTooLarge':{bn:'ছবি অনেক বড় — আবার চেষ্টা করুন।',en:'Photo too large — try again.'},
+'ms.waiting':{bn:'ওয়ার্কারের অপেক্ষায়',en:'Waiting for worker'},
+'receipt.share':{bn:'শেয়ার করুন',en:'Share'},
+'receipt.print':{bn:'প্রিন্ট করুন',en:'Print'},
+'receipt.shared':{bn:'রসিদ শেয়ার করা হয়েছে।',en:'Receipt shared.'},
+'receipt.holdsNoMoney':{bn:'শুধু পেমেন্টের স্বীকৃতি — DealCraft কোনো টাকা রাখে না।',en:'Payment acknowledgement only — DealCraft holds no money.'},
+'receipt.fpVerify':{bn:'রেকর্ড ফিঙ্গারপ্রিন্ট — যাচাই করতে Verify চাপুন',en:'Record fingerprint — tap Verify to check'},
+'receipt.trade':{bn:'কাজের ধরন',en:'Trade'},
+'receipt.worker':{bn:'ওয়ার্কার',en:'Worker'},
+'trip.copiedNote':{bn:'লাইভ ট্রিপ লিংক কপি হয়েছে — এই লিংক যার কাছে আছে, সে শুধু এই ট্রিপের লোকেশন দেখতে পাবে, ফোন নম্বর নয়।',en:'Live trip link copied — anyone with this link sees only this trip’s location, no phone number.'},
+'more.navChange':{bn:'বদল',en:'Change'},
+'more.navDispute':{bn:'সমস্যা',en:'Dispute'},
+'more.navPassport':{bn:'পাসপোর্ট',en:'Passport'},
+'more.navBilling':{bn:'বিল',en:'Billing'},
+'change.emptyErr':{bn:'দাম বা সময় — অন্তত একটি বদল লিখুন।',en:'Change the price or the time — at least one.'},
+'bill.feePaid':{bn:'৳10 দেওয়া হয়েছে',en:'৳10 paid'},
+'bill.unsub':{bn:'সাবস্ক্রিপশন বাতিল করুন',en:'Cancel subscription'},
+'bill.unsubDone':{bn:'সাবস্ক্রিপশন বাতিল করা হয়েছে।',en:'Subscription cancelled.'},
+'bid.picked':{bn:'ঠিকানা বেছে নেওয়া হয়েছে',en:'Address picked'},
+'bid.deadline':{bn:'শেষ তারিখ',en:'Deadline'},
+'bid.yourPrice':{bn:'আপনার দাম (৳)',en:'Your price (৳)'},
+'bid.earliest':{bn:'কবে শুরু করতে পারবেন?',en:'Earliest start'},
+'bid.note':{bn:'নোট (ঐচ্ছিক)',en:'Note (optional)'},
+'bid.place':{bn:'দর দিন',en:'Place bid'},
+'bid.cancel':{bn:'বাতিল করুন',en:'Cancel'},
+'bid.pick':{bn:'বেছে নিন',en:'Pick this bid'},
+'bid.amountErr':{bn:'দাম ০-এর বেশি হতে হবে।',en:'Price must be more than 0.'},
+'bid.cheapest':{bn:'সবচেয়ে কম: {amt} · {name}',en:'Cheapest: {amt} · {name}'},
+'bid.closedBids':{bn:'মেয়াদ শেষ / ফিরিয়ে নেওয়া দর',en:'Expired / withdrawn bids'},
+'bid.noLoc':{bn:'লোকেশন ছাড়া দূরত্ব দেখা যাবে না — নতুন কাজ আগে দেখানো হচ্ছে।',en:'Without location, distance can’t be shown — newest jobs are shown first.'},
+'bid.retryLoc':{bn:'আবার চেষ্টা করুন',en:'Try again'},
+'bid.locSet':{bn:'আপনার লোকেশন দেওয়া হয়েছে — কাছের কাজ আগে',en:'Your location is set — nearest first'}
 };
 var NOT_DECIDED={bn:'ঠিক হয়নি',en:'Not decided'};
 /* ---------- Section 2: event / status / trade label dictionaries ----------
@@ -387,6 +472,8 @@ function applyI18n(){document.documentElement.lang=lang;
  var PH={'login-name':{bn:'নাম',en:'Your name'},'otp-code':{bn:'6 অঙ্কের কোড',en:'6-digit code'},
  'confirm-otp':{bn:'OTP',en:'OTP'},'close-otp':{bn:'6 অঙ্কের কোড',en:'6-digit code'},
  'bid-desc':{bn:'যেমন: বাথরুমের পাইপ ফেটে পানি পড়ছে',en:'e.g. bathroom pipe burst, water leaking'},
+ 'bid-c-note':{bn:'যেমন: মালামালসহ',en:'e.g. including materials'},
+ 'bid-c-amount':{bn:'৪০০০',en:'4000'},
  'bid-address':{bn:'যেমন: বাড়ি ১২, রোড ৫, ধানমন্ডি, ঢাকা',en:'e.g. House 12, Road 5, Dhanmondi, Dhaka'},
  'site-address':{bn:'যেমন: বাড়ি ১২, রোড ৫, ধানমন্ডি, ঢাকা',en:'e.g. House 12, Road 5, Dhanmondi, Dhaka'},
  'job-scope':{bn:'যেমন: পুরো ফ্ল্যাটের রিওয়্যারিং, ২৪ পয়েন্ট',en:'e.g. full flat rewiring, 24 points'},
@@ -401,7 +488,7 @@ function applyI18n(){document.documentElement.lang=lang;
  if(b)b.setAttribute('aria-pressed',lang==='bn'?'true':'false');
  if(e)e.setAttribute('aria-pressed',lang==='en'?'true':'false');
  localStorage.setItem('dc_lang',lang);}
-function setLang(l){lang=l;applyI18n();renderFairScope();if(currentJob)renderDetail(currentJob);if(liveMap)liveRender(liveP<0?liveProgress():liveP);/* The journey card's version line is set by setJourneyState (scroll-driven), not by applyI18n — refresh it so it follows a language toggle. */var jv=$('jc-ver');if(jv&&typeof journeyState!=='undefined'&&journeyState>=0)jv.textContent=journeyState>=4?t('jc.ver2'):t('jc.ver1');}
+function setLang(l){lang=l;applyI18n();renderFairScope();if(currentJob)renderDetail(currentJob);/* The journey card's version line is set by setJourneyState (scroll-driven), not by applyI18n — refresh it so it follows a language toggle. */var jv=$('jc-ver');if(jv&&typeof journeyState!=='undefined'&&journeyState>=0)jv.textContent=journeyState>=4?t('jc.ver2'):t('jc.ver1');}
 
 /* ---------- dotted Bangladesh map ---------- */
 /* Approximate border polygon as [lon,lat] pairs. */
@@ -460,6 +547,18 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){retur
 function taka(n){if(n==null||n==='')return '—';return '৳'+Number(n).toLocaleString('en-IN');}
 function fmtDate(d){if(!d)return '—';try{return new Date(d).toLocaleDateString(lang==='bn'?'bn-BD':'en-GB',{day:'numeric',month:'short',year:'numeric'});}catch(e){return String(d);}}
 function fmtDT(d){if(!d)return '—';try{return new Date(d).toLocaleString(lang==='bn'?'bn-BD':'en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return String(d);}}
+function networkMsg(){return lang==='bn'?'নেটওয়ার্ক সমস্যা — সার্ভারে পৌঁছানো যায়নি।':'Network problem — could not reach the server.';}
+/* OTP error mapping — never show a raw code to the user. E1851 = wrong
+   code, E1850 = expired, E1855 = too many codes sent (AppLink limit). */
+function otpErrText(e){
+ var m=String((e&&e.message)||'');
+ if(/E1851|mismatch/i.test(m))return t('detail.confirmWrong');
+ if(/E1850|expired/i.test(m))return t('detail.confirmExpired');
+ if(/E1855/.test(m))return t('otp.tooMany');
+ return null;
+}
+/* Every sandbox code display carries the "test only" prefix. */
+function sandboxCodeText(code){return t('otp.demoPrefix')+(code||'—');}
 async function api(path,opts){
  opts=opts||{}; opts.headers=opts.headers||{};
  if(!(opts.body instanceof FormData))opts.headers['Content-Type']='application/json';
@@ -467,7 +566,7 @@ async function api(path,opts){
  var res, data=null;
  try{res=await fetch(API+path,opts);}catch(e){throw new Error((lang==='bn'?'নেটওয়ার্ক সমস্যা — সার্ভারে পৌঁছানো যায়নি। ':'Network problem — could not reach the server. ')+e.message);}
  try{data=await res.json();}catch(e){data=null;}
- if(!res.ok){var m=(data&&(data.error||data.message))||('HTTP '+res.status);throw new Error(m);}
+ if(!res.ok){var m=(data&&(data.error||data.message))||('HTTP '+res.status);var errObj=new Error(m);errObj.status=res.status;throw errObj;}
  return data;
 }
 function showView(id,dir){document.body.classList.add('show-app');
@@ -519,8 +618,9 @@ function profileInitials(name){
  if(!parts.length)return 'D';
  return (parts[0].charAt(0)+(parts.length>1?parts[parts.length-1].charAt(0):'')).toUpperCase();
 }
-function renderProfileCard(p){
+function renderProfileCard(p,opts){
  if(!p)return '';
+ opts=opts||{};
  var name=p.name||t('profile.worker');
  var trade=p.trade?tradeLabel(p.trade):'—';
  var photo=p.photoUrl
@@ -538,7 +638,7 @@ function renderProfileCard(p){
   +'<div class="pc-facts">'
   +'<div class="pc-fact"><b>'+esc(jobs)+'</b><span>'+esc(t('profile.jobs'))+'</span></div>'
   +'<div class="pc-fact"><b>'+esc(hirers)+'</b><span>'+esc(t('profile.hirers'))+'</span></div>'
-  +'<div class="pc-fact"><b>'+esc(since)+'</b><span>'+esc(t('profile.since'))+'</span></div>'
+  +(opts.hideSince?'':'<div class="pc-fact"><b>'+esc(since)+'</b><span>'+esc(t('profile.since'))+'</span></div>')
   +'</div></div></article>';
 }
 /* A bid row without a server workerProfile (old cached data) still gets
@@ -747,8 +847,79 @@ function missingTerms(){
  var qs=FAIRSCOPE[draft.trade]||[];
  return qs.filter(function(q,i){return draft.answers[i]==='Not decided'||draft.answers[i]==null;}).map(function(q){return q.q.en;});
 }
+/* N5: answers live per trade — switching trade swaps the active set
+   instead of clearing it, and switching back restores earlier answers. */
+function freshDraft(trade){
+ return {trade:trade||'ELECTRICIAN',answers:{},skipped:[],fsIndex:0,
+  answersByTrade:{ELECTRICIAN:{},PAINTER:{},PLUMBER:{}},
+  skippedByTrade:{ELECTRICIAN:[],PAINTER:[],PLUMBER:[]}};
+}
+function saveActiveTradeSet(){
+ if(!draft||!draft.trade)return;
+ if(!draft.answersByTrade)draft.answersByTrade={};
+ if(!draft.skippedByTrade)draft.skippedByTrade={};
+ draft.answersByTrade[draft.trade]=Object.assign({},draft.answers);
+ draft.skippedByTrade[draft.trade]=draft.skipped.slice();
+}
+function syncTradePicker(){
+ var p=$('trade-picker'); if(!p||!draft)return;
+ p.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x.getAttribute('data-trade')===draft.trade?'true':'false');});
+}
+function switchTrade(tr){
+ if(!tr||!FAIRSCOPE[tr])return;
+ if(draft&&draft.trade===tr){syncTradePicker();return;}
+ saveActiveTradeSet();
+ if(!draft)draft=freshDraft(tr);
+ draft.trade=tr;
+ if(!draft.answersByTrade)draft.answersByTrade={};
+ if(!draft.skippedByTrade)draft.skippedByTrade={};
+ draft.answers=Object.assign({},draft.answersByTrade[tr]||{});
+ draft.skipped=(draft.skippedByTrade[tr]||[]).slice();
+ draft.fsIndex=0;
+ syncTradePicker();
+ renderFairScope();
+ saveDraft();
+}
+/* N1: the worker summary line above the trade buttons. */
+function updateWorkerSummary(){
+ var el=$('worker-summary-text'); if(!el)return;
+ var n=(($('worker-name')||{}).value||'').trim();
+ var p=(($('worker-phone')||{}).value||'').trim();
+ el.textContent=(n||'—')+' · '+(p||'—');
+}
+/* N6a: persist the unfinished draft (draft + visible field values) after
+   every prompt answer and every FairScope answer. */
+function saveDraft(){
+ try{
+  var fields={promptText:($('prompt-input-app')||{}).value||'',price:($('job-price')||{}).value||'',deadline:($('job-deadline')||{}).value||'',scope:($('job-scope')||{}).value||'',workerPhone:($('worker-phone')||{}).value||'',workerName:($('worker-name')||{}).value||'',site:draft.site||null};
+  localStorage.setItem('dc_draft',JSON.stringify({draft:draft,fields:fields}));
+ }catch(e){}
+}
+/* N2: the read-only summary shown once the details may be revealed. */
+function renderNewSummary(){
+ var box=$('new-summary'); if(!box)return;
+ var w=(($('worker-name')||{}).value||'').trim();
+ var ph=(($('worker-phone')||{}).value||'').trim();
+ var price=($('job-price')||{}).value||'';
+ var dl=($('job-deadline')||{}).value||'';
+ var sc=($('job-scope')||{}).value||'';
+ box.innerHTML='<h3>'+esc(tradeLabel(draft.trade))+' — '+(lang==='bn'?'এক পাতার কাজের রেকর্ড':'One-page work record')+'</h3><table>'+
+  '<tr><th>'+esc(t('new.workerLabel'))+'</th><td>'+esc((w||'—')+' · '+(ph||'—'))+'</td></tr>'+
+  '<tr><th>'+esc(t('new.price'))+'</th><td>'+esc(price?taka(Number(price)):'—')+'</td></tr>'+
+  '<tr><th>'+esc(t('new.deadline'))+'</th><td>'+esc(dl?fmtDate(dl):'—')+'</td></tr>'+
+  '<tr><th>'+esc(t('new.scope'))+'</th><td>'+esc(sc||'—')+'</td></tr></table>';
+}
+/* N2: reveal #new-details only once the prompt questions are done AND
+   every FairScope question is answered. Returns nothing; renderFairScope
+   reports whether all its questions are answered. */
+function maybeRevealDetails(){
+ var nd=$('new-details'); if(!nd)return;
+ var qEmpty=!promptQ||promptQ.length===0;
+ var fsDone=renderFairScope();
+ if(qEmpty&&fsDone){nd.hidden=false;renderNewSummary();}
+}
 function renderFairScope(){
- var box=$('fs-questions'); if(!box)return;
+ var box=$('fs-questions'); if(!box)return false;
  var qs=FAIRSCOPE[draft.trade]||[];
  if(draft.fsIndex==null)draft.fsIndex=0;
  while(draft.fsIndex<qs.length&&draft.answers[draft.fsIndex]!=null)draft.fsIndex++;
@@ -758,23 +929,23 @@ function renderFairScope(){
   :((lang==='bn'?'প্রশ্ন ':'Question ')+(draft.fsIndex+1)+' / '+qs.length);
  if(draft.fsIndex>=qs.length){
   box.innerHTML='<p class="small">'+(lang==='bn'?'সব প্রশ্ন শেষ — নিচে দাম ও মাইলস্টোন দেখুন।':'All questions done — price and milestones are below.')+'</p>';
-  updateMissingWarn(); return;
+  updateMissingWarn(); return true;
  }
  var i=draft.fsIndex, q=qs[i];
  var optsEn=q.opts.en, optsLoc=q.opts[lang]||q.opts.en;
  var btns=optsEn.map(function(o,oi){return '<button type="button" data-v="'+esc(o)+'">'+esc(optsLoc[oi])+'</button>';}).join('');
- btns+='<button type="button" data-v="Not decided">'+esc(NOT_DECIDED[lang])+'</button>';
  box.innerHTML='<div class="q-block"><div class="q">'+esc(q.q[lang]||q.q.en)+'</div><div class="opt-row">'+btns+'</div>'
   +'<div class="btn-row"><button type="button" class="btn btn-dark-ghost btn-sm" data-skip-q="'+i+'">'+(lang==='bn'?'এই শর্তটি বাদ দিন':'Skip this term')+'</button></div></div>';
  box.querySelectorAll('button[data-v]').forEach(function(b){b.addEventListener('click',function(){
   draft.answers[i]=b.getAttribute('data-v');
   draft.skipped=draft.skipped.filter(function(x){return x!==q.q.en;});
-  draft.fsIndex++; renderFairScope(); updateMissingWarn(); });});
+  draft.fsIndex++; renderFairScope(); updateMissingWarn(); saveDraft(); maybeRevealDetails(); });});
  var sk=box.querySelector('[data-skip-q]');
  if(sk)sk.addEventListener('click',function(){
   if(draft.skipped.indexOf(q.q.en)<0)draft.skipped.push(q.q.en);
-  draft.answers[i]='Not decided'; draft.fsIndex++; renderFairScope(); updateMissingWarn(); });
+  draft.answers[i]='Not decided'; draft.fsIndex++; renderFairScope(); updateMissingWarn(); saveDraft(); maybeRevealDetails(); });
  updateMissingWarn();
+ return false;
 }
 /* Three states, never bulk auto-skip: a missing term is UNRESOLVED until
    the hirer answers it or taps "Skip this term" on that one term. The
@@ -807,46 +978,165 @@ function newStep(n){
  var steps=document.querySelectorAll('#new-steps span'); steps.forEach(function(s){s.classList.toggle('on',+s.getAttribute('data-step')===n);});
 }
 
+/* ---------- dotted schematic map fallback (no network, no gradients) ----------
+   Used when Leaflet tiles never arrive (or Leaflet itself never loads):
+   a dotted-grid SVG with the worker dot, the site square and a dashed
+   route, drawn from the real coordinates. The live map is never
+   destroyed — the fallback only covers it, and the first tile that does
+   arrive swaps the real map back in. */
+function mapFallbackSVG(worker, site, waitingLabel){
+ var pts=[];
+ if(worker)pts.push({lat:worker.lat,lng:worker.lng});
+ if(site)pts.push({lat:site.lat,lng:site.lng});
+ function pos(p){
+  if(pts.length<2)return {x:50,y:50};
+  var lats=pts.map(function(q){return q.lat;}), lngs=pts.map(function(q){return q.lng;});
+  var minLat=Math.min.apply(null,lats), maxLat=Math.max.apply(null,lats);
+  var minLng=Math.min.apply(null,lngs), maxLng=Math.max.apply(null,lngs);
+  var padLat=(maxLat-minLat)*0.15||0.01, padLng=(maxLng-minLng)*0.15||0.01;
+  minLat-=padLat; maxLat+=padLat; minLng-=padLng; maxLng+=padLng;
+  return {x:(p.lng-minLng)/(maxLng-minLng)*100, y:100-(p.lat-minLat)/(maxLat-minLat)*100};
+ }
+ var svg='<svg viewBox="0 0 100 62" preserveAspectRatio="none" style="width:100%;height:100%" role="img" aria-label="Schematic map">'
+  +'<defs><pattern id="dg" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="0.7" fill="#bbb"/></pattern></defs>'
+  +'<rect x="0" y="0" width="100" height="62" fill="url(#dg)"/>';
+ var wPos=worker?pos(worker):null, sPos=site?pos(site):null;
+ if(wPos&&sPos)svg+='<path d="M '+wPos.x.toFixed(1)+' '+wPos.y.toFixed(1)+' L '+sPos.x.toFixed(1)+' '+sPos.y.toFixed(1)+'" fill="none" stroke="#666" stroke-dasharray="3 2" stroke-width="0.8"/>';
+ if(sPos)svg+='<rect x="'+(sPos.x-2.5).toFixed(1)+'" y="'+(sPos.y-2.5).toFixed(1)+'" width="5" height="5" fill="#000" stroke="#FF5A1F" stroke-width="0.8"/><text x="'+(sPos.x+4).toFixed(1)+'" y="'+(sPos.y-3).toFixed(1)+'" font-family="monospace" font-size="3" fill="#111">SITE</text>';
+ if(wPos)svg+='<circle cx="'+wPos.x.toFixed(1)+'" cy="'+wPos.y.toFixed(1)+'" r="4.8" fill="none" stroke="#fff" stroke-width="0.8"/><circle cx="'+wPos.x.toFixed(1)+'" cy="'+wPos.y.toFixed(1)+'" r="3.2" fill="#FF5A1F" stroke="#fff" stroke-width="1.2"/>';
+ if(waitingLabel)svg+='<text x="50" y="59" text-anchor="middle" font-family="monospace" font-size="3" fill="#555">'+esc(waitingLabel)+'</text>';
+ return svg+'</svg>';
+}
+
 /* ---------- job site picker (Leaflet, tap to drop a pin) ---------- */
-var siteMap=null, siteMarker=null;
+var siteMap=null, siteMarker=null, siteTiles=null, siteTileErrors=0, siteTileLoads=0, siteTileTimer=null;
 function setSite(lat,lng,silent){
  draft.site={lat:+lat.toFixed(6),lng:+lng.toFixed(6),address:($('site-address')||{}).value?$('site-address').value.trim():''};
  if(siteMap){if(siteMarker)siteMarker.setLatLng([lat,lng]);else siteMarker=L.marker([lat,lng]).addTo(siteMap);if(!silent)siteMap.setView([lat,lng],15);}
  var p=$('site-picked'); if(p){p.hidden=false;p.textContent=t('site.picked')+': '+draft.site.lat+', '+draft.site.lng+(draft.site.address?' · '+draft.site.address:'');}
+ var sf=$('site-fallback'); if(sf&&!sf.hidden){var s=$('site-fallback-svg');if(s)s.innerHTML=mapFallbackSVG(null,draft.site||null,null);}
+}
+function showSiteFallback(){
+ var fb=$('site-fallback'); if(!fb)return;
+ var el=$('site-map'); if(el)el.hidden=true;
+ var svgEl=$('site-fallback-svg'); if(svgEl)svgEl.innerHTML=mapFallbackSVG(null,draft.site||null,null);
+ fb.hidden=false;
+ var nm=$('site-nomap'); if(nm)nm.hidden=false;
+}
+function hideSiteFallback(){
+ var fb=$('site-fallback'); if(fb)fb.hidden=true;
+ var el=$('site-map'); if(el&&siteMap)el.hidden=false;
+}
+function siteAttachTiles(){
+ var tiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'});
+ tiles.on('tileload',function(){
+  siteTileLoads++;
+  if(siteTileTimer){clearTimeout(siteTileTimer);siteTileTimer=null;}
+  var fb=$('site-fallback');
+  if(fb&&!fb.hidden){siteTileErrors=0;hideSiteFallback();}
+ });
+ tiles.on('tileerror',function(){siteTileErrors++;if(siteTileErrors>=3)showSiteFallback();});
+ return tiles;
+}
+function retrySiteMap(){
+ if(!siteMap)return;
+ siteTileErrors=0; siteTileLoads=0;
+ if(siteTiles){try{siteMap.removeLayer(siteTiles);}catch(e){}}
+ siteTiles=siteAttachTiles(); siteTiles.addTo(siteMap);
+ siteMap.invalidateSize(); hideSiteFallback();
+ if(siteTileTimer)clearTimeout(siteTileTimer);
+ siteTileTimer=setTimeout(function(){if(!siteTileLoads)showSiteFallback();},6000);
 }
 function initSiteMap(){
  var el=$('site-map'); if(!el||siteMap)return;
- if(typeof L==='undefined'){el.innerHTML='<p class="small">'+esc(t('site.nomap'))+'</p>';return;}
+ if(typeof L==='undefined'){showSiteFallback();return;}
  siteMap=L.map(el).setView([23.8103,90.4125],12);
- L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(siteMap);
+ siteTiles=siteAttachTiles(); siteTiles.addTo(siteMap);
+ /* If no tile ever arrives, say so plainly and show the dotted
+    schematic instead of a blank map — the address field below stays
+    usable either way. */
+ siteTileTimer=setTimeout(function(){if(!siteTileLoads)showSiteFallback();},6000);
  siteMap.on('click',function(e){setSite(e.latlng.lat,e.latlng.lng);});
  if(draft.site)setSite(draft.site.lat,draft.site.lng,true);
  setTimeout(function(){siteMap.invalidateSize();},100);
+ var rb=$('btn-site-retry'); if(rb)rb.onclick=retrySiteMap;
 }
 
 /* ---------- live location (hirer side) ---------- */
-var locTimer=null, locMap=null, locMarker=null, locSiteMarker=null, locTrailLine=null, locRouteLine=null, locLastPos=null, locAnim=null, locWasSharing=false;
+var locTimer=null, locMap=null, locMarker=null, locSiteMarker=null, locTrailLine=null, locRouteLine=null, locLastPos=null, locAnim=null, locWasSharing=false, locSite=null;
+var locTiles=null, locTileErrors=0, locTileLoads=0, locTileTimer=null, locFallbackShown=false;
 var LOC_STATUS={'not-sharing':'loc.notSharing','stopped':'loc.stopped','en-route':'loc.enRoute','arriving':'loc.arriving','arrived':'loc.arrived','on-site':'loc.onSite','paused':'loc.paused'};
 function locStopAll(){if(locTimer){clearInterval(locTimer);locTimer=null;}if(locAnim){cancelAnimationFrame(locAnim);locAnim=null;}}
+function showLocFallback(worker, site){
+ var fb=$('loc-fallback'); if(!fb)return;
+ var mapEl=$('loc-map'); if(mapEl)mapEl.hidden=true;
+ var nm=$('loc-nomap'); if(nm)nm.hidden=true;
+ var waiting=!worker?(site?t('loc.fbWorkerWaiting'):t('loc.fbWaiting')):null;
+ var svgEl=$('loc-fallback-svg'); if(svgEl)svgEl.innerHTML=mapFallbackSVG(worker,site,waiting);
+ var ft=$('loc-fallback-text'); if(ft)ft.textContent=(($('loc-text')||{}).textContent||'—');
+ fb.hidden=false; locFallbackShown=true;
+}
+function hideLocFallback(){
+ var fb=$('loc-fallback'); if(fb)fb.hidden=true;
+ var mapEl=$('loc-map'); if(mapEl&&locMap)mapEl.hidden=false;
+ locFallbackShown=false;
+}
+function locAttachTiles(){
+ var tiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'});
+ tiles.on('tileload',function(){
+  locTileLoads++;
+  if(locTileTimer){clearTimeout(locTileTimer);locTileTimer=null;}
+  /* Tiles arrived late: swap the real map back in, reset the count. */
+  if(locFallbackShown){locTileErrors=0;hideLocFallback();}
+ });
+ tiles.on('tileerror',function(){
+  locTileErrors++;
+  if(locTileErrors>=3)showLocFallback(locLastPos||null,locSite);
+ });
+ return tiles;
+}
+function retryLocMap(){
+ if(!locMap)return;
+ locTileErrors=0; locTileLoads=0;
+ if(locTiles){try{locMap.removeLayer(locTiles);}catch(e){}}
+ locTiles=locAttachTiles(); locTiles.addTo(locMap);
+ locMap.invalidateSize(); hideLocFallback();
+ if(locTileTimer)clearTimeout(locTileTimer);
+ locTileTimer=setTimeout(function(){if(!locTileLoads)showLocFallback(locLastPos||null,locSite);},6000);
+}
 function locInitMap(view){
  var el=$('loc-map'); if(!el)return false;
- if(typeof L==='undefined'){$('loc-nomap').hidden=false;return false;}
- $('loc-nomap').hidden=true; el.hidden=false;
+ if(typeof L==='undefined'){showLocFallback(view.latest||null,view.site||null);return false;}
+ $('loc-nomap').hidden=true;
+ /* The map stays covered while the fallback is showing — every poll
+    re-enters here, and unhiding it would put a blank tile box back
+    above the schematic. The tileload handler unhides it when tiles
+    actually arrive. */
+ if(!locFallbackShown)el.hidden=false;
+ if(locTileLoads>0&&locFallbackShown)hideLocFallback();
+ if(view.site)locSite={lat:view.site.lat,lng:view.site.lng};
  if(!locMap){
   var c=view.site?[view.site.lat,view.site.lng]:[view.latest.lat,view.latest.lng];
   locMap=L.map(el).setView(c,14);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(locMap);
+  locTiles=locAttachTiles(); locTiles.addTo(locMap);
   locMarker=L.marker(c,{icon:L.divIcon({className:'loc-dot',html:'<span class="loc-dot-in"></span>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(locMap);
   if(view.site)locSiteMarker=L.marker([view.site.lat,view.site.lng]).addTo(locMap).bindPopup(view.site.address||'Job site');
   locTrailLine=L.polyline([],{color:'#FF5A1F',weight:3}).addTo(locMap);
   locRouteLine=L.polyline([],{color:'#666666',weight:2,dashArray:'6 6'}).addTo(locMap);
   setTimeout(function(){locMap.invalidateSize();},100);
+  /* One 6s check: no tile at all means the tiles are blocked — show
+     the dotted schematic instead of a blank map box. */
+  locTileTimer=setTimeout(function(){if(!locTileLoads)showLocFallback(view.latest||null,view.site||null);},6000);
  }
  return true;
 }
 function locAnimateTo(lat,lng){
  var from=locLastPos||{lat:lat,lng:lng};
- var start=performance.now(), dur=8000;
+ /* A jump over 500m is a new fix, not a movement — place it directly. */
+ if(locMarker&&typeof L!=='undefined'){
+  try{var d=L.latLng(from.lat,from.lng).distanceTo(L.latLng(lat,lng));if(d>500){locMarker.setLatLng([lat,lng]);locLastPos={lat:lat,lng:lng};return;}}catch(e){}
+ }
+ var start=performance.now(), dur=800; /* 800ms marker tween */
  if(locAnim)cancelAnimationFrame(locAnim);
  var step=function(now){
   var p=Math.min(1,(now-start)/dur);
@@ -871,14 +1161,19 @@ function locRender(view){
  if(view.etaMinutes!=null)txt.push(t('loc.eta')+': ~'+view.etaMinutes+' min');
  if(view.latest&&view.latest.updated_at)txt.push(new Date(view.latest.updated_at).toLocaleTimeString(lang==='bn'?'bn-BD':'en-GB',{hour:'2-digit',minute:'2-digit'}));
  $('loc-text').textContent=txt.join(' · ')||'—';
+ var ft=$('loc-fallback-text'); if(ft&&locFallbackShown)ft.textContent=$('loc-text').textContent;
  /* latest is null until the worker shares anything — the server now
     answers 200 'not-sharing' instead of 404, so guard the null here or
-    the render throws on the very first poll of an ACTIVE job. */
+    the render throws on the very first poll of an ACTIVE job. With no
+    share yet, show the dotted schematic (site centred) instead of
+    leaving a hidden, blank map box. */
  if(view.latest&&locInitMap(view)){
   locAnimateTo(view.latest.lat,view.latest.lng);
   if(view.site&&locSiteMarker)locSiteMarker.setLatLng([view.site.lat,view.site.lng]);
   if(locTrailLine)locTrailLine.setLatLngs((view.trail||[]).map(function(p){return [p.lat,p.lng];}));
   if(locRouteLine&&view.site)locRouteLine.setLatLngs([[view.latest.lat,view.latest.lng],[view.site.lat,view.site.lng]]);
+ } else if(!view.latest){
+  showLocFallback(null,view.site||null);
  }
 }
 async function locPoll(){
@@ -899,69 +1194,9 @@ function locStartPolling(){
  $('loc-box').hidden=false; locPoll(); locTimer=setInterval(locPoll,10000);
 }
 
-/* ---------- landing: live location demo map ----------
-   Real Leaflet map of the demo job's site (23.8103, 90.4125 — "Demo flat,
-   Dhaka", the same site the demo seed creates). A worker dot travels a
-   fixed demo route toward the site, scrubbed by scroll position: p=0 when
-   the section top reaches the bottom of the viewport, p=1 when its bottom
-   leaves the top. Reduced motion: the dot sits at the site (arrived).
-   If the Leaflet CDN never loads, the existing text fallback shows. */
-var LIVE_SITE=[23.8103,90.4125];
-var LIVE_START=[23.8310,90.4280];
-var LIVE_MID=[23.8210,90.4230]; /* slight bend so the route is not a straight line */
-var liveMap=null, liveDot=null, liveTrail=null, liveP=-1;
-function liveProgress(){
- var s=document.getElementById('live'); if(!s)return 0;
- var r=s.getBoundingClientRect(), vh=window.innerHeight||800;
- return Math.max(0,Math.min(1,(vh-r.top)/(vh+r.height)));
-}
-function livePointAt(p){
- var a=[LIVE_START[0]+(LIVE_MID[0]-LIVE_START[0])*p, LIVE_START[1]+(LIVE_MID[1]-LIVE_START[1])*p];
- var b=[LIVE_MID[0]+(LIVE_SITE[0]-LIVE_MID[0])*p, LIVE_MID[1]+(LIVE_SITE[1]-LIVE_MID[1])*p];
- return [a[0]+(b[0]-a[0])*p, a[1]+(b[1]-a[1])*p];
-}
-function liveRender(p){
- if(!liveMap)return;
- var pt=livePointAt(p);
- if(liveDot)liveDot.setLatLng(pt);
- var n=Math.max(2,Math.round(p*24)+1), pts=[];
- for(var i=0;i<n;i++)pts.push(livePointAt(i/(n-1)));
- if(liveTrail)liveTrail.setLatLngs(pts);
- var pill=$('live-status-pill');
- var st=p>=0.97?'loc.arrived':(p>=0.6?'loc.arriving':'loc.enRoute');
- if(pill){pill.textContent=t(st);pill.classList.toggle('arrived',p>=0.97);}
- var d=$('live-dist');
- if(d){
-  if(p>=0.97){d.textContent=t('loc.onSite');}
-  else{
-   var km=L.latLng(pt[0],pt[1]).distanceTo(L.latLng(LIVE_SITE[0],LIVE_SITE[1]))/1000;
-   d.textContent=t('loc.away')+': '+km.toFixed(1)+' km · '+t('loc.eta')+': ~'+Math.max(1,Math.round(km/20*60))+' min';
-  }
- }
- liveP=p;
-}
-function initLiveMap(){
- var el=$('live-map'); if(!el)return;
- if(typeof L==='undefined'){el.hidden=true;var f=$('live-nomap');if(f)f.hidden=false;var pl=$('live-pills');if(pl)pl.hidden=true;return;}
- liveMap=L.map(el,{scrollWheelZoom:false}).setView(LIVE_SITE,14);
- L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(liveMap);
- var routePts=[];for(var i=0;i<=24;i++)routePts.push(livePointAt(i/24));
- L.polyline(routePts,{color:'#888888',weight:2,dashArray:'6 6'}).addTo(liveMap);
- liveTrail=L.polyline([],{color:'#FF5A1F',weight:3}).addTo(liveMap);
- L.marker(LIVE_SITE,{icon:L.divIcon({className:'live-site-pin',html:'',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(liveMap).bindPopup('Demo flat, Dhaka');
- liveDot=L.marker(LIVE_START,{icon:L.divIcon({className:'loc-dot',html:'<span class="loc-dot-in"></span>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(liveMap);
- liveMap.fitBounds(L.latLngBounds(routePts).pad(0.25));
- setTimeout(function(){liveMap.invalidateSize();},100);
- if(RM){liveRender(1);return;}
- var ticking=false;
- function onScroll(){if(ticking)return;ticking=true;requestAnimationFrame(function(){ticking=false;liveRender(liveProgress());});}
- window.addEventListener('scroll',onScroll,{passive:true});
- window.addEventListener('resize',onScroll);
- liveRender(liveProgress());
-}
 
 /* ---------- feature flags (server is the single source of truth) ----------
-   FEATURE_BIDDING defaults OFF: when off, the nav link, the landing
+   FEATURE_BIDDING defaults ON: when off, the nav link, the landing
    section and the in-app bidding buttons are hidden. The flag is never
    hardcoded here — /api/config serves it. If the config cannot be read,
    bidding stays hidden (safe default = flag default). */
@@ -980,16 +1215,31 @@ function applyBiddingVisibility(){
 
 /* ---------- auth ---------- */
 var loginPhone='';
+/* G2: strip spaces/dashes and a leading +880/880, then require exactly
+   an 11-digit 01[3-9] number. Anything else never reaches the API. */
+function normalizeLoginPhone(raw){
+ var p=String(raw||'').replace(/[\s\-()]/g,'');
+ if(p.indexOf('+880')===0)p='0'+p.slice(4);
+ else if(p.indexOf('880')===0&&p.length>11)p='0'+p.slice(3);
+ return p;
+}
 function initAuth(){
  var f=$('form-login');
  if(f)f.addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
-  loginPhone=$('login-phone').value.trim(); var name=$('login-name').value.trim();
-  if(!loginPhone){showErr(lang==='bn'?'ফোন নম্বর দিন।':'Enter a phone number.');return;}
-  try{var r=await api('/api/auth/request-otp',{method:'POST',body:JSON.stringify({phone:loginPhone,name:name||undefined,role:'hirer'})});
+  var rawPhone=$('login-phone').value.trim(); var name=$('login-name').value.trim();
+  loginPhone=normalizeLoginPhone(rawPhone);
+  if(!/^01[3-9]\d{8}$/.test(loginPhone)){showErr(t('login.phoneErr'));return;}
+  try{var r=await api('/api/auth/request-otp',{method:'POST',body:JSON.stringify({phone:loginPhone,name:name||undefined})});
    $('form-login').hidden=true; $('form-otp').hidden=false;
-   if(r&&r.sandbox&&r.sandbox.otp){$('otp-note').hidden=false;$('otp-note-text').textContent=(r.sandbox.otp||'—');}
+   if(r&&r.sandbox&&r.sandbox.otp){$('otp-note').hidden=false;$('otp-note-text').textContent=sandboxCodeText(r.sandbox.otp);}
    $('otp-code').focus();
-  }catch(e){showErr((lang==='bn'?'OTP পাঠানো যায়নি: ':'Could not send OTP: ')+e.message);}
+  }catch(e){
+   var oe0=otpErrText(e);
+   if(oe0)showErr(oe0);
+   else if(e.status===400)showErr(t('login.phoneErr'));
+   else if(e.status===429)showErr(t('login.tooMany'));
+   else showErr(networkMsg());
+  }
  });
  var fo=$('form-otp');
  if(fo)fo.addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
@@ -1002,12 +1252,54 @@ function initAuth(){
    var hire=null; try{hire=localStorage.getItem('dc_pending_hire');localStorage.removeItem('dc_pending_hire');}catch(e){}
    if(hire){startHire(hire);return;}
    showView('view-jobs'); loadJobs();
-  }catch(e){showErr((lang==='bn'?'যাচাই হয়নি: ':'Verification failed: ')+e.message);}
+  }catch(e){
+   if(e.status===400)showErr(t('login.phoneErr'));
+   else if(e.status===401)showErr(t('login.wrongCode'));
+   else if(e.status===429)showErr(t('login.tooMany'));
+   else showErr(networkMsg());
+  }
+ });
+ /* G3: digits only, auto-submit the code form at 6 digits (paste works
+    through the same input listener). */
+ var oc=$('otp-code'), otpAuto=false;
+ if(oc)oc.addEventListener('input',function(){
+  var d=oc.value.replace(/\D/g,'');
+  if(d!==oc.value)oc.value=d;
+  if(d.length<6){otpAuto=false;return;}
+  if(d.length>6){oc.value=d.slice(0,6);d=oc.value;}
+  if(!otpAuto){otpAuto=true;var form=$('form-otp');if(form){if(form.requestSubmit)form.requestSubmit();else form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));}}
+ });
+ /* G1: resend the same phone's code, 30s cooldown with countdown. */
+ var rs=$('otp-resend'), rsTimer=null;
+ if(rs)rs.addEventListener('click',async function(){
+  if(!loginPhone||rs.disabled)return;
+  clearErr();
+  try{
+   var r=await api('/api/auth/request-otp',{method:'POST',body:JSON.stringify({phone:loginPhone})});
+   var codeEl=$('otp-code'); if(codeEl)codeEl.value='';
+   otpAuto=false;
+   if(r&&r.sandbox&&r.sandbox.otp){$('otp-note').hidden=false;$('otp-note-text').textContent=sandboxCodeText(r.sandbox.otp);}
+   showNotice(t('otp.resent'));
+   var left=30; rs.disabled=true;
+   rs.textContent=t('otp.resendIn').replace('{n}',String(left));
+   if(rsTimer)clearInterval(rsTimer);
+   rsTimer=setInterval(function(){
+    left--;
+    if(left<=0){clearInterval(rsTimer);rsTimer=null;rs.disabled=false;rs.textContent=t('otp.resend');}
+    else rs.textContent=t('otp.resendIn').replace('{n}',String(left));
+   },1000);
+  }catch(e){
+   var oeR=otpErrText(e);
+   if(oeR)showErr(oeR);
+   else if(e.status===400)showErr(t('login.phoneErr'));
+   else if(e.status===429)showErr(t('login.tooMany'));
+   else showErr(networkMsg());
+  }
  });
  var back=$('otp-back'); if(back)back.addEventListener('click',function(){$('form-otp').hidden=true;$('form-login').hidden=false;});
  var lo=$('btn-logout'); if(lo)lo.addEventListener('click',async function(){
   try{await api('/api/auth/logout',{method:'POST',body:'{}'});}catch(e){/* server logout is best-effort: the local session still ends below */}
-  token='';user=null;localStorage.removeItem('dc_token');localStorage.removeItem('dc_user');try{var ks=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('dc_job_')===0)ks.push(k);}ks.forEach(function(k){localStorage.removeItem(k);});}catch(e){}showView('view-login','back');$('form-login').hidden=false;$('form-otp').hidden=true;});
+  token='';user=null;demoJobId=null;localStorage.removeItem('dc_token');localStorage.removeItem('dc_user');try{var ks=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('dc_job_')===0)ks.push(k);}ks.forEach(function(k){localStorage.removeItem(k);});}catch(e){}setDemoMode(false);showView('view-login','back');$('form-login').hidden=false;$('form-otp').hidden=true;});
 }
 
 /* ---------- jobs ---------- */
@@ -1020,16 +1312,52 @@ async function loadJobs(){
  clearErr(); var list=$('job-list'); if(!list)return; list.innerHTML='<p class="mono grey">'+esc(t('job.loading'))+'</p>';
  try{var r=await api('/api/jobs'); var jobs=Array.isArray(r)?r:(r.jobs||r.data||[]);
   $('me-line').textContent=user?((user.name||'')+' · '+(user.phone||'')):'';
-  $('jobs-empty').hidden=jobs.length>0;
-  list.innerHTML=jobs.map(function(j){
-   var id=j.id||j._id; var ver='V'+(j.current_version||j.version||j.currentVersion||1);
-   var status=j.status||j.state||'DRAFT';
-   /* List rows carry no price/deadline from the API — show only what exists. */
-   var meta=[ver,statusLabel(status),esc(jobPhone(j))].filter(Boolean).join(' · ');
-   return '<div class="job-row"><div><div class="t">'+esc(jobTitle(j))+'</div><div class="m">'+meta+'</div></div><div style="display:flex;gap:8px;align-items:center"><span class="pill '+((status==='CONFIRMED'||status==='ACTIVE')?'pill-orange':'pill-grey')+'">'+esc(statusLabel(status))+'</span><button class="btn btn-dark btn-sm" type="button" data-open="'+esc(id)+'">'+(lang==='bn'?'খুলুন':'Open')+'</button></div></div>';
-  }).join('')||'';
-  list.querySelectorAll('[data-open]').forEach(function(b){b.addEventListener('click',function(){openJob(b.getAttribute('data-open'));});});
+  hirerJobsCache=jobs; renderHirerJobs();
  }catch(e){list.innerHTML='';showErr((lang==='bn'?'কাজের তালিকা আনা যায়নি: ':'Could not load jobs: ')+e.message);}
+}
+/* M4: the two job lists share one client-side filter over the already
+   fetched array — no new request. WAITING = DRAFT+PENDING,
+   DONE = CLOSED+DISPUTED. Newest-first order is kept (the server orders). */
+var hirerJobsCache=[], workerJobsCache=[], workerJobsResp=null;
+var jobsFilter='ALL', workerJobsFilter='ALL';
+function applyJobFilter(jobs,f){
+ if(f==='WAITING')return jobs.filter(function(j){var s=String(j.status||j.state||'').toUpperCase();return s==='DRAFT'||s==='PENDING';});
+ if(f==='ACTIVE')return jobs.filter(function(j){return String(j.status||j.state||'').toUpperCase()==='ACTIVE';});
+ if(f==='DONE')return jobs.filter(function(j){var s=String(j.status||j.state||'').toUpperCase();return s==='CLOSED'||s==='DISPUTED';});
+ return jobs;
+}
+/* M1: title prefers the worker NAME over the phone; the meta line is
+   [version, status, price, deadline] — price/deadline are omitted (not
+   shown as —) when the row does not carry them. */
+function jobRowHtml(j){
+ var id=j.id||j._id; var ver='V'+(j.current_version||j.version||j.currentVersion||1);
+ var status=j.status||j.state||'DRAFT';
+ var price=pick(j,['price']); var dl=pick(j,['deadline']);
+ var meta=[ver,statusLabel(status)];
+ if(price!=null&&price!=='')meta.push(taka(price));
+ if(dl)meta.push(fmtDate(dl));
+ return '<div class="job-row"><div><div class="t">'+esc(jobTitle(j))+'</div><div class="m">'+meta.join(' · ')+'</div></div><div style="display:flex;gap:8px;align-items:center"><span class="pill '+((status==='CONFIRMED'||status==='ACTIVE')?'pill-orange':'pill-grey')+'">'+esc(statusLabel(status))+'</span><button class="btn btn-dark btn-sm" type="button" data-open="'+esc(id)+'">'+(lang==='bn'?'খুলুন':'Open')+'</button></div></div>';
+}
+function wireJobRows(list){
+ list.querySelectorAll('[data-open]').forEach(function(b){b.addEventListener('click',function(){openJob(b.getAttribute('data-open'));});});
+}
+function renderHirerJobs(){
+ var list=$('job-list'); if(!list)return;
+ var jobs=applyJobFilter(hirerJobsCache,jobsFilter);
+ $('jobs-empty').hidden=hirerJobsCache.length>0;
+ list.innerHTML=jobs.map(jobRowHtml).join('')||'';
+ wireJobRows(list);
+}
+function renderWorkerJobs(){
+ var list=$('worker-jobs-list'); if(!list)return;
+ var jobs=applyJobFilter(workerJobsCache,workerJobsFilter);
+ $('worker-jobs-empty').hidden=workerJobsCache.length>0;
+ /* The note is only for someone who has never worked a job: it shows
+    when the request succeeded with zero jobs AND the server says this
+    phone has never been a worker (everWorker === false). */
+ $('worker-jobs-note').hidden=!(workerJobsCache.length===0&&workerJobsResp&&workerJobsResp.everWorker===false);
+ list.innerHTML=jobs.map(jobRowHtml).join('')||'';
+ wireJobRows(list);
 }
 async function openJob(id){
  clearErr(); currentJobId=id;
@@ -1078,6 +1406,9 @@ function renderDetail(job){
  var deadline=job.deadline||(lv?lv.deadline:null);
  var ver='V'+(job.current_version||job.version||job.currentVersion||(versions.length||1));
  $('detail-title').textContent=jobTitle(job);
+ /* R2: the ChangeLock header — what is agreed right now. */
+ var cn=$('change-now');
+ if(cn)cn.textContent=(lang==='bn'?'এখন: ':'Now: ')+ver+' · '+taka(price)+' · '+(lang==='bn'?'শেষ তারিখ ':'Deadline ')+(deadline?fmtDate(deadline):'—');
  $('detail-meta').textContent=ver+' · '+taka(price)+' · '+(deadline?fmtDate(deadline):'—')+' · '+jobPhone(job);
  var pills=''; if(job.status)pills+='<span class="pill pill-orange">'+esc(statusLabel(job.status))+'</span>';
  if(job.workerLink)pills+='<span class="pill"><a href="'+esc(job.workerLink)+'" target="_blank" rel="noopener">'+esc(t('detail.workerLinkLabel'))+'</a></span>';
@@ -1138,8 +1469,9 @@ function renderDetail(job){
     (server/src/shared.js jobDetail); no new claims, only the record. */
  var pp=full.priceProtection||job.priceProtection;
  var prot=$('detail-protection');
+ var protWrap=$('detail-protection-wrap');
  if(prot&&pp&&pp.originalPrice!=null){
-  prot.hidden=false;
+  prot.hidden=false; if(protWrap)protWrap.hidden=false;
   var chList=(pp.changes||[]).map(function(c){
    return '<li>'+esc(taka(c.oldPrice))+' → '+esc(taka(c.newPrice))
     +(c.priceDelta?(' ('+(c.priceDelta>0?'+':'-')+taka(Math.abs(c.priceDelta))+')'):'')
@@ -1148,7 +1480,7 @@ function renderDetail(job){
   prot.innerHTML='<h3>'+esc(t('detail.protectionTitle'))+'</h3>'
    +'<p><b>'+esc(taka(pp.originalPrice))+' → '+esc(taka(pp.currentPrice))+'</b></p>'
    +(chList?'<ul>'+chList+'</ul>':'<p class="small">'+esc(t('detail.protectionNone'))+'</p>');
- } else if(prot){prot.hidden=true;}
+ } else if(prot){prot.hidden=true; if(protWrap)protWrap.hidden=true;}
  /* Item 16: the evidence pack — one visible ResolvePack + verify action
     with the chain/fingerprint status. The per-event hash chain (Part 2)
     is in the tree: when evd.chainPresent, show its verified/broken
@@ -1157,8 +1489,9 @@ function renderDetail(job){
     /api/verify on tap — never assumed. */
  var evd=full.evidence||job.evidence;
  var evBox=$('detail-evidence');
+ var evWrap=$('detail-evidence-wrap');
  if(evBox&&evd){
-  evBox.hidden=false;
+  evBox.hidden=false; if(evWrap)evWrap.hidden=false;
   var chainLine=evd.chainPresent
    ?esc(t('detail.evidenceChain'))+': '+esc(evd.chainStatus||'')
    :esc(t('detail.evidenceNoChain'));
@@ -1183,7 +1516,7 @@ function renderDetail(job){
     }else v.textContent=t('detail.evidenceMismatch');
    }catch(e){v.textContent=t('detail.evidenceMismatch');}
   });
- } else if(evBox){evBox.hidden=true;}
+ } else if(evBox){evBox.hidden=true; if(evWrap)evWrap.hidden=true;}
  var agreed=bal.agreed!=null?bal.agreed:price||0, paid=bal.acknowledgedPaid!=null?bal.acknowledgedPaid:0, rem=bal.remaining!=null?bal.remaining:(agreed-paid);
  /* P2: balance numbers count/tween to new values instead of snapping. */
  var prev=renderDetail._prevBal||{agreed:0,paid:0,rem:0};
@@ -1309,30 +1642,65 @@ function renderDetail(job){
     the hirer taps a method and records — no re-typing the amount. */
  var payAmt=$('pay-amount');
  if(payAmt&&document.activeElement!==payAmt&&rem>0)payAmt.value=rem;
- /* Receipt card: after a payment is ACKNOWLEDGED, the job page shows a
-    small receipt (amount, method, date, fingerprint) with one-tap copy.
-    It reuses the record data — no new service, no new claim. */
+ /* The pre-filled amount is a tappable chip — a partial payment is a
+    deliberate tap on it, not an accident of the pre-fill. */
+ var payChip=$('pay-full-chip');
+ if(payChip){payChip.textContent=t('pay.fullRem').replace('{amt}',taka(rem));payChip.hidden=!(rem>0);}
+ var payConf=$('pay-confirm');
+ if(payConf)payConf.hidden=true;
+ var pcf2=$('btn-pay-confirm'); if(pcf2)pcf2.disabled=false;
+ var formPayEl=$('form-pay'); if(formPayEl)formPayEl.hidden=false;
+ /* Receipt card: the latest payment in ANY state (acknowledged,
+    awaiting or disputed), with a status pill — so the hirer always sees
+    what the last payment stands at. It reuses the record data — no new
+    service, no new claim. */
  var rc=$('receipt-card');
  if(rc){
-  var acked=(pays||[]).filter(function(x){return x.ack_status==='ACKNOWLEDGED';});
-  var last=acked.length?acked[acked.length-1]:null;
+  var last=(pays||[]).length?pays[pays.length-1]:null;
   if(last){
+   /* The receipt moves to the top of step 4, before the payment form. */
+   var tabS4=$('tab-s4'), formPay=$('form-pay');
+   if(tabS4&&formPay)tabS4.insertBefore(rc,formPay);
    var fp8=(evd&&evd.fingerprint8)||(versions.length&&versions[versions.length-1].fingerprint?String(versions[versions.length-1].fingerprint).slice(0,8):'');
    var mtxt=last.method==='Cash'?(lang==='bn'?'নগদ':'Cash'):(last.method||'');
+   var ackLab=statusLabel(last.ack_status||'AWAITING');
+   var wName=pick(job,['workerName','worker_name'])||'—';
    rc.hidden=false;
    if(!RM){rc.classList.remove('card-pop');void rc.offsetWidth;rc.classList.add('card-pop');}
-   rc.innerHTML='<h4>'+esc(t('receipt.title'))+'</h4>'
+   rc.innerHTML='<h4>'+esc(t('receipt.title'))+' <span class="pill '+(last.ack_status==='ACKNOWLEDGED'?'pill-orange':'pill-grey')+'">'+esc(ackLab)+'</span></h4>'
     +'<div class="rc-row"><span>'+(lang==='bn'?'টাকা':'Amount')+'</span><b>'+taka(last.amount)+'</b></div>'
     +'<div class="rc-row"><span>'+(lang==='bn'?'মাধ্যম':'Method')+'</span><b>'+esc(mtxt)+'</b></div>'
     +'<div class="rc-row"><span>'+(lang==='bn'?'তারিখ':'Date')+'</span><b>'+esc(fmtDate(last.date||last.createdAt||last.created_at))+'</b></div>'
-    +(fp8?'<div class="rc-row"><span>'+esc(t('receipt.fp'))+'</span><b class="mono">'+esc(fp8)+'…</b></div>':'')
-    +'<div class="btn-row"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-receipt-copy">'+esc(t('receipt.copy'))+'</button></div>';
+    +'<div class="rc-row"><span>'+esc(t('receipt.trade'))+'</span><b>'+esc(tradeLabel(job.trade))+'</b></div>'
+    +'<div class="rc-row"><span>'+esc(t('receipt.worker'))+'</span><b>'+esc(wName)+'</b></div>'
+    +(fp8?'<div class="rc-row"><span><a href="#" id="btn-receipt-verify">'+esc(t('receipt.fpVerify'))+'</a></span><b class="mono">'+esc(fp8)+'…</b></div>':'')
+    +'<p class="small">'+esc(t('receipt.holdsNoMoney'))+'</p>'
+    +'<div class="btn-row"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-receipt-copy">'+esc(t('receipt.copy'))+'</button><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-receipt-share">'+esc(t('receipt.share'))+'</button><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-receipt-print">'+esc(t('receipt.print'))+'</button></div>';
+   var receiptText=function(){
+    return 'DealCraft '+(lang==='bn'?'রসিদ':'receipt')+' — '+taka(last.amount)+' · '+mtxt+' · '+fmtDate(last.date||last.createdAt||last.created_at)+(fp8?' · FP '+fp8:'');
+   };
    var rcb=$('btn-receipt-copy');
    if(rcb)rcb.addEventListener('click',function(){
-    var txt='DealCraft '+(lang==='bn'?'রসিদ':'receipt')+' — '+taka(last.amount)+' · '+mtxt+' · '+fmtDate(last.date||last.createdAt||last.created_at)+(fp8?' · FP '+fp8:'');
+    var txt=receiptText();
     function done(){showNotice(t('receipt.copied'));}
     if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(done,function(){showNotice(txt);});
     else showNotice(txt);
+   });
+   var rsb=$('btn-receipt-share');
+   if(rsb)rsb.addEventListener('click',function(){
+    var txt=receiptText();
+    if(navigator.share)navigator.share({text:txt}).then(function(){showNotice(t('receipt.shared'));},function(){});
+    else if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(function(){showNotice(t('receipt.copied'));});
+    else showNotice(txt);
+   });
+   var rpb=$('btn-receipt-print');
+   if(rpb)rpb.addEventListener('click',function(){window.print();});
+   var rfv=$('btn-receipt-verify');
+   if(rfv)rfv.addEventListener('click',function(ev){
+    ev.preventDefault();
+    var vb=$('btn-evidence-verify');
+    if(vb)vb.click();
+    else window.open('/verify','_blank');
    });
   }else rc.hidden=true;
  }
@@ -1349,7 +1717,9 @@ function renderDetail(job){
  ml.innerHTML=miles.length?miles.map(function(m,i){
   var done=m.completed||m.status==='COMPLETE'||m.status==='COMPLETED';
   var appr=m.approved||m.status==='APPROVED';
-  return '<div class="job-row"><div><div class="t">'+esc(m.title||(t('ms.title')+' '+(i+1)))+'</div><div class="m">'+taka(m.amount)+' · '+(appr?t('ms.approved'):done?t('ms.completeWait'):t('ms.pending'))+'</div></div><div style="display:flex;gap:8px"><button class="btn btn-dark btn-sm" type="button" data-ms-approve="'+i+'" '+(appr?'disabled':'')+'>'+(lang==='bn'?'অনুমোদন':'Approve')+'</button></div></div>';
+  /* Approve is live only once the worker has marked the step done —
+     before that the button says so and stays disabled. */
+  return '<div class="job-row"><div><div class="t">'+esc(m.title||(t('ms.title')+' '+(i+1)))+'</div><div class="m">'+taka(m.amount)+' · '+(appr?t('ms.approved'):done?t('ms.completeWait'):t('ms.pending'))+'</div></div><div style="display:flex;gap:8px"><button class="btn btn-dark btn-sm" type="button" data-ms-approve="'+i+'" '+((appr||!done)?'disabled':'')+'>'+esc(appr?t('ms.approved'):done?(lang==='bn'?'অনুমোদন':'Approve'):t('ms.waiting'))+'</button></div></div>';
  }).join(''):'<p class="small">'+(lang==='bn'?'কোনো মাইলস্টোন নেই।':'No milestones.')+'</p>';
  ml.querySelectorAll('[data-ms-approve]').forEach(function(b){b.addEventListener('click',async function(){try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/milestones/'+b.getAttribute('data-ms-approve')+'/approve',{method:'POST',body:'{}'});openJob(currentJobId);}catch(e){showErr(e.message);}});});
  /* disputes — statement text lives in d.statements[] */
@@ -1382,6 +1752,7 @@ function renderDetail(job){
   try{await api('/api/disputes/'+encodeURIComponent(did)+'/resolve-proposal',{method:'POST',body:JSON.stringify({proposal:ta?ta.value.trim():''})});openJob(currentJobId);}
   catch(e){showErr(e.message);}});});
  loadBillingStatus();
+ renderDemoChecklist(events);
 }
 
 /* ---------- share live trip (Uber-style link, no login for the viewer) ---------- */
@@ -1396,6 +1767,11 @@ async function shareTrip(){
   var note=$('trip-link-note'), linkEl=$('trip-link-url');
   if(note){note.hidden=false;}
   if(linkEl){linkEl.textContent=t('trip.linkLabel');linkEl.href=full;}
+  /* The note says exactly what the link exposes — and the button rests
+     for 10s so a double tap cannot mint a second trip. */
+  var nt=$('trip-link-note-text'); if(nt)nt.textContent=t('trip.copiedNote');
+  var stBtn=$('btn-share-trip');
+  if(stBtn){stBtn.disabled=true;setTimeout(function(){stBtn.disabled=false;},10000);}
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(full).then(function(){showNotice(t('trip.copied'));},function(){showNotice(t('trip.linkReady'));});}
   else showNotice(t('trip.linkReady'));
  }catch(e){
@@ -1406,15 +1782,35 @@ async function shareTrip(){
 }
 
 /* ---------- billing status ---------- */
+var billingCache=null, feePaidForJob={};
 async function loadBillingStatus(){
  var box=$('billing-status'); if(!box)return;
  var fees='<p class="mono">৳10 / '+(lang==='bn'?'রেকর্ড':'record')+' · ৳70 / '+(lang==='bn'?'মাস':'month')+'</p>';
  try{var d=await api('/api/billing/status');
+  billingCache=d;
   /* Response shape is not fixed yet — read it tolerantly, never invent a status. */
   var sub=d.subscription||d.sub||{};
   var active=sub.active===true||sub.status==='ACTIVE'||d.subscribed===true||d.activeSubscription===true||d.subscriptionActive===true;
   var paid=d.paidJobs!=null?d.paidJobs:(d.jobs&&d.jobs.paid!=null?d.jobs.paid:(d.paid!=null?d.paid:'—'));
   var unpaid=d.unpaidJobs!=null?d.unpaidJobs:(d.jobs&&d.jobs.unpaid!=null?d.jobs.unpaid:(d.unpaid!=null?d.unpaid:'—'));
+  /* R5a: the ৳10 record fee for this job — paid means the Pay button
+     goes away and the paid pill shows instead. Read the server state,
+     in order: (1) job-detail fee.paid (GET /api/jobs/:id — primary,
+     survives a refresh and a fee paid on another device), (2) the
+     matching jobs[] entry's feePaid in this billing-status response.
+     The in-memory flag from this session's own verify tap is a
+     fallback only — it never overrides a server paid:false.
+     Read-only: no charge is created from reading this field. */
+  var jobFee=(currentJob&&currentJob._full&&currentJob._full.fee)||(currentJob&&currentJob.fee)||null;
+  var serverFeePaid=jobFee?(jobFee.paid===true?true:(jobFee.paid===false?false:null)):null;
+  var billedJob=null;
+  if(d.jobs&&Array.isArray(d.jobs)){for(var bi=0;bi<d.jobs.length;bi++){if(d.jobs[bi]&&d.jobs[bi].jobId===currentJobId){billedJob=d.jobs[bi];break;}}}
+  var billedFeePaid=billedJob?(billedJob.feePaid===true?true:(billedJob.feePaid===false?false:null)):null;
+  var feePaid=serverFeePaid===true||billedFeePaid===true||(serverFeePaid!==false&&billedFeePaid!==false&&feePaidForJob[currentJobId]===true);
+  var caasBtn=$('btn-caas'), paidPill=$('caas-paid-pill');
+  if(caasBtn)caasBtn.hidden=!!feePaid;
+  if(paidPill)paidPill.hidden=!feePaid;
+  var unsubBtn=$('btn-unsub'); if(unsubBtn)unsubBtn.hidden=!active;
   box.hidden=false;
   box.innerHTML='<b>'+esc(t('bill.statusTitle'))+'</b>'+fees+
    '<p>'+esc(active?t('bill.subActive'):t('bill.subInactive'))+'</p>'+
@@ -1434,17 +1830,15 @@ async function loadWorkerJobs(){
  $('worker-jobs-empty').hidden=true; $('worker-jobs-note').hidden=true;
  try{
   var r=await api('/api/worker/jobs'); var jobs=Array.isArray(r)?r:(r.jobs||r.data||[]);
-  $('worker-jobs-empty').hidden=jobs.length>0;
-  list.innerHTML=jobs.map(function(j){
-   var id=j.id||j._id; var ver='V'+(j.current_version||j.version||j.currentVersion||1);
-   var status=j.status||j.state||'DRAFT';
-   var meta=[ver,statusLabel(status),esc(jobPhone(j))].filter(Boolean).join(' · ');
-   return '<div class="job-row"><div><div class="t">'+esc(jobTitle(j))+'</div><div class="m">'+meta+'</div></div><div style="display:flex;gap:8px;align-items:center"><span class="pill '+((status==='CONFIRMED'||status==='ACTIVE')?'pill-orange':'pill-grey')+'">'+esc(statusLabel(status))+'</span><button class="btn btn-dark btn-sm" type="button" data-open="'+esc(id)+'">'+(lang==='bn'?'খুলুন':'Open')+'</button></div></div>';
-  }).join('')||'';
-  list.querySelectorAll('[data-open]').forEach(function(b){b.addEventListener('click',function(){openJob(b.getAttribute('data-open'));});});
+  workerJobsCache=jobs; workerJobsResp=r; renderWorkerJobs();
  }catch(e){
-  list.innerHTML='';
-  $('worker-jobs-note').hidden=false;
+  /* M3: hide both the empty state and the note, clear the list, say
+     plainly what happened, and offer one-tap Retry. */
+  workerJobsCache=[]; workerJobsResp=null;
+  list.innerHTML='<button type="button" class="btn btn-dark btn-sm" id="worker-jobs-retry">'+esc(t('jobs.retry'))+'</button>';
+  $('worker-jobs-empty').hidden=true; $('worker-jobs-note').hidden=true;
+  showErr(t('jobs.workerErr'));
+  var rb=$('worker-jobs-retry'); if(rb)rb.addEventListener('click',loadWorkerJobs);
  }
 }
 function initJobsTabs(){
@@ -1455,6 +1849,18 @@ function initJobsTabs(){
  w.addEventListener('click',function(){
   w.setAttribute('aria-selected','true'); h.setAttribute('aria-selected','false');
   $('jobs-hirer-pane').hidden=true; $('jobs-worker-pane').hidden=false; loadWorkerJobs(); });
+ wireFilter('jobs-filter-hirer',function(f){jobsFilter=f;},renderHirerJobs);
+ wireFilter('jobs-filter-worker',function(f){workerJobsFilter=f;},renderWorkerJobs);
+}
+function wireFilter(containerId,setF,render){
+ var c=$(containerId); if(!c)return;
+ c.querySelectorAll('button[data-filter]').forEach(function(b){
+  b.addEventListener('click',function(){
+   setF(b.getAttribute('data-filter'));
+   c.querySelectorAll('button[data-filter]').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false');});
+   render();
+  });
+ });
 }
 
 /* ---------- prompt-based job creation ---------- */
@@ -1464,24 +1870,38 @@ function initJobsTabs(){
    ONE question at a time, chat-style — never a wall of fields. FairScope
    is the same chat (see renderFairScope); milestones are one-tap
    suggestions. No new dependencies, no network calls, no AI. */
+var parseFailNoticed=false;
 function parsePromptSafe(text){
+ /* N4c: the parser module itself failed to load — never guess from the
+    line. Show one notice and queue all four questions instead. */
+ if(!window.DealCraftPrompt||typeof window.DealCraftPrompt.parsePrompt!=='function'){
+  if(!parseFailNoticed){parseFailNoticed=true;showNotice(t('prompt.parseFail'));}
+  return {trade:null,price:null,deadline:null,deadlineText:null,description:'',missing:['trade','price','deadline','description']};
+ }
  try{
-  if(window.DealCraftPrompt&&typeof window.DealCraftPrompt.parsePrompt==='function'){
-   var r=window.DealCraftPrompt.parsePrompt(text||'');
-   if(r&&typeof r==='object')return r;
-  }
+  var r=window.DealCraftPrompt.parsePrompt(text||'');
+  if(r&&typeof r==='object')return r;
  }catch(e){}
+ /* Built-in fallback (the parser threw or returned nothing): a
+    currency-marked number wins at any size; otherwise the largest bare
+    number of 100 or more ("2 bedroom" is never a price). A bare mistri
+    says nothing about the trade — no ELECTRICIAN default. */
  var t=String(text||'');
  var low=t.toLowerCase();
  var trade=null;
- if(/electric|ইলেকট্রিশ|mistri|মিস্ত্রি|rewir|রিওয়্যার|wiring|ওয়্যারিং|socket|সকেট/.test(low))trade='ELECTRICIAN';
+ if(/electric|ইলেকট্রিশ|rewir|রিওয়্যার|wiring|ওয়্যারিং|socket|সকেট/.test(low))trade='ELECTRICIAN';
  else if(/paint|রং|রঙ|colour|color/.test(low))trade='PAINTER';
  else if(/plumb|প্লাম্বার|পাইপ|pipe|leak|লিক|tap|কল/.test(low))trade='PLUMBER';
- var m=t.match(/[০-৯0-9][০-৯0-9, ]*/);
+ var bnMap={'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};
+ function numVal(s){return Number(s.replace(/[০-৯]/g,function(c){return bnMap[c];}).replace(/,/g,''));}
  var price=null;
- if(m){var bn={'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};
-  var num=m[0].replace(/[০-৯]/g,function(c){return bn[c];}).replace(/[^0-9]/g,'');
-  if(num)price=Number(num);}
+ var numRe=/[০-৯0-9][০-৯0-9,]*(?:\.[0-9]+)?/g, hit;
+ while((hit=numRe.exec(t))!==null){
+  var around=(t.slice(Math.max(0,hit.index-8),hit.index)+' '+t.slice(hit.index+hit[0].length,hit.index+hit[0].length+8)).toLowerCase();
+  if(/৳|টাকা|taka|bdt|\btk\b/.test(around)){price=numVal(hit[0]);break;}
+  var v=numVal(hit[0]);
+  if(v>=100&&(price==null||v>price))price=v;
+ }
  var deadline=null, deadlineText=null;
  var dm=t.match(/(20\d\d-\d\d-\d\d)/);
  if(dm){deadline=dm[1];deadlineText=dm[1];}
@@ -1492,17 +1912,89 @@ function parsePromptSafe(text){
  if(!t.trim())missing.push('description');
  return {trade:trade,price:price,deadline:deadline,deadlineText:deadlineText,description:t.trim(),missing:missing};
 }
+/* N3: every chip is a button. Tapping a filled chip re-asks that one
+   question with the current value pre-filled; tapping a "Need:" chip
+   asks that missing question. After the answer, the prompt text is
+   rebuilt with the corrected value, re-parsed, and the chips re-render. */
+var CHIP_QUESTIONS={
+ trade:{text:function(){return lang==='bn'?'কোন কাজ? ইলেকট্রিশিয়ান, পেইন্টার, নাকি প্লাম্বার?':'Which trade — electrician, painter, or plumber?';},ph:function(){return lang==='bn'?'যেমন: ইলেকট্রিশিয়ান':'e.g. electrician';},input:'text'},
+ price:{text:function(){return lang==='bn'?'দাম কত ঠিক হয়েছে? (৳)':'What price did you agree? (৳)';},ph:function(){return '18000';},input:'number'},
+ deadline:{text:function(){return lang==='bn'?'কবে শেষ করতে হবে?':'By when?';},ph:function(){return '';},input:'date'},
+ scope:{text:function(){return lang==='bn'?'কাজটা কী? এক লাইনে বলুন।':'What is the work? One line.';},ph:function(){return lang==='bn'?'যেমন: পুরো ফ্ল্যাটের রিওয়্যারিং':'e.g. full flat rewiring';},input:'text'}
+};
 function promptChips(el,parsed){
  if(!el)return;
  var parts=[];
- if(parsed.trade)parts.push('<span class="chip">'+esc(tradeLabel(parsed.trade))+'</span>');
- if(parsed.price!=null)parts.push('<span class="chip">'+taka(parsed.price)+'</span>');
- if(parsed.deadline)parts.push('<span class="chip">'+esc(parsed.deadlineText||parsed.deadline)+'</span>');
- if(parsed.description)parts.push('<span class="chip">'+esc(parsed.description.slice(0,40))+'</span>');
+ function chip(key,label,filled){parts.push({key:key,label:label,filled:filled});}
+ if(parsed.trade)chip('trade',tradeLabel(parsed.trade),true);
+ if(parsed.price!=null)chip('price',taka(parsed.price),true);
+ if(parsed.deadline)chip('deadline',parsed.deadlineText||parsed.deadline,true);
+ if(parsed.description)chip('scope',parsed.description.slice(0,40),true);
  (parsed.missing||[]).forEach(function(m){
-  parts.push('<span class="chip miss">'+esc(lang==='bn'?'দরকার: ':'Need: ')+(m==='trade'?(lang==='bn'?'কাজের ধরন':'trade'):m==='price'?(lang==='bn'?'দাম':'price'):m==='deadline'?(lang==='bn'?'শেষ তারিখ':'deadline'):(lang==='bn'?'বিবরণ':'description'))+'</span>');
+  chip(m,(lang==='bn'?'দরকার: ':'Need: ')+(m==='trade'?(lang==='bn'?'কাজের ধরন':'trade'):m==='price'?(lang==='bn'?'দাম':'price'):m==='deadline'?(lang==='bn'?'শেষ তারিখ':'deadline'):(lang==='bn'?'বিবরণ':'description')),false);
  });
- el.hidden=!parts.length; el.innerHTML=parts.join('');
+ el.hidden=!parts.length;
+ el.innerHTML='';
+ parts.forEach(function(p){
+  var b=document.createElement('button');
+  b.type='button'; b.className='chip'+(p.filled?'':' miss');
+  b.style.minHeight='44px';
+  b.textContent=p.label;
+  b.setAttribute('data-chip',p.key);
+  b.addEventListener('click',function(){reaskChip(el,p.key,parsed);});
+  el.appendChild(b);
+ });
+}
+function rebuildPromptText(parsed,key,v){
+ var tr=key==='trade'?(parsePromptSafe(v).trade||parsed.trade):parsed.trade;
+ var pr=key==='price'?(Number(String(v).replace(/[^0-9]/g,''))||parsed.price):parsed.price;
+ var dl=key==='deadline'?(v||parsed.deadline):parsed.deadline;
+ var ds=(key==='scope'||key==='description')?(v||parsed.description):parsed.description;
+ var out=[];
+ if(ds)out.push(ds);
+ if(tr)out.push(String(tr).toLowerCase());
+ if(pr!=null)out.push(String(pr));
+ if(dl)out.push(dl);
+ return out.join(', ');
+}
+function reaskChip(el,key,parsed){
+ /* The bid prompt has no chat-question UI — focus its line for editing. */
+ if(el&&el.id==='bid-prompt-chips'){var bp=$('bid-prompt');if(bp)bp.focus();return;}
+ var qk=(key==='description')?'scope':key;
+ var qdef=CHIP_QUESTIONS[qk]; if(!qdef)return;
+ var cur='';
+ if(qk==='trade')cur=parsed.trade?parsed.trade.toLowerCase():'';
+ else if(qk==='price')cur=parsed.price!=null?String(parsed.price):'';
+ else if(qk==='deadline')cur=parsed.deadline||'';
+ else cur=parsed.description||'';
+ /* Landing chips re-ask inside the new-job flow (its chips are the ones
+    on screen); the app chips re-ask in place. */
+ var targetEl=el, targetInput=$('prompt-input-app');
+ if(el.id==='prompt-chips'){targetEl=$('prompt-chips-app');}
+ var single={key:qk,text:qdef.text(),input:qdef.input,ph:qdef.ph(),value:cur,
+  onAnswer:function(v){
+   var newText=rebuildPromptText(parsed,qk,v);
+   var li=$('prompt-input'); if(li)li.value=newText;
+   if(targetInput)targetInput.value=newText;
+   if(targetInput)autogrow(targetInput);
+   var np=parsePromptSafe(newText);
+   draft.parsed=np;
+   if(np.trade)switchTrade(np.trade);
+   if(np.price!=null){var jp=$('job-price');if(jp)jp.value=np.price;suggestMilestones(np.price);}
+   if(np.deadline){var jd=$('job-deadline');if(jd)jd.value=np.deadline;}
+   if(np.description){var js=$('job-scope');if(js)js.value=np.description;}
+   promptChips(targetEl,np);
+   renderNewSummary();
+  }};
+ if(el.id==='prompt-chips'){
+  if(!token){startHire('direct');return;}
+  startHire('direct');
+  promptQ=[single].concat(promptQ||[]);
+  nextPromptQuestion();
+  return;
+ }
+ promptQ=[single].concat(promptQ||[]);
+ nextPromptQuestion();
 }
 var promptQ=null; /* [{key, text, input, onAnswer, optional}] */
 function askPromptQuestions(queue){
@@ -1516,7 +2008,8 @@ function nextPromptQuestion(){
  box.hidden=false;
  $('prompt-q-text').textContent=q.text;
  var inp=$('prompt-q-input');
- inp.value=''; inp.type=q.input==='tel'?'tel':q.input==='date'?'date':q.input==='number'?'number':'text';
+ inp.value=q.value!=null?q.value:'';
+ inp.type=q.input==='tel'?'tel':q.input==='date'?'date':q.input==='number'?'number':'text';
  inp.placeholder=q.ph||'';
  $('prompt-q-skip').style.display=q.optional?'':'none';
  inp.focus();
@@ -1529,34 +2022,93 @@ function answerPromptQuestion(){
  promptQ.shift();
  if(q.onAnswer)q.onAnswer(v);
  nextPromptQuestion();
+ saveDraft(); maybeRevealDetails();
+}
+/* The one-question-at-a-time queue for whatever the prompt did not
+   contain. `known` skips the worker questions on draft restore, when
+   the worker is already known. */
+function promptQuestionQueue(parsed,known){
+ known=known||{};
+ var queue=[];
+ if(!parsed.trade)queue.push({key:'trade',text:lang==='bn'?'কোন কাজ? ইলেকট্রিশিয়ান, পেইন্টার, নাকি প্লাম্বার?':'Which trade — electrician, painter, or plumber?',ph:lang==='bn'?'যেমন: ইলেকট্রিশিয়ান':'e.g. electrician',onAnswer:function(v){
+   var tr=parsePromptSafe(v).trade||(/paint|রং/.test(v)?'PAINTER':/plumb|পাইপ/.test(v)?'PLUMBER':null);
+   if(tr)switchTrade(tr);}});
+ if(parsed.price==null)queue.push({key:'price',text:lang==='bn'?'দাম কত ঠিক হয়েছে? (৳)':'What price did you agree? (৳)',input:'number',ph:'18000',onAnswer:function(v){var n=Number(v.replace(/[^0-9]/g,''));if(n>0){$('job-price').value=n;suggestMilestones(n);}}});
+ if(!parsed.deadline)queue.push({key:'deadline',text:lang==='bn'?'কবে শেষ করতে হবে?':'By when?',input:'date',onAnswer:function(v){if(v)$('job-deadline').value=v;}});
+ if(!parsed.description)queue.push({key:'scope',text:lang==='bn'?'কাজটা কী? এক লাইনে বলুন।':'What is the work? One line.',ph:lang==='bn'?'যেমন: পুরো ফ্ল্যাটের রিওয়্যারিং':'e.g. full flat rewiring',onAnswer:function(v){if(v)$('job-scope').value=v;}});
+ if(!known.workerPhone)queue.push({key:'workerPhone',text:lang==='bn'?'ওয়ার্কারের ফোন নম্বর কী?':'What is the worker’s phone number?',input:'tel',ph:'01XXXXXXXXX',onAnswer:function(v){$('worker-phone').value=v;updateWorkerSummary();}});
+ if(!known.workerName)queue.push({key:'workerName',text:lang==='bn'?'ওয়ার্কারের নাম কী? (না জানলে বাদ দিন)':'What is the worker’s name? (skip if unknown)',optional:true,ph:lang==='bn'?'ওয়ার্কারের নাম':'Worker name',onAnswer:function(v){$('worker-name').value=v;updateWorkerSummary();}});
+ return queue;
 }
 function startPromptFlow(text){
  var parsed=parsePromptSafe(text||'');
- draft={trade:parsed.trade||'ELECTRICIAN',answers:{},skipped:[],fsIndex:0};
+ draft=freshDraft(parsed.trade||'ELECTRICIAN');
  draft.parsed=parsed;
- if(parsed.trade)$('trade-picker').querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x.getAttribute('data-trade')===parsed.trade?'true':'false');});
+ syncTradePicker();
  if(parsed.price!=null)$('job-price').value=parsed.price;
  if(parsed.deadline)$('job-deadline').value=parsed.deadline;
  if(parsed.description)$('job-scope').value=parsed.description;
  promptChips($('prompt-chips-app'),parsed);
  $('fs-chat').hidden=false;
- $('new-details').hidden=false;
  renderFairScope();
- /* Ask only what the prompt did not contain — one at a time. */
- var queue=[];
- if(!parsed.trade)queue.push({key:'trade',text:lang==='bn'?'কোন কাজ? ইলেকট্রিশিয়ান, পেইন্টার, নাকি প্লাম্বার?':'Which trade — electrician, painter, or plumber?',ph:lang==='bn'?'যেমন: ইলেকট্রিশিয়ান':'e.g. electrician',onAnswer:function(v){
-   var tr=parsePromptSafe(v).trade||(/paint|রং/.test(v)?'PAINTER':/plumb|পাইপ/.test(v)?'PLUMBER':'ELECTRICIAN');
-   draft.trade=tr; draft.answers={}; draft.skipped=[]; draft.fsIndex=0;
-   $('trade-picker').querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x.getAttribute('data-trade')===tr?'true':'false');});
-   renderFairScope();}});
- if(parsed.price==null)queue.push({key:'price',text:lang==='bn'?'দাম কত ঠিক হয়েছে? (৳)':'What price did you agree? (৳)',input:'number',ph:'18000',onAnswer:function(v){var n=Number(v.replace(/[^0-9]/g,''));if(n>0){$('job-price').value=n;suggestMilestones(n);}}});
- if(!parsed.deadline)queue.push({key:'deadline',text:lang==='bn'?'কবে শেষ করতে হবে?':'By when?',input:'date',onAnswer:function(v){if(v)$('job-deadline').value=v;}});
- if(!parsed.description)queue.push({key:'scope',text:lang==='bn'?'কাজটা কী? এক লাইনে বলুন।':'What is the work? One line.',ph:lang==='bn'?'যেমন: পুরো ফ্ল্যাটের রিওয়্যারিং':'e.g. full flat rewiring',onAnswer:function(v){if(v)$('job-scope').value=v;}});
- queue.push({key:'workerPhone',text:lang==='bn'?'ওয়ার্কারের ফোন নম্বর কী?':'What is the worker’s phone number?',input:'tel',ph:'01XXXXXXXXX',onAnswer:function(v){$('worker-phone').value=v;}});
- queue.push({key:'workerName',text:lang==='bn'?'ওয়ার্কারের নাম কী? (না জানলে বাদ দিন)':'What is the worker’s name? (skip if unknown)',optional:true,ph:lang==='bn'?'ওয়ার্কারের নাম':'Worker name',onAnswer:function(v){$('worker-name').value=v;}});
- askPromptQuestions(queue);
+ /* Ask only what the prompt did not contain — one at a time. The
+    details stay hidden until the questions AND FairScope are done. */
+ askPromptQuestions(promptQuestionQueue(parsed));
  if(parsed.price!=null)suggestMilestones(parsed.price);
- initSiteMap();
+ maybeRevealDetails();
+}
+/* N6a: reopening view-new restores an unfinished job instead of
+   starting over. Returns true when a draft was restored. */
+function restoreDraft(){
+ var raw=null; try{raw=localStorage.getItem('dc_draft');}catch(e){}
+ if(!raw)return false;
+ var saved=null; try{saved=JSON.parse(raw);}catch(e){return false;}
+ if(!saved||!saved.draft)return false;
+ var d=saved.draft, f=saved.fields||{};
+ draft=d;
+ if(!draft.answersByTrade)draft.answersByTrade={ELECTRICIAN:{},PAINTER:{},PLUMBER:{}};
+ if(!draft.skippedByTrade)draft.skippedByTrade={ELECTRICIAN:[],PAINTER:[],PLUMBER:[]};
+ if(!draft.answers)draft.answers={};
+ if(!draft.skipped)draft.skipped=[];
+ if(draft.fsIndex==null)draft.fsIndex=0;
+ if(!draft.trade||!FAIRSCOPE[draft.trade])draft.trade='ELECTRICIAN';
+ var ai=$('prompt-input-app'); if(ai){ai.value=f.promptText||'';autogrow(ai);}
+ var jp=$('job-price'); if(jp)jp.value=f.price||'';
+ var jd=$('job-deadline'); if(jd)jd.value=f.deadline||'';
+ var js=$('job-scope'); if(js)js.value=f.scope||'';
+ var wp=$('worker-phone'); if(wp)wp.value=f.workerPhone||'';
+ var wn=$('worker-name'); if(wn)wn.value=f.workerName||'';
+ if(f.site)draft.site=f.site;
+ updateWorkerSummary();
+ syncTradePicker();
+ var chipParsed={trade:(draft.parsed&&draft.parsed.trade)||null,price:f.price?Number(f.price):null,deadline:f.deadline||null,deadlineText:f.deadline||null,description:f.scope||'',missing:[]};
+ if(!chipParsed.trade)chipParsed.missing.push('trade');
+ if(chipParsed.price==null)chipParsed.missing.push('price');
+ if(!chipParsed.deadline)chipParsed.missing.push('deadline');
+ if(!chipParsed.description)chipParsed.missing.push('description');
+ promptChips($('prompt-chips-app'),chipParsed);
+ $('fs-chat').hidden=false;
+ renderFairScope();
+ var rp={trade:(draft.parsed&&draft.parsed.trade)||null,price:f.price?Number(f.price):null,deadline:f.deadline||null,description:f.scope||null};
+ var q=promptQuestionQueue(rp,{workerPhone:!!f.workerPhone,workerName:!!f.workerName});
+ if(q.length)askPromptQuestions(q);
+ maybeRevealDetails();
+ if(f.price)suggestMilestones(Number(f.price));
+ showNotice(t('draft.restored'));
+ return true;
+}
+function resetNewJobForm(){
+ draft=freshDraft('ELECTRICIAN');
+ var ai=$('prompt-input-app'); if(ai){ai.value='';autogrow(ai);}
+ $('prompt-chips-app').hidden=true;
+ $('fs-chat').hidden=true; $('new-details').hidden=true; $('prompt-q').hidden=true;
+ $('job-price').value=''; $('job-deadline').value=''; $('job-scope').value='';
+ $('worker-phone').value=''; $('worker-name').value=''; $('review-record').innerHTML='';
+ var ns=$('new-summary'); if(ns)ns.innerHTML='';
+ promptQ=null;
+ updateWorkerSummary();
+ syncTradePicker();
+ renderFairScope();
 }
 function suggestMilestones(price){
  var box=$('ms-suggest'); if(!box||!(price>0))return;
@@ -1593,6 +2145,7 @@ function buildReview(){
   (miss.length?'<tr><th>'+(lang==='bn'?'ঠিক হয়নি':'Not decided')+'</th><td style="color:#c23c00">'+miss.map(function(m){var qq=qs.filter(function(x){return x.q.en===m;})[0];return esc(qq?(qq.q[lang]||qq.q.en):m);}).join(', ')+'</td></tr>':'')+
   (draft.skipped.length?'<tr><th>'+(lang==='bn'?'বাদ দেওয়া (ইচ্ছাকৃত)':'Explicitly skipped')+'</th><td>'+draft.skipped.map(function(m){var qq=qs.filter(function(x){return x.q.en===m;})[0];return esc(qq?(qq.q[lang]||qq.q.en):m);}).join(', ')+'</td></tr>':'')+
   '</table>';
+ renderNewSummary();
  return draft.payload;
 }
 function startHire(mode){
@@ -1606,27 +2159,42 @@ function startHire(mode){
   try{localStorage.setItem('dc_pending_hire',mode);if(text)localStorage.setItem('dc_pending_prompt',text);}catch(e){}
   showView('view-login'); return;
  }
- if(mode==='bids'){showView('view-bid-post');loadMyBidJobs();if(text){var bp=$('bid-prompt');if(bp){bp.value=text;parseBidPrompt();}}return;}
+ if(mode==='bids'){showView('view-bid-post');loadMyBidJobs();initBidSiteMap();if(text){var bp=$('bid-prompt');if(bp){bp.value=text;parseBidPrompt();}}return;}
  showView('view-new');
- if(text){var ai=$('prompt-input-app');if(ai)ai.value=text;}
- startPromptFlow(text);
+ if(text){var ai=$('prompt-input-app');if(ai){ai.value=text;autogrow(ai);}startPromptFlow(text);}
+ else if(!restoreDraft()){resetNewJobForm();}
 }
 function initNewJob(){
  var picker=$('trade-picker');
  if(picker)picker.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){
-  draft.trade=b.getAttribute('data-trade'); draft.answers={}; draft.skipped=[]; draft.fsIndex=0;
-  picker.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false');});
-  renderFairScope(); });});
+  switchTrade(b.getAttribute('data-trade')); });});
+ var wp=$('worker-phone'); if(wp)wp.addEventListener('input',updateWorkerSummary);
+ var wn=$('worker-name'); if(wn)wn.addEventListener('input',updateWorkerSummary);
+ var we=$('worker-summary-edit'); if(we)we.addEventListener('click',function(){var ph=$('worker-phone');if(ph)ph.focus();});
  var appInp=$('prompt-input-app');
  if(appInp)appInp.addEventListener('input',function(){
+  autogrow(appInp);
   var parsed=parsePromptSafe(appInp.value);
   promptChips($('prompt-chips-app'),parsed);
-  if(parsed.trade){draft.trade=parsed.trade;draft.answers={};draft.skipped=[];draft.fsIndex=0;renderFairScope();}
+  if(parsed.trade&&parsed.trade!==draft.trade)switchTrade(parsed.trade);
   if(parsed.price!=null)$('job-price').value=parsed.price;
   if(parsed.deadline)$('job-deadline').value=parsed.deadline;
   if(parsed.description)$('job-scope').value=parsed.description;
  });
  var wr=$('warn-resolve'); if(wr)wr.addEventListener('click',function(){var f=$('fs-questions');if(f)f.scrollIntoView({behavior:'smooth',block:'center'});});
+ /* N2: site pin and milestones sit behind collapsed one-tap toggles,
+    closed by default. The site map is built on the toggle's first tap. */
+ var st=$('site-toggle');
+ if(st)st.addEventListener('click',function(){
+  var blk=$('site-block'); if(!blk)return;
+  var open=blk.hidden; blk.hidden=!open; st.setAttribute('aria-expanded',open?'true':'false');
+  if(open&&!siteMap)initSiteMap();
+ });
+ var mt=$('ms-toggle');
+ if(mt)mt.addEventListener('click',function(){
+  var blk=$('ms-block'); if(!blk)return;
+  var open=blk.hidden; blk.hidden=!open; mt.setAttribute('aria-expanded',open?'true':'false');
+ });
  $('btn-site-me').addEventListener('click',function(){
   if(!('geolocation' in navigator)){showErr(lang==='bn'?'এই ডিভাইসে লোকেশন পাওয়া যাচ্ছে না।':'Location is not available on this device.');return;}
   navigator.geolocation.getCurrentPosition(function(p){setSite(p.coords.latitude,p.coords.longitude);},
@@ -1638,7 +2206,7 @@ function initNewJob(){
   $('milestone-rows').appendChild(d); });
  $('prompt-q-send').addEventListener('click',answerPromptQuestion);
  $('prompt-q-input').addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();answerPromptQuestion();}});
- $('prompt-q-skip').addEventListener('click',function(){if(promptQ&&promptQ.length){promptQ.shift();nextPromptQuestion();}});
+ $('prompt-q-skip').addEventListener('click',function(){if(promptQ&&promptQ.length){promptQ.shift();nextPromptQuestion();saveDraft();maybeRevealDetails();}});
  $('btn-review').addEventListener('click',function(){
   if(!(Number($('job-price').value)>0)){showErr(lang==='bn'?'দাম ০-এর বেশি হতে হবে।':'Price must be more than 0.');return;}
   if(!$('worker-phone').value.trim()){showErr(lang==='bn'?'Worker-এর ফোন নম্বর দিন।':'Enter the worker phone number.');return;}
@@ -1653,26 +2221,63 @@ function initNewJob(){
   buildReview();
   try{var r=await api('/api/jobs',{method:'POST',body:JSON.stringify(draft.payload)});
    var job=r.job||r; var id=job.id||job._id;
+   try{localStorage.removeItem('dc_draft');}catch(e){}
    var link=r.workerLink||job.workerLink||job.worker_link||'';
    if(link){var cb=$('create-link-box');if(cb){cb.hidden=false;var u=$('create-link-url');if(u){u.textContent=t('detail.workerLinkLabel');u.href=link;}var ccb=$('btn-copy-link-create');if(ccb){ccb.onclick=function(){copyLinkText(link,t('detail.workerLinkLabel'));};ccb.hidden=false;}}}
    if(id){openJob(id);}else{showView('view-jobs');loadJobs();}
   }catch(e){showErr((lang==='bn'?'কাজ তৈরি হয়নি: ':'Could not create job: ')+e.message);}
  });
  $('btn-new-job').addEventListener('click',function(){
-  draft={trade:'ELECTRICIAN',answers:{},skipped:[],fsIndex:0};
-  $('prompt-input-app').value=''; $('prompt-chips-app').hidden=true;
-  $('fs-chat').hidden=true; $('new-details').hidden=true; $('prompt-q').hidden=true;
-  $('job-price').value=''; $('job-deadline').value=''; $('job-scope').value='';
-  $('worker-phone').value=''; $('worker-name').value=''; $('review-record').innerHTML='';
   showView('view-new');
+  if(restoreDraft())return;
+  resetNewJobForm();
  });
+ $('jobs-empty').addEventListener('click',function(){var b=$('btn-new-job');if(b)b.click();});
  $('btn-new-back').addEventListener('click',function(){showView('view-jobs','back');loadJobs();});
  $('btn-refresh').addEventListener('click',loadJobs);
  $('btn-back-jobs').addEventListener('click',function(){locStopAll();showView('view-jobs','back');loadJobs();});
 }
 
+/* Downscale a photo to max 1280px on the long edge and ~300KB, client
+   side, before upload. Files already under the limit go up as-is. */
+function downscalePhoto(file){
+ return new Promise(function(resolve,reject){
+  if(file.size<=300*1024){resolve(file);return;}
+  var url=URL.createObjectURL(file);
+  var img=new Image();
+  img.onload=function(){
+   try{
+    var w=img.naturalWidth, h=img.naturalHeight;
+    var scale=Math.min(1,1280/Math.max(w,h));
+    var cw=Math.max(1,Math.round(w*scale)), ch=Math.max(1,Math.round(h*scale));
+    var cv=document.createElement('canvas'); cv.width=cw; cv.height=ch;
+    var ctx=cv.getContext('2d'); ctx.drawImage(img,0,0,cw,ch);
+    URL.revokeObjectURL(url);
+    var quals=[0.85,0.7,0.55,0.4], qi=0;
+    (function next(){
+     if(qi>=quals.length){reject(new Error('too large'));return;}
+     cv.toBlob(function(b){
+      if(!b){reject(new Error('encode failed'));return;}
+      if(b.size<=300*1024||qi===quals.length-1)resolve(b);
+      else{qi++;next();}
+     },'image/jpeg',quals[qi]);
+    })();
+   }catch(e){URL.revokeObjectURL(url);reject(e);}
+  };
+  img.onerror=function(){URL.revokeObjectURL(url);reject(new Error('decode failed'));};
+  img.src=url;
+ });
+}
+
 /* ---------- detail actions ---------- */
 function initDetail(){
+ /* Item 3: step "Next" buttons — one tap moves to the next step panel. */
+ document.querySelectorAll('#view-detail [data-next-tab]').forEach(function(b){b.addEventListener('click',function(){
+  var nx=b.getAttribute('data-next-tab');
+  if(nx==='jobs'){locStopAll();showView('view-jobs','back');loadJobs();return;}
+  var tab=document.querySelector('#view-detail .tabs button[data-tab="'+nx+'"]');
+  if(tab){tab.click();var ds=$('detail-scroll');if(ds)ds.scrollIntoView();}
+ });});
  /* Stepper: only the 5 step panels inside #view-detail toggle here. The
     More sheet panels (ChangeLock / Dispute / Billing) live outside the
     detail view and are never hidden by a step change. */
@@ -1683,6 +2288,12 @@ function initDetail(){
      transform + opacity only) instead of appearing instantly. */
   var panel=document.getElementById('tab-'+b.getAttribute('data-tab'));
   if(panel&&!RM){panel.classList.remove('step-flip');void panel.offsetWidth;panel.classList.add('step-flip');}
+  /* The flip class STAYS on the panel after the animation (the suite pins
+     cls + animationName after stepping). The overflow it used to cause is
+     fixed in CSS instead: stepFlip is hinged on the LEFT edge, so the
+     rotating panel never swings past the scroller's right edge (the old
+     centre-hinged -9deg flip swung the right edge up to 74px out and
+     inflated #detail-scroll's scrollWidth to 1335). */
   /* Step 3 holds the live map, which is created while its panel is hidden:
      Leaflet sizes the tile grid to 0 unless it is re-measured once the
      panel is visible — so re-measure it every time step 3 opens. */
@@ -1697,9 +2308,10 @@ function initDetail(){
   var sel=$('pay-method'); if(sel)sel.value=b.getAttribute('data-method'); });});
  var st=$('btn-share-trip'); if(st)st.addEventListener('click',shareTrip);
  var stf=$('btn-share-trip-fab'); if(stf)stf.addEventListener('click',shareTrip);
+ var lr=$('btn-loc-retry'); if(lr)lr.addEventListener('click',retryLocMap);
  $('btn-hirer-confirm').addEventListener('click',async function(){clearErr();
   try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/hirer-confirm',{method:'POST',body:JSON.stringify({otpCode:$('confirm-otp').value.trim()})});showSuccessCheck();openJob(currentJobId);}
-  catch(e){showErr(e.message);}});
+  catch(e){showErr(otpErrText(e)||e.message);}});
  async function resendWorkerLink(){clearErr();clearNotice();
   /* POST /api/jobs/:id/worker-link — server endpoint may not exist yet;
      a 404 is reported, not hidden. */
@@ -1712,32 +2324,120 @@ function initDetail(){
   catch(e){showErr((lang==='bn'?'লিংক আবার পাঠানো যায়নি: ':'Could not resend link: ')+e.message);}}
  var rs=$('btn-resend-link'); if(rs)rs.addEventListener('click',resendWorkerLink);
  var rsc=$('btn-resend-link-create'); if(rsc)rsc.addEventListener('click',resendWorkerLink);
- $('btn-confirm-send-otp').addEventListener('click',async function(){clearErr();
+ /* R4: the WorkPassport belongs to the worker — the hirer only resends
+    the worker link from here. */
+ var prs=$('btn-passport-resend'); if(prs)prs.addEventListener('click',resendWorkerLink);
+ /* Item 4: the confirm OTP — Send requests it, Resend re-requests it
+    with a 60s disabled countdown. Wrong/expired codes get a plain
+    sentence, never the raw error. */
+ async function requestConfirmOtp(){clearErr();
   /* hirer-confirm verifies purpose 'hirer-confirm' — request that OTP explicitly */
   try{var r=await api('/api/auth/request-otp',{method:'POST',body:JSON.stringify({phone:(user&&user.phone)||'',purpose:'hirer-confirm'})});
-   if(r&&r.sandbox&&r.sandbox.otp){$('confirm-note').hidden=false;$('confirm-note-text').textContent=(r.sandbox.otp||'—');}
+   if(r&&r.sandbox&&r.sandbox.otp){$('confirm-note').hidden=false;$('confirm-note-text').textContent=sandboxCodeText(r.sandbox.otp);}
    $('confirm-otp').focus();
-  }catch(e){showErr(e.message);}});
+  }catch(e){showErr(otpErrText(e)||e.message);}}
+ $('btn-confirm-send-otp').addEventListener('click',requestConfirmOtp);
+ var cres=$('btn-confirm-resend'), cresTimer=null;
+ if(cres)cres.addEventListener('click',function(){
+  if(cres.disabled)return;
+  requestConfirmOtp();
+  var left=60; cres.disabled=true;
+  cres.textContent=t('otp.resendIn').replace('{n}',String(left));
+  if(cresTimer)clearInterval(cresTimer);
+  cresTimer=setInterval(function(){
+   left--;
+   if(left<=0){clearInterval(cresTimer);cresTimer=null;cres.disabled=false;cres.textContent=t('otp.resend');}
+   else cres.textContent=t('otp.resendIn').replace('{n}',String(left));
+  },1000);
+ });
  $('form-change').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
-  try{var r=await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/changes',{method:'POST',body:JSON.stringify({priceDelta:Number($('ch-delta').value)||0,deadline:$('ch-deadline').value||undefined,reason:$('ch-reason').value.trim(),details:$('ch-reason').value.trim()})});
+  var delta=Number($('ch-delta').value)||0, dl=$('ch-deadline').value||'', rs=$('ch-reason').value.trim();
+  var ce=$('change-err');
+  /* R2: a proposal must change something — price, deadline, or a reason.
+     The server rule is untouched; this is the client-side guard. */
+  if(delta===0&&!dl&&!rs){if(ce){ce.hidden=false;ce.textContent=t('change.emptyErr');}return;}
+  if(ce)ce.hidden=true;
+  try{var r=await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/changes',{method:'POST',body:JSON.stringify({priceDelta:delta,deadline:dl||undefined,reason:rs,details:rs})});
    /* Insert the notice AFTER the re-render: openJob rebuilds #change-list,
       so inserting before it wipes the notice instantly and the hirer never
       sees that the proposal was sent. */
    await openJob(currentJobId); showSuccessCheck();
    if(r&&r.notifyLink){clearErr();var n=$('change-list');if(n)n.insertAdjacentHTML('afterbegin','<div class="notice"><b>'+esc(t('change.sent'))+'</b><p><a class="pill" href="'+esc(r.notifyLink)+'">'+esc(t('detail.workerLinkLabel'))+'</a></p></div>');}}
   catch(e){showErr(e.message);}});
- $('form-pay').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
+ /* Item 5: the payment form never posts on submit — it shows an inline
+    summary first (amount · method · date · remaining after), and only
+    "Yes, record it" posts, once. */
+ var payForm=$('form-pay');
+ payForm.addEventListener('submit',function(ev){ev.preventDefault();clearErr();
+  var amt=Number($('pay-amount').value);
+  if(!(amt>0)){showErr(lang==='bn'?'দাম ০-এর বেশি হতে হবে।':'Price must be more than 0.');return;}
+  var method=$('pay-method').value;
+  var date=$('pay-date').value||'';
+  var remNow=0; try{remNow=(renderDetail._prevBal&&renderDetail._prevBal.rem)||0;}catch(e){}
+  var sum=$('pay-summary');
+  if(sum)sum.innerHTML='<h3>'+esc(t('pay.summaryTitle'))+'</h3><table>'+
+   '<tr><th>'+(lang==='bn'?'টাকা':'Amount')+'</th><td>'+taka(amt)+'</td></tr>'+
+   '<tr><th>'+(lang==='bn'?'মাধ্যম':'Method')+'</th><td>'+esc(method)+'</td></tr>'+
+   '<tr><th>'+(lang==='bn'?'তারিখ':'Date')+'</th><td>'+esc(date?fmtDate(date):'—')+'</td></tr>'+
+   '<tr><th>'+esc(t('pay.remAfter'))+'</th><td>'+taka(Math.max(0,remNow-amt))+'</td></tr></table>';
+  payForm.hidden=true;
+  var pc=$('pay-confirm'); if(pc)pc.hidden=false;
+ });
+ var pfc=$('pay-full-chip');
+ if(pfc)pfc.addEventListener('click',function(){
+  var remNow=0; try{remNow=(renderDetail._prevBal&&renderDetail._prevBal.rem)||0;}catch(e){}
+  if(remNow>0){var pa=$('pay-amount');if(pa)pa.value=remNow;}
+ });
+ var pcf=$('btn-pay-confirm');
+ if(pcf)pcf.addEventListener('click',async function(){clearErr();
+  pcf.disabled=true;
   try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/payments',{method:'POST',body:JSON.stringify({amount:Number($('pay-amount').value),method:$('pay-method').value,date:$('pay-date').value||undefined})});showSuccessCheck();openJob(currentJobId);}
-  catch(e){showErr(e.message);}});
+  catch(e){showErr(e.message);pcf.disabled=false;}});
+ var pch=$('btn-pay-change');
+ if(pch)pch.addEventListener('click',function(){var pc=$('pay-confirm');if(pc)pc.hidden=true;payForm.hidden=false;var pa=$('pay-amount');if(pa)pa.focus();});
+ /* Item 6: photo preview + client-side downscale (max 1280px / ~300KB)
+    before upload. "Photo too large" appears only if downscaling fails. */
+ var photoInput=$('photo-input');
+ if(photoInput)photoInput.addEventListener('change',function(){
+  var pv=$('photo-preview'); if(!pv)return;
+  var f=photoInput.files[0];
+  if(f){pv.src=URL.createObjectURL(f);pv.hidden=false;}
+  else{pv.hidden=true;pv.removeAttribute('src');}
+ });
  $('form-photo').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
   var f=$('photo-input').files[0]; if(!f){showErr(lang==='bn'?'একটি ছবি বেছে নিন।':'Choose a photo first.');return;}
-  var fd=new FormData(); fd.append('photo',f);
+  var fd=new FormData();
+  try{
+   var blob=await downscalePhoto(f);
+   fd.append('photo',blob,f.name||'photo.jpg');
+  }catch(e){showErr(t('pay.photoTooLarge'));return;}
   var pk=$('photo-kind'); if(pk)fd.append('kind',pk.value);
   try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/photos',{method:'POST',body:fd});showSuccessCheck();openJob(currentJobId);}
   catch(e){showErr(e.message);}});
  $('form-dispute').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
   try{await api('/api/jobs/'+encodeURIComponent(currentJobId)+'/disputes',{method:'POST',body:JSON.stringify({category:$('dis-category').value,statement:$('dis-text').value.trim()})});showSuccessCheck();openJob(currentJobId);}
   catch(e){showErr(e.message);}});
+ /* Item 8 + R3: two close paths, one visible at a time — the worker's
+    code, or closing alone (which never lands on the WorkPassport). The
+    button stays disabled until a 6-digit code is in, or "Close alone"
+    is picked. The close-force checkbox shows only under the code path. */
+ function updateCloseUI(){
+  var alone=$('close-anyway')&&$('close-anyway').checked;
+  var otpWrap=$('close-otp-wrap'); if(otpWrap)otpWrap.hidden=!!alone;
+  var warn=$('close-alone-warn'); if(warn)warn.hidden=!alone;
+  var fw=$('close-force-wrap'); if(fw)fw.hidden=!!alone;
+  var otpVal=$('close-otp')?$('close-otp').value.replace(/\D/g,''):'';
+  var btn=$('btn-close-job'); if(btn)btn.disabled=!(alone||otpVal.length===6);
+ }
+ var co=$('close-otp'); if(co)co.addEventListener('input',function(){co.value=co.value.replace(/\D/g,'').slice(0,6);updateCloseUI();});
+ var cmOtp=$('close-mode-otp'); if(cmOtp)cmOtp.addEventListener('change',updateCloseUI);
+ var cmAlone=$('close-anyway'); if(cmAlone)cmAlone.addEventListener('change',updateCloseUI);
+ updateCloseUI();
+ var bco=$('btn-close-open');
+ if(bco)bco.addEventListener('click',function(){
+  openSheet('sheet-more','dispute');
+  var h=$('close-heading'); if(h)setTimeout(function(){h.scrollIntoView({block:'start'});},50);
+ });
  $('btn-close-job').addEventListener('click',async function(){clearErr();
   /* The server requires either the worker's close-confirm OTP or an
      explicit closeAnyway — sending neither always 400s, so the old button
@@ -1767,20 +2467,76 @@ function initDetail(){
   try{var r=await api('/api/billing/caas',{method:'POST',body:JSON.stringify({jobId:currentJobId})});
    var box=$('billing-box'); var id=r.chargeId||r.id||(r.caas&&r.caas.id);
    var otp=r.sandboxOtp||(r.sandbox&&r.sandbox.otp)||null;
-   box.innerHTML='<div class="notice">'+(otp?esc(t('otp.code'))+': '+esc(otp):(lang==='bn'?'OTP SMS-এ পাঠানো হয়েছে।':'OTP sent by SMS.'))+'</div>'+
-    '<label>OTP</label><input id="caas-otp" type="text" inputmode="numeric" placeholder="OTP"><div class="btn-row"><button class="btn btn-dark btn-sm" type="button" id="caas-verify">'+esc(t('caas.verify'))+'</button></div>';
-   $('caas-verify').addEventListener('click',async function(){try{var v=await api('/api/billing/caas/'+encodeURIComponent(id||currentJobId)+'/verify',{method:'POST',body:JSON.stringify({otpCode:$('caas-otp').value.trim()})});box.innerHTML='<p class="mono">'+(v.status==='VERIFIED'?esc(t('caas.paid')):esc(t('caas.status'))+': '+esc(statusLabel(v.status||'PENDING')))+'</p>';loadBillingStatus();}catch(e){showErr(e.message);}});
+   box.innerHTML='<div class="notice">'+(otp?esc(sandboxCodeText(otp)):(lang==='bn'?'OTP SMS-এ পাঠানো হয়েছে।':'OTP sent by SMS.'))+'</div>'+
+    '<label>OTP</label><input id="caas-otp" type="text" inputmode="numeric" placeholder="OTP" maxlength="6" autocomplete="one-time-code"><p class="free-otp">'+esc(t('otp.free'))+'</p><div class="btn-row"><button class="btn btn-dark btn-sm" type="button" id="caas-verify">'+esc(t('caas.verify'))+'</button></div>';
+   $('caas-verify').addEventListener('click',async function(){try{var v=await api('/api/billing/caas/'+encodeURIComponent(id||currentJobId)+'/verify',{method:'POST',body:JSON.stringify({otpCode:$('caas-otp').value.trim()})});if(v.status==='VERIFIED')feePaidForJob[currentJobId]=true;box.innerHTML='<p class="mono">'+(v.status==='VERIFIED'?esc(t('caas.paid')):esc(t('caas.status'))+': '+esc(statusLabel(v.status||'PENDING')))+'</p>';loadBillingStatus();}catch(e){showErr(otpErrText(e)||e.message);}});
   }catch(e){showErr(e.message);}});
  $('btn-sub').addEventListener('click',async function(){clearErr();
   try{var r=await api('/api/billing/subscribe',{method:'POST',body:JSON.stringify({plan:'monthly'})});
    $('billing-box').innerHTML='<p class="mono">'+esc(t('sub.done'))+' · '+esc(statusLabel(r.status||r.state||'ACTIVE'))+'</p>';loadBillingStatus();
   }catch(e){showErr(e.message);}});
+ /* R5b: cancel the subscription — shown only while it is ACTIVE. */
+ var ub=$('btn-unsub');
+ if(ub)ub.addEventListener('click',async function(){clearErr();
+  try{await api('/api/billing/unsubscribe',{method:'POST',body:'{}'});showNotice(t('bill.unsubDone'));loadBillingStatus();}
+  catch(e){showErr(e.message);}});
 }
 
 /* ---------- find a repairer: photo + nearby bidding (separate mode) ---------- */
 /* A bid alone is never an agreement. Picking a bid creates a normal Job
    (pre-filled from the bid) which still needs dual OTP confirmation. */
 var bidTrade='ELECTRICIAN', bidSite=null, findLoc=null, currentBidJobId=null;
+var bidSiteMap=null, bidSiteMarker=null, bidSiteTiles=null, bidSiteTileErrors=0, bidSiteTileLoads=0, bidSiteTileTimer=null;
+/* B1: the bid-post site map — same tap-to-pin pattern as the job site
+   picker, same dotted-schematic fallback when tiles never arrive. The
+   address field below stays the fallback; the map box is never blank. */
+function showBidSiteFallback(){
+ var fb=$('bid-site-fallback'); if(!fb)return;
+ var el=$('bid-site-map'); if(el)el.hidden=true;
+ var svgEl=$('bid-site-fallback-svg'); if(svgEl)svgEl.innerHTML=mapFallbackSVG(null,bidSite||null,null);
+ fb.hidden=false;
+}
+function hideBidSiteFallback(){
+ var fb=$('bid-site-fallback'); if(fb)fb.hidden=true;
+ var el=$('bid-site-map'); if(el&&bidSiteMap)el.hidden=false;
+}
+function bidSiteAttachTiles(){
+ var tiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'});
+ tiles.on('tileload',function(){
+  bidSiteTileLoads++;
+  if(bidSiteTileTimer){clearTimeout(bidSiteTileTimer);bidSiteTileTimer=null;}
+  var fb=$('bid-site-fallback');
+  if(fb&&!fb.hidden){bidSiteTileErrors=0;hideBidSiteFallback();}
+ });
+ tiles.on('tileerror',function(){bidSiteTileErrors++;if(bidSiteTileErrors>=3)showBidSiteFallback();});
+ return tiles;
+}
+function retryBidSiteMap(){
+ if(!bidSiteMap)return;
+ bidSiteTileErrors=0; bidSiteTileLoads=0;
+ if(bidSiteTiles){try{bidSiteMap.removeLayer(bidSiteTiles);}catch(e){}}
+ bidSiteTiles=bidSiteAttachTiles(); bidSiteTiles.addTo(bidSiteMap);
+ bidSiteMap.invalidateSize(); hideBidSiteFallback();
+ if(bidSiteTileTimer)clearTimeout(bidSiteTileTimer);
+ bidSiteTileTimer=setTimeout(function(){if(!bidSiteTileLoads)showBidSiteFallback();},6000);
+}
+function setBidSite(lat,lng,silent){
+ bidSite={lat:+lat.toFixed(6),lng:+lng.toFixed(6)};
+ if(bidSiteMap){if(bidSiteMarker)bidSiteMarker.setLatLng([lat,lng]);else bidSiteMarker=L.marker([lat,lng]).addTo(bidSiteMap);if(!silent)bidSiteMap.setView([lat,lng],15);}
+ var el=$('bid-picked'); if(el){el.hidden=false;el.textContent=t('bid.picked');}
+ var sf=$('bid-site-fallback'); if(sf&&!sf.hidden){var s=$('bid-site-fallback-svg');if(s)s.innerHTML=mapFallbackSVG(null,bidSite,null);}
+}
+function initBidSiteMap(){
+ var el=$('bid-site-map'); if(!el||bidSiteMap)return;
+ if(typeof L==='undefined'){showBidSiteFallback();return;}
+ bidSiteMap=L.map(el).setView([23.8103,90.4125],12);
+ bidSiteTiles=bidSiteAttachTiles(); bidSiteTiles.addTo(bidSiteMap);
+ bidSiteTileTimer=setTimeout(function(){if(!bidSiteTileLoads)showBidSiteFallback();},6000);
+ bidSiteMap.on('click',function(e){setBidSite(e.latlng.lat,e.latlng.lng);});
+ if(bidSite)setBidSite(bidSite.lat,bidSite.lng,true);
+ setTimeout(function(){bidSiteMap.invalidateSize();},100);
+ var rb=$('btn-bid-site-retry'); if(rb)rb.onclick=retryBidSiteMap;
+}
 function bidPhotosHtml(photos){
  if(!photos||!photos.length)return '<p class="small">—</p>';
  return '<div class="photo-grid">'+photos.map(function(u){
@@ -1802,64 +2558,112 @@ async function loadMyBidJobs(){
 }
 async function openBidDetail(id){
  currentBidJobId=id; clearErr();
+ var bar0=$('bid-cheapest-bar'); if(bar0)bar0.hidden=true;
  try{var r=await api('/api/bid-jobs/'+encodeURIComponent(id));
   var b=r.bidJob; var bids=r.bids||[];
   $('bid-detail-title').textContent=tradeLabel(b.trade)+' — '+((b.description||'').slice(0,80));
-  $('bid-detail-meta').textContent=statusLabel(b.status)+' · '+fmtDate(b.created_at)+(b.siteArea?' · '+b.siteArea:'');
+  $('bid-detail-meta').textContent=statusLabel(b.status)+' · '+fmtDate(b.created_at)+(b.siteArea?' · '+b.siteArea:'')+(b.deadline?' · '+(lang==='bn'?'শেষ তারিখ: ':'Deadline: ')+fmtDate(b.deadline):'');
   $('bid-detail-photos').innerHTML=bidPhotosHtml(b.photos);
   var bl=$('bid-list');
-  /* Cheapest first: the server already orders by amount ASC; the first
-     LIVE bid is the lowest — mark it, never re-sort client-side. */
-  bl.innerHTML=bids.length?bids.map(function(bd,bi){
+  /* Cheapest first: the server already orders by amount ASC — but the
+     LOWEST pill is computed over LIVE bids only, so an expired cheapest
+     bid never steals the pill from the live one below it. */
+  var liveBids=bids.filter(function(x){return x.status==='LIVE';});
+  var otherBids=bids.filter(function(x){return x.status!=='LIVE';});
+  var lowestLive=null;
+  liveBids.forEach(function(x){if(!lowestLive||x.amount<lowestLive.amount)lowestLive=x;});
+  function bidRowHtml(bd){
    var pass=bd.passport||{};
-   var lowest=bd.status==='LIVE'&&bi===0;
+   var lowest=lowestLive&&bd.id===lowestLive.id;
    var facts=[];
    if(pass.completedJobs!=null)facts.push((lang==='bn'?'সম্পন্ন কাজ: ':'Completed jobs: ')+pass.completedJobs);
    if(pass.trades&&pass.trades.length)facts.push((lang==='bn'?'কাজের ধরন: ':'Trades: ')+pass.trades.join(', '));
    /* Bidding pick screen: each bid carries the worker's profile card
       (same shared renderer as the job page) above its price — the
-      hirer picks from verified facts, never stars or scores. */
-   return '<div class="job-row" style="display:block">'+renderProfileCard(bidProfile(bd,b.trade))
+      hirer picks from verified facts, never stars or scores. The pick
+      card is compact: no Member-since fact. */
+   return '<div class="job-row" style="display:block">'+renderProfileCard(bidProfile(bd,b.trade),{hideSince:true})
     +'<div><div class="t">'+taka(bd.amount)+(lowest?' <span class="pill pill-orange">'+esc(t('find.lowest'))+'</span>':'')+'</div><div class="m">'+esc(bd.note||'')+(bd.earliestStart?' · '+(lang==='bn'?'শুরু: ':'Starts: ')+esc(bd.earliestStart):'')+'</div><div class="m">'+(bd.distanceKm!=null?(lang==='bn'?'সরলরেখা দূরত্ব: ':'Straight-line distance: ')+bd.distanceKm+' km':(lang==='bn'?'দূরত্ব জানা নেই':'Distance unavailable'))+' · '+esc(facts.join(' · '))+'</div><div class="m">'+esc(statusLabel(bd.status))+' · '+(lang==='bn'?'মেয়াদ: ':'Expires: ')+esc(fmtDT(bd.expires_at))+'</div></div>'+
    (bd.status==='LIVE'?'<div class="btn-row"><button class="btn btn-dark btn-sm btn-3d" type="button" data-accept="'+esc(bd.id)+'">'+(lang==='bn'?'বেছে নিন':'Pick this bid')+'</button></div>':'')+'</div>';
-  }).join(''):'<p class="small">'+(lang==='bn'?'এখনো কোনো দর আসেনি।':'No bids yet.')+'</p>';
-  bl.querySelectorAll('[data-accept]').forEach(function(btn){btn.addEventListener('click',async function(){
+  }
+  var html='';
+  if(liveBids.length)html+=liveBids.map(bidRowHtml).join('');
+  if(otherBids.length)html+='<details><summary>'+esc(t('bid.closedBids'))+' ('+otherBids.length+')</summary>'+otherBids.map(bidRowHtml).join('')+'</details>';
+  bl.innerHTML=html||'<p class="small">'+(lang==='bn'?'এখনো কোনো দর আসেনি।':'No bids yet.')+'</p>';
+  async function acceptBid(bidId){
    clearErr();
-   try{var acc=await api('/api/bid-jobs/'+encodeURIComponent(currentBidJobId)+'/bids/'+encodeURIComponent(btn.getAttribute('data-accept'))+'/accept',{method:'POST',body:'{}'});
+   try{var acc=await api('/api/bid-jobs/'+encodeURIComponent(currentBidJobId)+'/bids/'+encodeURIComponent(bidId)+'/accept',{method:'POST',body:'{}'});
     showNotice(lang==='bn'?'দর বেছে নেওয়া হয়েছে — এখন রেকর্ড তৈরি হয়েছে। দুই পক্ষের OTP দিয়ে নিশ্চিত করুন।':'Bid picked — the record is created. Both sides must now confirm by OTP.');
     if(acc&&acc.job&&acc.job.id){openJob(acc.job.id);showSuccessCheck();}
    }catch(e){showErr(e.message);}
-  });});
+  }
+  bl.querySelectorAll('[data-accept]').forEach(function(btn){btn.addEventListener('click',function(){acceptBid(btn.getAttribute('data-accept'));});});
+  /* Sticky cheapest bar: the lowest LIVE bid, one tap to pick it. */
+  if(bar0&&lowestLive){
+   bar0.hidden=false;
+   var nm=lowestLive.workerName||(lowestLive.workerProfile&&lowestLive.workerProfile.name)||'';
+   var ct=$('bid-cheapest-text'); if(ct)ct.textContent=t('bid.cheapest').replace('{amt}',taka(lowestLive.amount)).replace('{name}',nm);
+   var cb=$('btn-bid-cheapest'); if(cb)cb.onclick=function(){acceptBid(lowestLive.id);};
+  }
   showView('view-bid-detail');
+ }catch(e){showErr(e.message);}
+}
+/* B3: one bid composer per view, above the list. Each open job shows
+   title + distance + bid count + photos + ONE primary "Place bid"
+   button; tapping it opens the composer prefilled with that job. */
+var composerBidJobId=null;
+function bnToEn(s){var m={'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};return String(s||'').replace(/[০-৯]/g,function(c){return m[c];}).replace(/,/g,'').trim();}
+function openBidComposer(id,trade,title){
+ composerBidJobId=id;
+ var c=$('bid-composer'); if(!c)return;
+ var ttl=$('bid-composer-title'); if(ttl)ttl.textContent=tradeLabel(trade)+' — '+title;
+ var amt=$('bid-c-amount'); if(amt)amt.value='';
+ var st=$('bid-c-start'); if(st){st.value='';try{st.min=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);}catch(e){}}
+ var nt=$('bid-c-note'); if(nt)nt.value='';
+ var er=$('bid-amount-err'); if(er)er.hidden=true;
+ c.hidden=false;
+ c.scrollIntoView({block:'nearest'});
+ if(amt)amt.focus();
+}
+async function submitBidComposer(){
+ clearErr();
+ if(!composerBidJobId)return;
+ var amt=Number(bnToEn(($('bid-c-amount')||{}).value));
+ var er=$('bid-amount-err');
+ if(!(amt>0)){
+  /* Inline under the price field, in Bangla — never the global error. */
+  if(er){er.hidden=false;er.textContent=t('bid.amountErr');}
+  var a=$('bid-c-amount'); if(a)a.focus();
+  return;
+ }
+ if(er)er.hidden=true;
+ try{var placed=await api('/api/bid-jobs/'+encodeURIComponent(composerBidJobId)+'/bids',{method:'POST',body:JSON.stringify({
+   amount:amt,
+   note:($('bid-c-note')||{}).value.trim()||undefined,
+   earliestStart:($('bid-c-start')||{}).value||undefined,
+   workerLat:findLoc?findLoc.lat:undefined, workerLng:findLoc?findLoc.lng:undefined})});
+  var bidRow=placed&&(placed.bid||placed);
+  if(bidRow&&bidRow.id)saveMyBid(composerBidJobId,bidRow.id,amt);
+  showNotice(lang==='bn'?'দর দেওয়া হয়েছে — ২৪ ঘণ্টা কার্যকর থাকবে।':'Bid placed — valid for 24 hours.');
+  var c=$('bid-composer'); if(c)c.hidden=true;
+  composerBidJobId=null;
+  loadOpenBidJobs(); renderMyBids();
  }catch(e){showErr(e.message);}
 }
 async function loadOpenBidJobs(){
  var box=$('find-work-list'); if(!box)return; box.innerHTML='<p class="small">'+esc(t('job.loading'))+'</p>';
  var q=findLoc?('?lat='+findLoc.lat+'&lng='+findLoc.lng):'';
- $('find-loc-note').textContent=findLoc?(lang==='bn'?'আপনার লোকেশন: ':'Your location: ')+findLoc.lat+', '+findLoc.lng+' — '+(lang==='bn'?'কাছের কাজ আগে':'nearest first'):(lang==='bn'?'লোকেশন ছাড়া — নতুন কাজ আগে। দূরত্ব দেখতে “আমার লোকেশন ব্যবহার করুন” চাপুন।':'No location — newest first. Tap “Use my location” to see distance.');
+ /* Never print raw coordinates: the note says only that location is set
+    (nearest first) or not set (newest first). */
+ $('find-loc-note').textContent=findLoc?t('bid.locSet'):(lang==='bn'?'লোকেশন ছাড়া — নতুন কাজ আগে। দূরত্ব দেখতে “আমার লোকেশন ব্যবহার করুন” চাপুন।':'No location — newest first. Tap “Use my location” to see distance.');
  try{var r=await api('/api/bid-jobs/open'+q); var rows=r.bidJobs||[];
   box.innerHTML=rows.length?rows.map(function(b){
    return '<div class="job-row" style="display:block"><div><div class="t">'+esc(tradeLabel(b.trade))+' — '+esc((b.description||'').slice(0,80))+'</div><div class="m">'+bidDistText(b)+' · '+esc(b.bidCount||0)+' '+(lang==='bn'?'টি দর':'bids')+' · '+esc(fmtDate(b.created_at))+(b.siteArea?' · '+esc(b.siteArea):'')+'</div></div>'+
    bidPhotosHtml(b.photos)+
-   '<div class="field-grid"><div><label>'+(lang==='bn'?'আপনার দাম (৳)':'Your price (৳)')+'</label><input type="number" min="1" inputmode="numeric" class="bid-amount" placeholder="4000"></div>'+
-   '<div><label>'+(lang==='bn'?'কবে শুরু করতে পারবেন?':'Earliest start')+'</label><input type="text" class="bid-start" placeholder="e.g. 2026-11-28"></div></div>'+
-   '<label>'+(lang==='bn'?'নোট (ঐচ্ছিক)':'Note (optional)')+'</label><input type="text" class="bid-note" maxlength="280" placeholder="'+(lang==='bn'?'যেমন: মালামালসহ':'e.g. including materials')+'">'+
-   '<div class="btn-row"><button class="btn btn-dark btn-sm" type="button" data-bid="'+esc(b.id)+'">'+(lang==='bn'?'দর দিন':'Place bid')+'</button></div></div>';
+   '<div class="btn-row"><button class="btn btn-orange btn-3d" type="button" style="min-height:52px" data-bid-open="'+esc(b.id)+'" data-bid-trade="'+esc(b.trade)+'" data-bid-title="'+esc((b.description||'').slice(0,80))+'">'+(lang==='bn'?'দর দিন':'Place bid')+'</button></div></div>';
   }).join(''):'<p class="small">'+(lang==='bn'?'এখন কোনো খোলা কাজ নেই।':'No open jobs right now.')+'</p>';
-  box.querySelectorAll('[data-bid]').forEach(function(btn){btn.addEventListener('click',async function(){
-   clearErr();
-   var card=btn.closest('.job-row'); var amt=Number(card.querySelector('.bid-amount').value);
-   if(!(amt>0)){showErr(lang==='bn'?'দাম ০-এর বেশি হতে হবে।':'Price must be more than 0.');return;}
-   try{var placed=await api('/api/bid-jobs/'+encodeURIComponent(btn.getAttribute('data-bid'))+'/bids',{method:'POST',body:JSON.stringify({
-     amount:amt,
-     note:card.querySelector('.bid-note').value.trim()||undefined,
-     earliestStart:card.querySelector('.bid-start').value.trim()||undefined,
-     workerLat:findLoc?findLoc.lat:undefined, workerLng:findLoc?findLoc.lng:undefined})});
-    var bidRow=placed&&(placed.bid||placed);
-    if(bidRow&&bidRow.id)saveMyBid(btn.getAttribute('data-bid'),bidRow.id,amt);
-    showNotice(lang==='bn'?'দর দেওয়া হয়েছে — ২৪ ঘণ্টা কার্যকর থাকবে।':'Bid placed — valid for 24 hours.');
-    loadOpenBidJobs(); renderMyBids();
-   }catch(e){showErr(e.message);}
+  box.querySelectorAll('[data-bid-open]').forEach(function(btn){btn.addEventListener('click',function(){
+   openBidComposer(btn.getAttribute('data-bid-open'),btn.getAttribute('data-bid-trade'),btn.getAttribute('data-bid-title'));
   });});
  }catch(e){box.innerHTML='<p class="small">'+esc(e.message)+'</p>';}
 }
@@ -1888,6 +2692,7 @@ function renderMyBids(){
 }
 function parseBidPrompt(){
  var inp=$('bid-prompt'); if(!inp)return;
+ autogrow(inp);
  var parsed=parsePromptSafe(inp.value||'');
  promptChips($('bid-prompt-chips'),parsed);
  if(parsed.trade){
@@ -1896,28 +2701,43 @@ function parseBidPrompt(){
   if(pk)pk.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x.getAttribute('data-trade')===parsed.trade?'true':'false');});
  }
  if(parsed.description){var d=$('bid-desc');if(d&&!d.value)d.value=parsed.description;}
+ /* B2: prefill the deadline from the prompt when it contains one. */
+ if(parsed.deadline){var bdl=$('bid-deadline');if(bdl&&!bdl.value)bdl.value=parsed.deadline;}
 }
 function initBidding(){
  var picker=$('bid-trade-picker');
  if(picker)picker.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){
   bidTrade=b.getAttribute('data-trade');
   picker.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false');});});});
- $('btn-bid-post').addEventListener('click',function(){showView('view-bid-post');loadMyBidJobs();});
+ $('btn-bid-post').addEventListener('click',function(){showView('view-bid-post');loadMyBidJobs();initBidSiteMap();});
  $('btn-find-work').addEventListener('click',function(){showView('view-find-work');loadOpenBidJobs();renderMyBids();});
  var bp=$('bid-prompt'); if(bp)bp.addEventListener('input',parseBidPrompt);
+ var bbs=$('btn-bid-submit'); if(bbs)bbs.addEventListener('click',submitBidComposer);
+ var bbc=$('btn-bid-cancel'); if(bbc)bbc.addEventListener('click',function(){var c=$('bid-composer');if(c)c.hidden=true;composerBidJobId=null;});
  $('btn-bid-back').addEventListener('click',function(){showView('view-jobs','back');loadJobs();});
  $('btn-find-back').addEventListener('click',function(){showView('view-jobs','back');loadJobs();});
  $('btn-bid-detail-back').addEventListener('click',function(){showView('view-bid-post','back');loadMyBidJobs();});
  $('btn-bid-me').addEventListener('click',function(){
   if(!('geolocation' in navigator)){showErr(lang==='bn'?'এই ডিভাইসে লোকেশন পাওয়া যাচ্ছে না।':'Location is not available on this device.');return;}
-  navigator.geolocation.getCurrentPosition(function(p){bidSite={lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6)};
-   var el=$('bid-picked');el.hidden=false;el.textContent=t('site.picked')+': '+bidSite.lat+', '+bidSite.lng;},
+  navigator.geolocation.getCurrentPosition(function(p){setBidSite(p.coords.latitude,p.coords.longitude);},
    function(e){showErr(e.message);},{enableHighAccuracy:true,timeout:10000});});
- $('btn-bid-clear').addEventListener('click',function(){bidSite=null;$('bid-address').value='';var el=$('bid-picked');if(el)el.hidden=true;});
- $('btn-find-loc').addEventListener('click',function(){
-  if(!('geolocation' in navigator)){showErr(lang==='bn'?'এই ডিভাইসে লোকেশন পাওয়া যাচ্ছে না।':'Location is not available on this device.');return;}
+ $('btn-bid-clear').addEventListener('click',function(){bidSite=null;if(bidSiteMarker&&bidSiteMap){bidSiteMap.removeLayer(bidSiteMarker);bidSiteMarker=null;}$('bid-address').value='';var el=$('bid-picked');if(el)el.hidden=true;});
+ /* B4: no location, no raw error — one fixed Bangla line in the note
+    plus a retry button. Jobs stay newest-first (the server order). */
+ function showFindLocError(){
+  var n=$('find-loc-note'); if(!n)return;
+  n.textContent='';
+  var span=document.createElement('span'); span.textContent=t('bid.noLoc')+' ';
+  var rb=document.createElement('button'); rb.type='button'; rb.className='btn btn-dark-ghost btn-sm'; rb.textContent=t('bid.retryLoc');
+  rb.addEventListener('click',findLocHandler);
+  n.appendChild(span); n.appendChild(rb);
+ }
+ function findLocHandler(){
+  if(!('geolocation' in navigator)){showFindLocError();return;}
   navigator.geolocation.getCurrentPosition(function(p){findLoc={lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6)};loadOpenBidJobs();},
-   function(e){showErr(e.message);},{enableHighAccuracy:true,timeout:10000});});
+   function(e){showFindLocError();},{enableHighAccuracy:true,timeout:10000});
+ }
+ $('btn-find-loc').addEventListener('click',findLocHandler);
  $('btn-find-refresh').addEventListener('click',loadOpenBidJobs);
  $('btn-bid-close').addEventListener('click',async function(){clearErr();
   try{await api('/api/bid-jobs/'+encodeURIComponent(currentBidJobId)+'/close',{method:'POST',body:'{}'});
@@ -1927,7 +2747,7 @@ function initBidding(){
  $('form-bid-post').addEventListener('submit',async function(ev){ev.preventDefault();clearErr();
   var desc=$('bid-desc').value.trim();
   if(!desc){showErr(lang==='bn'?'সমস্যার বিবরণ লিখুন।':'Write a short description of the problem.');return;}
-  try{var r=await api('/api/bid-jobs',{method:'POST',body:JSON.stringify({trade:bidTrade,description:desc,
+  try{var r=await api('/api/bid-jobs',{method:'POST',body:JSON.stringify({trade:bidTrade,description:desc,deadline:$('bid-deadline').value||undefined,
     site:bidSite?{lat:bidSite.lat,lng:bidSite.lng,address:$('bid-address').value.trim()||undefined}:($('bid-address').value.trim()?{address:$('bid-address').value.trim()}:undefined)})});
    var id=r.bidJob&&r.bidJob.id; if(!id)throw new Error('No bid job id returned');
    var files=$('bid-photos').files||[];
@@ -1936,7 +2756,7 @@ function initBidding(){
     await api('/api/bid-jobs/'+encodeURIComponent(id)+'/photos',{method:'POST',body:fd});
    }
    showNotice(lang==='bn'?'কাজটি দরের জন্য দেওয়া হয়েছে।':'Job posted for bids.');
-   $('form-bid-post').reset(); bidSite=null; var el=$('bid-picked'); if(el)el.hidden=true;
+   $('form-bid-post').reset(); bidSite=null; if(bidSiteMarker&&bidSiteMap){bidSiteMap.removeLayer(bidSiteMarker);bidSiteMarker=null;} var el=$('bid-picked'); if(el)el.hidden=true;
    loadMyBidJobs(); openBidDetail(id);
   }catch(e){showErr(e.message);}});
 }
@@ -1946,10 +2766,62 @@ function initBidding(){
    the seed call, so two visitors demoing at once never share a job. The
    server also sets the same id as the dc_demo cookie. */
 function demoVisitorId(){try{var v=localStorage.getItem('dc_demo_visitor');if(!v||!/^[0-9a-f]{32}$/.test(v)){v='';var b=new Uint8Array(16);if(window.crypto&&crypto.getRandomValues){crypto.getRandomValues(b);}else{for(var i=0;i<16;i++)b[i]=Math.floor(Math.random()*256);}for(var j=0;j<16;j++)v+=('0'+b[j].toString(16)).slice(-2);localStorage.setItem('dc_demo_visitor',v);}return v;}catch(e){return '';}}
+/* D1: demo mode — a persistent banner, the create buttons disabled, and
+   a sessionStorage flag cleared on logout and on Exit. */
+var demoJobId=null;
+var demoScriptCache=null, demoScriptFetching=false;
+var DEMO_STEP_EVENTS={2:['AGREEMENT_CREATED'],3:['AGREEMENT_CREATED'],5:['CONFIRMED_BY_HIRER','CONFIRMED_BY_WORKER'],6:['CHANGE_APPROVED'],7:['PAYMENT_ACKNOWLEDGED'],8:['MILESTONE_COMPLETED','PHOTO_ADDED','JOB_CLOSED']};
+function setDemoMode(on){
+ document.body.classList.toggle('demo-mode',!!on);
+ var b=$('demo-banner'); if(b)b.hidden=!on;
+ var c1=$('btn-create-job'); if(c1)c1.disabled=!!on;
+ var c2=$('btn-new-job'); if(c2)c2.disabled=!!on;
+ try{if(on)sessionStorage.setItem('dc_in_demo','1');else sessionStorage.removeItem('dc_in_demo');}catch(e){}
+}
+/* D2: fetch the 10-step demo script once after seeding. */
+function fetchDemoScript(){
+ if(demoScriptCache||demoScriptFetching)return;
+ demoScriptFetching=true;
+ api('/api/demo/script').then(function(r){
+  demoScriptFetching=false;
+  demoScriptCache=(r&&(r.script||r.data))||null;
+  if(currentJob)renderDemoChecklist((currentJob._full&&currentJob._full.events)||currentJob.events||[]);
+ },function(){demoScriptFetching=false;});
+}
+/* D2: the script as a numbered checklist in the demo job's step-1 panel,
+   checking each step off as its matching timeline event appears. */
+function renderDemoChecklist(events){
+ var box=$('demo-checklist'); if(!box)return;
+ if(!document.body.classList.contains('demo-mode')||!demoScriptCache||!demoScriptCache.length||currentJobId!==demoJobId){box.hidden=true;box.innerHTML='';return;}
+ var types={}; (events||[]).forEach(function(ev){types[ev.type||ev.event||'']=true;});
+ box.hidden=false;
+ box.innerHTML='<h4>'+esc(t('demo.tryThis'))+'</h4><ol>'+demoScriptCache.map(function(st){
+  var evs=DEMO_STEP_EVENTS[st.step||0]; var done=false;
+  if(evs){if(st.step===5)done=evs.every(function(x){return !!types[x];});else done=evs.some(function(x){return !!types[x];});}
+  return '<li'+(done?' class="demo-done"':'')+'>'+(done?'✓ ':'')+esc(st.title||('Step '+st.step))+(st.detail?'<div class="small">'+esc(st.detail)+'</div>':'')+'</li>';
+ }).join('')+'</ol>';
+}
+async function restartDemo(){
+ try{await api('/api/demo/reset',{method:'POST',body:'{}',headers:{'x-demo-visitor':demoVisitorId()}});}catch(e){}
+ loadDemo();
+}
+async function exitDemo(){
+ try{await api('/api/auth/logout',{method:'POST',body:'{}'});}catch(e){}
+ token='';user=null;demoJobId=null;
+ try{localStorage.removeItem('dc_token');localStorage.removeItem('dc_user');localStorage.removeItem('dc_pending_demo');}catch(e){}
+ setDemoMode(false);
+ showLanding();
+}
 async function loadDemo(){
  clearErr();
+ var cd=$('cta-demo'), dop=$('demo-open');
+ if(cd)cd.disabled=true; if(dop)dop.disabled=true;
+ showNotice(t('demo.preparing'));
  try{var r=await api('/api/demo/seed',{method:'POST',body:'{}',headers:{'x-demo-visitor':demoVisitorId()}});
   var job=r.job||(r.jobs&&r.jobs[0]); var id=job&&(job.id||job._id);
+  demoJobId=id||null;
+  setDemoMode(true);
+  fetchDemoScript();
   if(id){try{localStorage.setItem('dc_pending_demo',id);}catch(e){}}
   if(r&&r.workerLink){try{localStorage.setItem('dc_demo_workerlink',r.workerLink);}catch(e){}}
   /* Guided demo, one click: the seed mints a real hirer session, so the
@@ -1957,15 +2829,31 @@ async function loadDemo(){
      login. Falls back to the OTP login below when no token came back. */
   if(r&&r.hirerToken){token=r.hirerToken;localStorage.setItem('dc_token',token);
    user=r.hirer||{phone:r.hirerPhone||'01700000001',name:'Rahim Uddin'};localStorage.setItem('dc_user',JSON.stringify(user));
-   if(id){openJob(id);}else{showView('view-jobs');loadJobs();}return;}
+   if(id){openJob(id);}else{showView('view-jobs');loadJobs();}
+   showNotice(t('demo.blocked'));
+   return;}
   if(!token){ /* demo seed may return a token; otherwise show login with demo phone */
    var demoPhone=r.hirerPhone||'01700000001';
-   $('login-phone').value=demoPhone; showView('view-login');
+   $('login-phone').value=demoPhone;
    var extra=r&&r.sandboxOtps?(' '+(lang==='bn'?'নিশ্চিতকরণের কোড — হায়ারার: ':'Confirm codes — hirer ')+(r.sandboxOtps.hirerConfirm||'—')+' / '+(lang==='bn'?'ওয়ার্কার: ':'worker ')+(r.sandboxOtps.workerConfirm||'—')+'.'):'';
    showNotice(lang==='bn'?'ডেমো তৈরি হয়েছে। হায়ারারের নম্বর '+demoPhone+' দিয়ে OTP লগইন করুন। লগইনের পর ডেমো কাজটি নিজে থেকেই খুলবে।'+extra:'Demo seeded. Log in with hirer number '+demoPhone+' and OTP. The demo job opens automatically after login.'+extra);
+   $('form-login').hidden=false; $('form-otp').hidden=true;
    showView('view-login'); return; }
   if(id)openJob(id); else loadJobs(),showView('view-jobs');
- }catch(e){showErr((lang==='bn'?'ডেমো লোড হয়নি: ':'Demo did not load: ')+e.message);}
+  showNotice(t('demo.blocked'));
+ }catch(e){
+  demoJobId=null;
+  /* D4: never show "HTTP 404" or a raw error — demo-off means the
+     login view with a plain explanation; anything else is the network
+     message. (403 is the demo-token variant of "demo is off".) */
+  if(e.status===404||e.status===403){
+   showErr(t('demo.off'));
+   $('form-login').hidden=false; $('form-otp').hidden=true;
+   showView('view-login');
+  }else showErr(networkMsg());
+ }finally{
+  if(cd)cd.disabled=false; if(dop)dop.disabled=false;
+ }
 }
 
 /* ---------- nav: mark the section on screen ---------- */
@@ -1979,9 +2867,31 @@ function initNavSpy(){
 }
 
 /* ---------- sheets (floating overlays for secondary content) ---------- */
-function openSheet(id){var el=$(id);if(!el)return;el.hidden=false;}
-function closeSheets(){document.querySelectorAll('.sheet').forEach(function(el){el.hidden=true;});}
+/* L4: opening a sheet remembers where focus was and moves it to the
+   sheet's close button; closing restores it. Tab stays inside the open
+   sheet (wrapping at both ends); Escape already closes. */
+var sheetReturnFocus=null;
+/* R1: the More sheet shows exactly one panel at a time — ChangeLock,
+   Dispute (+ Close), Passport, Billing — picked by the segmented nav
+   under the sheet head. */
+function showMorePanel(name){
+ ['change','dispute','passport','billing'].forEach(function(n){
+  var p=$('tab-'+n); if(p)p.hidden=(n!==name);
+ });
+ var nav=$('more-nav');
+ if(nav)nav.querySelectorAll('button[data-panel]').forEach(function(b){b.setAttribute('aria-selected',b.getAttribute('data-panel')===name?'true':'false');});
+}
+function morePanelForJob(){
+ if(feePaidForJob[currentJobId]===true)return 'change';
+ if(billingCache){var sub=billingCache.subscription||billingCache.sub||{};
+  if(sub.active===true||sub.status==='ACTIVE'||billingCache.subscribed===true||billingCache.activeSubscription===true||billingCache.subscriptionActive===true)return 'change';}
+ return 'billing';
+}
+function openSheet(id,panel){var el=$(id);if(!el)return;sheetReturnFocus=document.activeElement;el.hidden=false;if(id==='sheet-more')showMorePanel(panel||'change');var c=el.querySelector('.sheet-close');if(c)c.focus();}
+function closeSheets(){document.querySelectorAll('.sheet').forEach(function(el){el.hidden=true;});if(sheetReturnFocus&&document.contains(sheetReturnFocus)){try{sheetReturnFocus.focus();}catch(e){}}sheetReturnFocus=null;}
 function initSheets(){
+ var mn=$('more-nav');
+ if(mn)mn.querySelectorAll('button[data-panel]').forEach(function(b){b.addEventListener('click',function(){showMorePanel(b.getAttribute('data-panel'));});});
  document.querySelectorAll('[data-sheet]').forEach(function(b){b.addEventListener('click',function(){
   openSheet(b.getAttribute('data-sheet'));
   var nav=document.getElementById('main-nav'); if(nav)nav.classList.remove('open');
@@ -1989,9 +2899,25 @@ function initSheets(){
  document.querySelectorAll('.sheet [data-close]').forEach(function(b){b.addEventListener('click',closeSheets);});
  document.querySelectorAll('.sheet').forEach(function(sh){sh.addEventListener('click',function(ev){if(ev.target===sh)closeSheets();});});
  document.addEventListener('keydown',function(ev){if(ev.key==='Escape')closeSheets();});
+ document.addEventListener('keydown',function(ev){
+  if(ev.key!=='Tab')return;
+  var open=null;
+  document.querySelectorAll('.sheet').forEach(function(el){if(!el.hidden)open=el;});
+  if(!open)return;
+  var card=open.querySelector('.sheet-card'); if(!card)return;
+  var f=card.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
+  var list=[];for(var i=0;i<f.length;i++){if(!f[i].disabled&&f[i].offsetParent!==null)list.push(f[i]);}
+  if(!list.length)return;
+  var first=list[0],last=list[list.length-1];
+  if(ev.shiftKey&&document.activeElement===first){ev.preventDefault();last.focus();}
+  else if(!ev.shiftKey&&document.activeElement===last){ev.preventDefault();first.focus();}
+ });
 }
 
-/* ---------- landing demo player: tap-through / auto-play, reaches Arrived ---------- */
+/* ---------- landing demo player: tap-through only, reaches Arrived ----------
+   D3: the player starts paused on En route and moves only on Play/Next
+   taps. It stops at the last state (Arrived); Play then reads Replay
+   and restarts from En route. No auto-play. */
 var demoStates=[
  {key:'en-route',pos:6,dist:{bn:'২.৪ কিমি দূরে · পৌঁছাতে ~৭ মিনিট',en:'2.4 km away · ETA ~7 min'}},
  {key:'arriving',pos:58,dist:{bn:'০.৬ কিমি দূরে · পৌঁছাতে ~২ মিনিট',en:'0.6 km away · ETA ~2 min'}},
@@ -2004,42 +2930,57 @@ function demoRender(){
  pill.textContent=t('loc.'+({ 'en-route':'enRoute','arriving':'arriving','arrived':'arrived' }[st.key]||'enRoute'));
  var dot=$('demo-dot'); if(dot)dot.style.left='calc('+st.pos+'% - 9px)';
  var d=$('demo-dist'); if(d)d.textContent=st.dist[lang]||st.dist.en;
- var play=$('demo-play'); if(play)play.textContent=demoTimer?t('demo.pause'):t('demo.play');
+ var play=$('demo-play'); if(play)play.textContent=demoTimer?t('demo.pause'):(demoIdx>=demoStates.length-1?t('demo.replay'):t('demo.play'));
 }
 function demoStep(){
- demoIdx=(demoIdx+1)%demoStates.length; demoRender();
+ if(demoIdx>=demoStates.length-1){if(demoTimer){clearInterval(demoTimer);demoTimer=null;}demoRender();return;}
+ demoIdx++;
+ if(demoIdx>=demoStates.length-1&&demoTimer){clearInterval(demoTimer);demoTimer=null;}
+ demoRender();
 }
 function initDemoPlayer(){
  demoRender();
  var play=$('demo-play');
  if(play)play.addEventListener('click',function(){
   if(demoTimer){clearInterval(demoTimer);demoTimer=null;}
-  else{demoTimer=setInterval(demoStep,2600);}
+  else{if(demoIdx>=demoStates.length-1)demoIdx=0;demoTimer=setInterval(demoStep,2600);}
   demoRender();
  });
  var next=$('demo-next');
  if(next)next.addEventListener('click',function(){if(demoTimer){clearInterval(demoTimer);demoTimer=null;}demoStep();});
  var open=$('demo-open');
  if(open)open.addEventListener('click',loadDemo);
- /* Auto-play once the landing is visible: the demo reaches Arrived
-    on its own, and a tap steps it manually. Reduced motion: stay put. */
- if(!RM)setTimeout(function(){if(!demoTimer)demoTimer=setInterval(demoStep,2600);},1200);
 }
 
 /* ---------- landing prompt box + hire choices ---------- */
+/* L1: auto-growing prompt textareas — height auto, then the scrolled
+   height capped at 156px, never below a 52px minimum. */
+function autogrow(el){
+ if(!el)return;
+ el.style.minHeight='52px';
+ el.style.height='auto';
+ el.style.height=Math.min(el.scrollHeight,156)+'px';
+}
 function initPromptBox(){
  var inp=$('prompt-input');
- if(inp)inp.addEventListener('input',function(){
-  promptChips($('prompt-chips'),parsePromptSafe(inp.value));
- });
- var go=$('prompt-go');
- if(go)go.addEventListener('click',function(){startHire('direct');});
+ if(inp){
+  inp.addEventListener('input',function(){autogrow(inp);promptChips($('prompt-chips'),parsePromptSafe(inp.value));});
+  inp.addEventListener('keydown',function(ev){if(ev.key==='Enter'&&!ev.shiftKey){ev.preventDefault();startHire('direct');}});
+  autogrow(inp);
+ }
  var hd=$('hire-direct');
  if(hd)hd.addEventListener('click',function(){startHire('direct');});
  var hb=$('hire-bids');
  if(hb)hb.addEventListener('click',function(){
   if(!BIDDING_ON){showNotice(lang==='bn'?'দর এখন বন্ধ আছে।':'Bidding is off right now.');return;}
   startHire('bids'); });
+ /* L3: "Start a record" only focuses the hero prompt box — it never
+    jumps to login. Enter, or either hire choice, submits via startHire. */
+ var cs=$('cta-start');
+ if(cs)cs.addEventListener('click',function(){
+  var pb=$('prompt-box'); if(pb)pb.scrollIntoView({behavior:RM?'auto':'smooth',block:'center'});
+  if(inp)inp.focus({preventScroll:true});
+ });
 }
 
 /* ---------- boot ---------- */
@@ -2065,7 +3006,7 @@ document.addEventListener('DOMContentLoaded',function(){
  initHeroTilt(); initPriceMotion(); initLightbox();
  /* Motion gaps: FAQ accordion, sliding tab indicator, hero-entrance
     cancel, scroll-reveal stagger. */
- initFaq(); initTabInd(); initHeroEntrance(); initStagger(); initLiveMap();
+ initFaq(); initTabInd(); initHeroEntrance(); initStagger();
  initSheets(); initDemoPlayer(); initPromptBox(); initJobsTabs();
  var bh=$('brand-home');
  if(bh)bh.addEventListener('click',function(ev){ev.preventDefault();closeSheets();showLanding();});
@@ -2074,11 +3015,12 @@ document.addEventListener('DOMContentLoaded',function(){
  var navApp=$('nav-app');
  if(navApp)navApp.addEventListener('click',function(){closeSheets();if(token){showView('view-jobs');loadJobs();}else showView('view-login');});
  var bmg=$('btn-more-global');
- if(bmg)bmg.addEventListener('click',function(){if(currentJobId){openSheet('sheet-more');loadBillingStatus();}else openSheet('sheet-about');});
+ if(bmg)bmg.addEventListener('click',function(){openSheet('sheet-more');loadBillingStatus();});
  var bmj=$('btn-more-job');
- if(bmj)bmj.addEventListener('click',function(){openSheet('sheet-more');loadBillingStatus();});
+ if(bmj)bmj.addEventListener('click',function(){openSheet('sheet-more',morePanelForJob());loadBillingStatus();});
+ var dr=$('demo-restart'); if(dr)dr.addEventListener('click',restartDemo);
+ var de=$('demo-exit'); if(de)de.addEventListener('click',exitDemo);
  $('cta-demo').addEventListener('click',loadDemo);
- $('cta-start').addEventListener('click',function(ev){ev.preventDefault();if(token){showView('view-jobs');loadJobs();}else showView('view-login');});
  if(token){
   /* Validate the stored token: a new OTP for the same phone rotates it.
      A valid token opens straight into the app; an expired one leaves the

@@ -3,19 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<base href="/">
 <title>DealCraft — Verify a record</title>
 <meta name="description" content="Check whether a ResolvePack fingerprint matches the stored work record.">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="style.css">
 <style>
   *{box-sizing:border-box}
-  body{margin:0;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif}
+  body{margin:0;background:#F4F2EE;color:#111}
   .wrap{max-width:640px;margin:0 auto;padding:24px 16px 64px}
-  .brand{font-weight:900;font-size:22px;letter-spacing:.04em}
-  .brand i{color:#FF5A1F;font-style:normal}
   h1{font-size:28px;line-height:1.15;margin:28px 0 8px}
   p{font-size:16px;line-height:1.55;color:#333}
-  .card{border:2px solid #111;padding:20px;margin-top:20px}
+  .card{border:2px solid #111;background:#FBFAF7;padding:20px;margin-top:20px}
   .card.match{border-color:#111}
   .card.mismatch{border-color:#c73e0e}
   .verdict{font-size:20px;font-weight:700;margin:0 0 8px}
@@ -29,29 +30,36 @@
   .pill{display:inline-block;background:#FF5A1F;color:#fff;font-size:12px;font-weight:700;letter-spacing:.08em;padding:4px 10px;text-transform:uppercase}
   .pill.grey{background:#eee;color:#333}
   form{margin-top:20px;display:flex;gap:8px;flex-wrap:wrap}
-  input[type=text]{flex:1;min-width:220px;padding:10px 12px;border:2px solid #111;font-size:15px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  input[type=text]{flex:1;min-width:220px;padding:10px 12px;border:2px solid #111;background:#FBFAF7;font-size:15px;font-family:ui-monospace,Menlo,Consolas,monospace}
   button{padding:10px 18px;border:2px solid #111;background:#111;color:#fff;font-size:15px;font-weight:700;cursor:pointer}
   .small{font-size:13px;color:#666}
   a{color:#111}
 </style>
 </head>
-<body>
+<body class="light-page">
+<header class="topbar"><span style="font-family:'Oswald',sans-serif;font-size:20px">DEALCRAFT<span style="color:#FF5A1F">.</span></span><div class="lang-toggle" role="group" aria-label="Language / ভাষা"><button type="button" id="lang-bn" aria-pressed="false">বাংলা</button><button type="button" id="lang-en" aria-pressed="true">EN</button></div><span class="mono" style="color:#bbb">VERIFY</span></header>
 <div class="wrap">
-  <div class="brand">DEALCRAFT<i>.</i></div>
-  <h1>Verify a record</h1>
-  <p>Every ResolvePack carries a QR code that opens this page for the job's version. This page checks that fingerprint against the stored record — a lookup, nothing more. It also shows the job's status and whether this version is still the current one, so an old pack cannot pass as the live deal.</p>
+  <h1 data-i18n="v.heading">Verify a record</h1>
+  <p data-i18n="v.intro">Every ResolvePack carries a QR code that opens this page for the job's version. This page checks that fingerprint against the stored record — a lookup, nothing more. It also shows the job's status and whether this version is still the current one, so an old pack cannot pass as the live deal.</p>
   <div class="card" id="verify-card">
     <p class="verdict" id="verify-result">Checking…</p>
     <p id="verify-detail" class="small">Reading the fingerprint from the link.</p>
     <ul class="rows" id="verify-rows" hidden></ul>
+    <p id="verify-current" hidden style="margin-top:16px"></p>
   </div>
   <form id="verify-form">
     <input type="text" id="verify-fp" placeholder="Paste a fingerprint (SHA-256)" aria-label="Fingerprint">
-    <button type="submit">Check</button>
+    <button type="submit" data-i18n="v.checkBtn">Check</button>
   </form>
+  <p class="small" id="verify-fp-err" hidden style="color:#c73e0e"></p>
+  <p><button type="button" id="verify-retry" hidden>আবার চেষ্টা করুন</button></p>
   <p><button type="button" id="scan-btn">Scan QR with camera</button></p>
   <video id="scan-video" playsinline hidden style="width:100%;max-width:480px;border:2px solid #111"></video>
   <p class="small" id="scan-note" hidden></p>
+  <!-- V2: the whole pack section sits behind one button (collapsed by
+       default); the fingerprint verdict card above stays primary. -->
+  <p><button type="button" id="pack-toggle" aria-expanded="false" style="width:100%;min-height:52px">নিজে যাচাই করুন — হ্যাশ চেইন আবার হিসাব করুন</button></p>
+  <div id="pack-section" hidden>
   <!-- Part 2, item 10: verify that recomputes. Paste or upload a
        ResolvePack JSON and this page recomputes the ENTIRE hash chain in
        the browser (WebCrypto SHA-256) — it never trusts the server's
@@ -60,45 +68,111 @@
        JSON blob); the &ch= on that URL is the first 8 hex of the chain
        head the pack was generated with. -->
   <div class="card" id="pack-card">
-    <p class="verdict" id="pack-result">Check a ResolvePack file</p>
-    <p id="pack-detail" class="small">Paste a ResolvePack JSON below, or upload the .json file. This page recomputes the whole hash chain in your browser — it does not trust the server's say-so.</p>
+    <p class="verdict" id="pack-result" data-i18n="v.packHeading">Check a ResolvePack file</p>
+    <p id="pack-detail" class="small" data-i18n="v.packIntro">Paste a ResolvePack JSON below, or upload the .json file. This page recomputes the whole hash chain in your browser — it does not trust the server's say-so.</p>
     <ul class="rows" id="pack-rows" hidden></ul>
     <p class="small" id="pack-cross" hidden></p>
   </div>
   <form id="pack-form">
-    <textarea id="pack-json" rows="6" placeholder="Paste a ResolvePack JSON here" aria-label="ResolvePack JSON" style="flex:1;min-width:220px;padding:10px 12px;border:2px solid #111;font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace"></textarea>
-    <button type="submit">Recompute the chain</button>
+    <textarea id="pack-json" rows="6" placeholder="Paste a ResolvePack JSON here" aria-label="ResolvePack JSON" style="flex:1;min-width:220px;padding:10px 12px;border:2px solid #111;background:#FBFAF7;font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace"></textarea>
+    <button type="submit" data-i18n="v.packBtn">Recompute the chain</button>
   </form>
-  <p><label class="small">Or upload the file: <input type="file" id="pack-file" accept=".json,application/json"></label></p>
-  <p class="small">DealCraft holds no money. This record is not a legal document. A match means the fingerprint is the one stored for that version; it does not prove who scanned it.</p>
-  <p class="small"><a href="/">← Back to DealCraft</a></p>
+  <p><label class="small"><span data-i18n="v.packFileLabel">Or upload the file:</span> <input type="file" id="pack-file" accept=".json,application/json"></label></p>
+  <p class="small" id="pack-auto-note" hidden></p>
+  </div>
+  <p class="small" data-i18n="v.disclaimer">DealCraft holds no money. This record is not a legal document. A match means the fingerprint is the one stored for that version; it does not prove who scanned it.</p>
+  <p class="small"><a href="/" data-i18n="v.back">← Back to DealCraft</a></p>
 </div>
 <script>
 (function(){
+  /* Language toggle — same pattern as passport.html (dc_lang). The
+     verify page is most often opened from a Bangla SMS/QR, so Bangla
+     is the default here. */
+  var vLang=localStorage.getItem('dc_lang')||'bn';
+  var VI18N={
+   'v.heading':{bn:'রেকর্ড যাচাই করুন',en:'Verify a record'},
+   'v.intro':{bn:'প্রতিটি ResolvePack-এ একটি QR কোড থাকে, যা এই পৃষ্ঠাটি খোলে। এই পৃষ্ঠা ফিঙ্গারপ্রিন্টটি সংরক্ষিত রেকর্ডের সঙ্গে মিলিয়ে দেখে — শুধু একটি খোঁজ, এর বেশি কিছু নয়। কাজের অবস্থা ও এই সংস্করণটি এখনো বর্তমান কি না, তাও দেখায়, যাতে পুরনো প্যাক নতুন চুক্তি বলে চালানো না যায়।',en:'Every ResolvePack carries a QR code that opens this page for the job\'s version. This page checks that fingerprint against the stored record — a lookup, nothing more. It also shows the job\'s status and whether this version is still the current one, so an old pack cannot pass as the live deal.'},
+   'v.checkBtn':{bn:'যাচাই করুন',en:'Check'},
+   'v.packHeading':{bn:'ResolvePack ফাইল যাচাই করুন',en:'Check a ResolvePack file'},
+   'v.packIntro':{bn:'নিচে ResolvePack JSON পেস্ট করুন, বা .json ফাইল আপলোড করুন। এই পৃষ্ঠা পুরো হ্যাশ চেইন আপনার ব্রাউজারেই আবার হিসাব করে — সার্ভারের কথায় ভরসা করে না।',en:'Paste a ResolvePack JSON below, or upload the .json file. This page recomputes the whole hash chain in your browser — it does not trust the server\'s say-so.'},
+   'v.packBtn':{bn:'চেইন আবার হিসাব করুন',en:'Recompute the chain'},
+   'v.packFileLabel':{bn:'অথবা ফাইল আপলোড করুন:',en:'Or upload the file:'},
+   'v.disclaimer':{bn:'DealCraft কোনো টাকা রাখে না। এই রেকর্ড কোনো আইনি দলিল নয়। মিল মানে ফিঙ্গারপ্রিন্টটি এই সংস্করণের জন্য সংরক্ষিতটির সঙ্গে মিলেছে; কে স্ক্যান করেছে তা প্রমাণ করে না।',en:'DealCraft holds no money. This record is not a legal document. A match means the fingerprint is the one stored for that version; it does not prove who scanned it.'},
+   'v.back':{bn:'← DealCraft-এ ফিরুন',en:'← Back to DealCraft'},
+   'v.noFp':{bn:'লিংকে কোনো ফিঙ্গারপ্রিন্ট নেই।',en:'No fingerprint in the link.'},
+   'v.noFpDetail':{bn:'নিচে ফিঙ্গারপ্রিন্ট পেস্ট করুন, বা ResolvePack QR কোড স্ক্যান করুন।',en:'Paste a fingerprint below, or scan a ResolvePack QR code.'},
+   'v.matchCurrent':{bn:'✓ এই রেকর্ডটি সংস্করণ V{n}-এর সঙ্গে মিলেছে — দুই পক্ষই নিশ্চিত করেছে',en:'✓ This record matches version V{n} — confirmed by both sides'},
+   'v.matchUnconfirmed':{bn:'✓ এই রেকর্ডটি সংস্করণ V{n}-এর সঙ্গে মিলেছে — দুই পক্ষ এখনো নিশ্চিত করেনি',en:'✓ This record matches version V{n} — not yet confirmed by both sides'},
+   'v.matchSuperseded':{bn:'✓ আসল — কিন্তু পুরনো: বর্তমান সংস্করণ V{n}',en:'✓ Authentic — but SUPERSEDED: current version is V{n}'},
+   'v.supersededDetail':{bn:'এই রেকর্ডটি আসল, কিন্তু পুরনো — এখন V{cur} চলছে, দাম ৳{price}।',en:'This record is authentic, but superseded — the current version is V{cur}, price ৳{price}.'},
+   'v.matchDetailConfirmed':{bn:'QR কোডের ফিঙ্গারপ্রিন্টটি এই সংস্করণের জন্য সংরক্ষিতটির সঙ্গে মিলেছে, এবং দুই পক্ষই তা নিশ্চিত করেছে।',en:'The fingerprint in the QR code is the one stored for this version, and both sides confirmed it.'},
+   'v.matchDetailUnconfirmed':{bn:'ফিঙ্গারপ্রিন্টটি এই সংস্করণের জন্য সংরক্ষিতটির সঙ্গে মিলেছে, কিন্তু কাজটি {status} — দুই পক্ষ এখনো নিশ্চিত করেনি।',en:'The fingerprint is the one stored for this version, but the job is {status} — both sides have not confirmed it yet.'},
+   'v.ambiguous':{bn:'? এই ছোট কোডটি একাধিক রেকর্ডের সঙ্গে মিলেছে',en:'? Several records share this fingerprint prefix'},
+   'v.ambiguousDetail':{bn:'SMS-এর ছোট কোডটি একাধিক রেকর্ডের সঙ্গে মিলেছে। যাচাই করতে পুরো ৬৪ অক্ষরের ফিঙ্গারপ্রিন্ট পেস্ট করুন।',en:'The short code from the SMS matches more than one record. Paste the full 64-character fingerprint to check it.'},
+   'v.noMatch':{bn:'✕ কোনো রেকর্ড এই ফিঙ্গারপ্রিন্টের সঙ্গে মিলছে না',en:'✕ No record matches this fingerprint'},
+   'v.noMatchDetail':{bn:'এই ফিঙ্গারপ্রিন্ট কোনো সংস্করণের জন্য সংরক্ষিত নেই। ResolvePackটি পুরনো সংস্করণের হতে পারে, বা কোডটি বদলে গিয়ে থাকতে পারে।',en:'This fingerprint is not stored for any version. The ResolvePack may be from an older version, or the code may have been changed.'},
+   'v.checking':{bn:'যাচাই করা হচ্ছে…',en:'Checking…'},
+   'v.checkingDetail':{bn:'সার্ভারকে জিজ্ঞাসা করা হচ্ছে এই ফিঙ্গারপ্রিন্ট সংরক্ষিত সংস্করণের সঙ্গে মিলছে কি না।',en:'Asking the server whether this fingerprint matches a stored version.'},
+   'v.serverDown':{bn:'✕ এখন যাচাই করা যাচ্ছে না',en:'✕ Could not check right now'},
+   'v.serverDownDetail':{bn:'সার্ভার এখন সাড়া দিচ্ছে না — ইন্টারনেট দেখে আবার চেষ্টা করুন।',en:'The server is not answering right now — check your internet and try again.'},
+   'v.retry':{bn:'আবার চেষ্টা করুন',en:'Try again'},
+   'v.badFp':{bn:'কোডটি ঠিক নয় — QR স্ক্যান করুন বা ৬৪ অক্ষরের কোডটি আবার দেখুন',en:'The code is not right — scan the QR or check the 64-character code again'},
+   'v.scanBtn':{bn:'ক্যামেরা দিয়ে QR স্ক্যান করুন',en:'Scan QR with camera'},
+   'v.stopScan':{bn:'স্ক্যান বন্ধ করুন',en:'Stop scanning'},
+   'v.scanHint':{bn:'ক্যামেরাটি ResolvePack QR কোডের দিকে ধরুন…',en:'Point the camera at the ResolvePack QR code…'},
+   'v.scanRead':{bn:'QR কোড পড়া হয়েছে — যাচাই করা হচ্ছে…',en:'QR code read — checking…'},
+   'v.scanNoCam':{bn:'এই ব্রাউজার ক্যামেরা দিয়ে QR কোড স্ক্যান করতে পারে না — উপরে ফিঙ্গারপ্রিন্ট পেস্ট করুন।',en:'This browser cannot scan QR codes with the camera — paste the fingerprint above instead.'},
+   'v.scanCamOff':{bn:'ক্যামেরা পাওয়া যাচ্ছে না — ক্যামেরার অনুমতি দেখুন, বা উপরে ফিঙ্গারপ্রিন্ট পেস্ট করুন।',en:'Camera unavailable — check the camera permission, or paste the fingerprint above instead.'},
+   'v.currentBtn':{bn:'বর্তমান সংস্করণ (V{n}) দেখুন',en:'View the current version (V{n})'},
+   'v.packAutoFail':{bn:'QR থেকে প্যাকটি স্বয়ংক্রিয়ভাবে আনা যায়নি — নিচে JSON পেস্ট করুন বা ফাইল আপলোড করুন।',en:'The pack could not be fetched automatically from the QR — paste the JSON below or upload the file.'}
+  };
+  function vT(k){var v=VI18N[k];return v?(v[vLang]||v.en):k;}
+  function vApplyLang(){document.documentElement.lang=vLang;
+   document.querySelectorAll('[data-i18n]').forEach(function(el){var v=VI18N[el.getAttribute('data-i18n')];if(v)el.textContent=v[vLang]||v.en;});
+   var b=document.getElementById('lang-bn'),e=document.getElementById('lang-en');
+   if(b)b.setAttribute('aria-pressed',vLang==='bn'?'true':'false');
+   if(e)e.setAttribute('aria-pressed',vLang==='en'?'true':'false');
+   localStorage.setItem('dc_lang',vLang);
+   var sb=document.getElementById('scan-btn'); if(sb&&!scanning)sb.textContent=vT('v.scanBtn');
+   var rb=document.getElementById('verify-retry'); if(rb)rb.textContent=vT('v.retry');}
   var card=document.getElementById('verify-card');
   var result=document.getElementById('verify-result');
   var detail=document.getElementById('verify-detail');
   var rows=document.getElementById('verify-rows');
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  var lastFp='';
   function render(fp,data){
     rows.hidden=true; rows.innerHTML='';
-    if(!fp){result.textContent='No fingerprint in the link.';result.className='verdict bad';card.className='card mismatch';detail.textContent='Paste a fingerprint below, or scan a ResolvePack QR code.';return;}
+    var cur=document.getElementById('verify-current'); if(cur){cur.hidden=true;cur.innerHTML='';}
+    if(!fp){result.textContent=vT('v.noFp');result.className='verdict bad';card.className='card mismatch';detail.textContent=vT('v.noFpDetail');return;}
     if(data&&data.match){
       card.className='card match';
       var superseded = data.versionState === 'superseded';
       var confirmed = !!data.confirmedByBothSides;
       if(superseded){
-        result.textContent='✓ Authentic — but SUPERSEDED: current version is V'+data.currentVersion;
+        result.textContent=vT('v.matchSuperseded').replace('{n}',String(data.currentVersion));
         result.className='verdict ok';
-        detail.textContent='This fingerprint matches version V'+data.versionNo+', which has been replaced by version V'+data.currentVersion+'. The current agreed price is ৳'+data.currentPrice+'.';
+        detail.textContent=vT('v.supersededDetail').replace('{cur}',String(data.currentVersion)).replace('{price}',String(data.currentPrice));
+        /* V4: one primary button to the current version. Its fingerprint
+           comes from /api/verify-pack (the current version row) — the
+           /api/verify response carries no fingerprint for it. */
+        if(cur){
+          fetch('/api/verify-pack?fp='+encodeURIComponent(fp)).then(function(r){return r.json();}).then(function(pack){
+            if(!pack||!pack.versions)return;
+            var cv=pack.versions.filter(function(v){return v.version_no===data.currentVersion;})[0];
+            if(!cv||!cv.fingerprint)return;
+            cur.hidden=false;
+            cur.innerHTML='<a href="/verify?fp='+encodeURIComponent(cv.fingerprint)+'" style="display:block;text-align:center;text-decoration:none;padding:12px 18px;border:2px solid #111;background:#FF5A1F;color:#fff;font-weight:700">'+esc(vT('v.currentBtn').replace('{n}',String(data.currentVersion)))+'</a>';
+          }).catch(function(){/* no current-version button — the verdict above still stands */});
+        }
       }else if(confirmed){
-        result.textContent='✓ This record matches version V'+data.versionNo+' — confirmed by both sides';
+        result.textContent=vT('v.matchCurrent').replace('{n}',String(data.versionNo));
         result.className='verdict ok';
-        detail.textContent='The fingerprint in the QR code is the one stored for this version, and both sides confirmed it.';
+        detail.textContent=vT('v.matchDetailConfirmed');
       }else{
-        result.textContent='✓ This record matches version V'+data.versionNo+' — not yet confirmed by both sides';
+        result.textContent=vT('v.matchUnconfirmed').replace('{n}',String(data.versionNo));
         result.className='verdict ok';
-        detail.textContent='The fingerprint is the one stored for this version, but the job is '+((data.status||'').toLowerCase()||'not active')+' — both sides have not confirmed it yet.';
+        detail.textContent=vT('v.matchDetailUnconfirmed').replace('{status}',(data.status||'').toLowerCase()||'—');
       }
       rows.hidden=false;
       rows.innerHTML='<li><span>Trade</span><b>'+esc(data.trade||'—')+'</b></li>'
@@ -116,30 +190,43 @@
         +'<li><span>Chain head</span><b class="mono">'+esc(data.chainHead||'—')+'</b></li>';
     }else if(data&&data.ambiguous){
       card.className='card mismatch';
-      result.textContent='? Several records share this fingerprint prefix';
+      result.textContent=vT('v.ambiguous');
       result.className='verdict bad';
-      detail.textContent='The short code from the SMS matches more than one record. Paste the full 64-character fingerprint to check it.';
+      detail.textContent=vT('v.ambiguousDetail');
       rows.hidden=false;
       rows.innerHTML='<li><span>Fingerprint prefix</span><b class="mono">'+esc(fp)+'</b></li>';
     }else{
       card.className='card mismatch';
-      result.textContent='✕ No record matches this fingerprint';
+      result.textContent=vT('v.noMatch');
       result.className='verdict bad';
-      detail.textContent='This fingerprint is not stored for any version. The ResolvePack may be from an older version, or the code may have been changed.';
+      detail.textContent=vT('v.noMatchDetail');
       rows.hidden=false;
       rows.innerHTML='<li><span>Fingerprint</span><b class="mono">'+esc(fp)+'</b></li>';
     }
   }
+  /* V3: a fingerprint is 64 hex (full) or 8 hex (prefix from the SMS).
+     Anything else is an inline error — never a server call. */
+  function validFp(v){return /^[0-9a-fA-F]{64}$/.test(v)||/^[0-9a-fA-F]{8}$/.test(v);}
+  function showFpErr(){
+    var e=document.getElementById('verify-fp-err');
+    e.hidden=false;e.textContent=vT('v.badFp');
+  }
   async function check(fp){
-    result.textContent='Checking…';result.className='verdict';detail.textContent='Asking the server whether this fingerprint matches a stored version.';
+    lastFp=fp||'';
+    var retry=document.getElementById('verify-retry'); if(retry)retry.hidden=true;
+    if(fp&&!validFp(fp)){showFpErr();render('','');return;}
+    document.getElementById('verify-fp-err').hidden=true;
+    result.textContent=vT('v.checking');result.className='verdict';detail.textContent=vT('v.checkingDetail');
     try{
       var r=await fetch('/api/verify?fp='+encodeURIComponent(fp));
       var d=await r.json();
       render(fp,d);
     }catch(e){
-      card.className='card mismatch';result.textContent='✕ Could not check right now';result.className='verdict bad';detail.textContent='The server did not answer. Try again later.';
+      card.className='card mismatch';result.textContent=vT('v.serverDown');result.className='verdict bad';detail.textContent=vT('v.serverDownDetail');
+      if(retry)retry.hidden=false;
     }
   }
+  document.getElementById('verify-retry').addEventListener('click',function(){if(lastFp)check(lastFp);});
   var params=new URLSearchParams(window.location.search);
   var fp=params.get('fp')||'';
   var input=document.getElementById('verify-fp');
@@ -159,6 +246,9 @@
   var scanVideo=document.getElementById('scan-video');
   var scanNote=document.getElementById('scan-note');
   var scanStream=null, scanning=false;
+  /* V3: no BarcodeDetector, no scan button at all — the paste box above
+     is the only path, and no dead button suggests otherwise. */
+  if(!('BarcodeDetector' in window)){scanBtn.hidden=true;if(scanBtn.parentNode)scanBtn.parentNode.hidden=true;}
   function stopScan(){
     scanning=false;
     if(scanStream){scanStream.getTracks().forEach(function(t){t.stop();});scanStream=null;}
@@ -169,22 +259,22 @@
     return m?m[1]:String(text||'').trim();
   }
   scanBtn.addEventListener('click',async function(){
-    if(scanning){stopScan();scanBtn.textContent='Scan QR with camera';return;}
+    if(scanning){stopScan();scanBtn.textContent=vT('v.scanBtn');return;}
     if(!('BarcodeDetector' in window)||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
       scanNote.hidden=false;
-      scanNote.textContent='This browser cannot scan QR codes with the camera — paste the fingerprint above instead.';
+      scanNote.textContent=vT('v.scanNoCam');
       return;
     }
     try{
       scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
     }catch(e){
       scanNote.hidden=false;
-      scanNote.textContent='Camera unavailable — check the camera permission, or paste the fingerprint above instead.';
+      scanNote.textContent=vT('v.scanCamOff');
       return;
     }
     scanVideo.srcObject=scanStream;scanVideo.hidden=false;scanVideo.play();
-    scanBtn.textContent='Stop scanning';scanning=true;
-    scanNote.hidden=false;scanNote.textContent='Point the camera at the ResolvePack QR code…';
+    scanBtn.textContent=vT('v.stopScan');scanning=true;
+    scanNote.hidden=false;scanNote.textContent=vT('v.scanHint');
     var detector=new BarcodeDetector({formats:['qr_code']});
     var tick=async function(){
       if(!scanning)return;
@@ -192,8 +282,8 @@
         var codes=await detector.detect(scanVideo);
         if(codes&&codes.length){
           var fp=fpFromQr(codes[0].rawValue||'');
-          stopScan();scanBtn.textContent='Scan QR with camera';
-          scanNote.textContent='QR code read — checking…';
+          stopScan();scanBtn.textContent=vT('v.scanBtn');
+          scanNote.textContent=vT('v.scanRead');
           input.value=fp;
           history.replaceState(null,'','/verify?fp='+encodeURIComponent(fp));
           check(fp);return;
@@ -296,15 +386,10 @@
       packDetail.textContent+=' Note: the chain head in the QR link differs from the recomputed head — this pack is stale or was regenerated.';
     }
   }
-  async function checkPack(text){
+  async function runPack(pack){
     packResult.textContent='Recomputing…';packResult.className='verdict';
     packDetail.textContent='Recomputing every event hash in this browser.';
     packRows.hidden=true;packCross.hidden=true;
-    var pack=null;
-    try{pack=JSON.parse(text);}catch(e){
-      packCard.className='card mismatch';packResult.textContent='✕ That is not a ResolvePack JSON';packResult.className='verdict bad';
-      packDetail.textContent='Paste the JSON from /api/jobs/:id/resolvepack.json, or upload the .json file.';return;
-    }
     if(!pack||!Array.isArray(pack.events)){
       packCard.className='card mismatch';packResult.textContent='✕ That JSON has no event history';packResult.className='verdict bad';
       packDetail.textContent='A ResolvePack JSON carries job, versions, events and chainHead. This one has no events array.';return;
@@ -316,6 +401,49 @@
     var chain=await recomputeChain(pack.events);
     renderPack(pack,chain);
   }
+  async function checkPack(text){
+    var pack=null;
+    try{pack=JSON.parse(text);}catch(e){
+      packCard.className='card mismatch';packResult.textContent='✕ That is not a ResolvePack JSON';packResult.className='verdict bad';
+      packDetail.textContent='Paste the JSON from /api/jobs/:id/resolvepack.json, or upload the .json file.';return;
+    }
+    await runPack(pack);
+  }
+  /* V2: the pack section is one collapsed button by default. When the
+     page loads with ?fp= from a QR code, fetch the pack from the server
+     (GET /api/verify-pack) and recompute the chain immediately — no
+     pasting a JSON blob on a phone. The paste/upload form stays inside
+     as the offline fallback. */
+  var packToggle=document.getElementById('pack-toggle');
+  var packSection=document.getElementById('pack-section');
+  function setPackOpen(open){
+    packSection.hidden=!open;
+    packToggle.setAttribute('aria-expanded',open?'true':'false');
+  }
+  packToggle.addEventListener('click',function(){setPackOpen(packSection.hidden);});
+  (function autoPack(){
+    if(!fp||!validFp(fp))return;
+    fetch('/api/verify-pack?fp='+encodeURIComponent(fp)).then(function(r){return r.json();}).then(function(d){
+      if(!d||!Array.isArray(d.events)||!d.versions){
+        var note=document.getElementById('pack-auto-note');
+        if(note){note.hidden=false;note.textContent=vT('v.packAutoFail');}
+        setPackOpen(true);return;
+      }
+      /* verify-pack returns {jobId, versions, events, chainHead} — no
+         job row. renderPack only needs current_version + status. */
+      var pack={job:{current_version:d.versions.length?d.versions[d.versions.length-1].version_no:1,status:'—'},
+        versions:d.versions,events:d.events,chainHead:d.chainHead};
+      setPackOpen(true);
+      runPack(pack);
+    }).catch(function(){
+      var note2=document.getElementById('pack-auto-note');
+      if(note2){note2.hidden=false;note2.textContent=vT('v.packAutoFail');}
+      setPackOpen(true);
+    });
+  })();
+  document.getElementById('lang-bn').addEventListener('click',function(){vLang='bn';vApplyLang();});
+  document.getElementById('lang-en').addEventListener('click',function(){vLang='en';vApplyLang();});
+  vApplyLang();
   document.getElementById('pack-form').addEventListener('submit',function(ev){
     ev.preventDefault();
     var v=document.getElementById('pack-json').value.trim();

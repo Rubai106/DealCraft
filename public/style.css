@@ -1,15 +1,19 @@
 /* DealCraft — Direction 03: Dotted Bangladesh. Tokens locked. */
 :root{
-  --black:#000000; --ink:#0d0d0d; --paper:#ffffff; --grey:#b0b0b0; --grey-2:#bdbdbd;
+  --black:#000000; --ink:#0d0d0d; --paper:#FBFAF7; --page:#F4F2EE; --grey:#b0b0b0; --grey-2:#bdbdbd;
   /* --grey was #8a8a8a (~3.5:1 on black at 11px, fails WCAG AA). #b0b0b0 is
      ~9.8:1 on black. It is too light for white backgrounds, so .app-card /
      .section-white override .grey back to a dark grey below. */
-  --line:#1f1f1f; --line-light:#e6e6e6;
+  --line:#1f1f1f; --line-light:#E3DED4;
   --orange:#ff5a1f;
   --text-orange:#c73e0e;
   /* --text-orange is the DARKER orange for TEXT on light backgrounds
-     only (5.09:1 on white, WCAG AA). Brand orange fills, bars and text
-     on dark surfaces stay #ff5a1f. */
+     only (4.88:1 on card #FBFAF7, WCAG AA; 5.09:1 on white). Brand
+     orange fills, bars and text on dark surfaces stay #ff5a1f.
+     NOTE: the suite pins this token to #c73e0e (regression line 927);
+     the palette's #C23C00 dark-orange text lives in the literal
+     #c23c00 uses, not in this token — do not unify without updating
+     the suite with Rubai's approval. */
   /* Motion system — three shared curves, three durations. Entrances use
      --ease-out, stamps/chips/success --ease-spring, state changes
      --ease-inout. Durations: micro 160ms, standard 260ms, emphasis
@@ -41,7 +45,7 @@ a{color:inherit;overflow-wrap:anywhere}
 #detail-pills>*{min-width:0}
 button{font-family:inherit;cursor:pointer}
 a,button,input,select,textarea{scroll-margin-top:90px}
-input,select,textarea{font-family:var(--sans);font-size:16px;width:100%;padding:14px 16px;border:1px solid var(--line-light);background:#fff;color:#111;border-radius:0}
+input,select,textarea{font-family:var(--sans);font-size:16px;width:100%;padding:14px 16px;border:2px solid var(--line-light);background:var(--paper);color:#111;border-radius:0}
 input:focus,select:focus,textarea:focus{outline:3px solid var(--orange);outline-offset:2px}
 input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
 :focus-visible{outline:3px solid var(--orange);outline-offset:3px}
@@ -99,7 +103,7 @@ label{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform
 .lang-toggle button[aria-pressed="true"]{background:#fff;color:#000}
 
 /* Buttons — pills only */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 28px;border-radius:999px;border:1px solid transparent;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;background:#fff;color:#000;border-color:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 28px;border-radius:999px;border:1px solid transparent;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;background:var(--paper);color:#000;border-color:var(--paper)}
 .btn:hover{opacity:.88}
 .btn-ghost{background:transparent;color:#fff;border-color:#fff}
 .btn-dark{background:#000;color:#fff;border-color:#000}
@@ -167,7 +171,7 @@ html[lang="bn"] .hero-title .hl-2{font-size:clamp(24px,15.6cqi,130px)}
 #why{padding:48px 0}
 #why .sec-head{margin-bottom:16px}
 .section-black{background:var(--black);color:#fff}
-.section-white{background:#fff;color:#111}
+.section-white{background:var(--paper);color:#111}
 .sec-head{display:block;padding-bottom:16px;margin-bottom:32px}
 .section-white .sec-head{border-color:var(--line-light)}
 h2.sec-title{font-family:var(--display);font-size:40px;line-height:.95;text-transform:uppercase;margin:0}
@@ -203,7 +207,7 @@ h2.sec-title{font-family:var(--display);font-size:40px;line-height:.95;text-tran
 @media(min-width:800px){.stats{grid-template-columns:1fr 1fr 1fr}}
 /* Depth — one soft shadow system on the landing page: stat tiles and the
    white comparison card lift; everything else is a hairline divider. */
-.stat{background:#fff;padding:32px 28px;border:1px solid var(--line-light);box-shadow:0 10px 28px rgba(0,0,0,.07)}
+.stat{background:var(--paper);padding:32px 28px;border:1px solid var(--line-light);box-shadow:0 10px 28px rgba(0,0,0,.07)}
 .stat-num{font-family:var(--display);font-size:64px;line-height:.9;letter-spacing:-.02em}
 .stat-num small{font-size:28px}
 .stat p{margin:12px 0 0;color:#555}
@@ -239,7 +243,7 @@ html.js .faq-row.open .faq-a{grid-template-rows:1fr;opacity:1}
 
 /* App shell */
 .app{padding:40px 0 48px}
-.app-card{background:#fff;color:#111;padding:28px 0;border:1px solid var(--line-light);border-left:0;border-right:0}
+.app-card{background:var(--paper);color:#111;padding:28px 0;border:1px solid var(--line-light);border-left:0;border-right:0}
 .app-card .btn-row{margin-top:16px}
 @media(min-width:700px){.app-card{padding:36px 0}}
 #app{padding:16px 0 24px}
@@ -252,7 +256,7 @@ html.js .faq-row.open .faq-a{grid-template-rows:1fr;opacity:1}
 .field-grid{display:grid;gap:0}
 @media(min-width:700px){.field-grid{grid-template-columns:1fr 1fr;gap:0 20px}}
 .job-list{display:grid;gap:12px;margin-top:20px}
-.job-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;border:1px solid var(--line-light);padding:18px;background:#fff}
+.job-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;border:1px solid var(--line-light);padding:18px;background:var(--paper)}
 .job-row .t{font-family:var(--condensed);font-size:20px;text-transform:uppercase}
 .job-row .m{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#666}
 .pill{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;border:1px solid #111;padding:5px 10px;border-radius:999px}
@@ -264,25 +268,25 @@ html.js .faq-row.open .faq-a{grid-template-rows:1fr;opacity:1}
 .warn ul{margin:8px 0 14px;padding-left:20px}
 .warn li{margin:4px 0}
 .balance{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--line-light);border:1px solid var(--line-light);margin:20px 0}
-.balance div{background:#fff;padding:18px 14px}
+.balance div{background:var(--paper);padding:18px 14px}
 .balance .amt{font-family:var(--display);font-size:28px;line-height:1}
 .balance .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#666;margin-top:6px}
-.bar{height:12px;background:#eee;position:relative;margin:6px 0 20px}
+.bar{height:12px;background:#eee;position:relative;margin:6px 0 12px}
 .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--orange)}
 .bar em{position:absolute;left:0;top:0;bottom:0;background:var(--orange);font-style:normal}
 .timeline{list-style:none;margin:0;padding:0}
 .timeline li{padding:14px 0 14px 22px;border-left:2px solid #111;position:relative}
 .timeline li::before{content:"";position:absolute;left:-6px;top:20px;width:10px;height:10px;background:var(--orange);border-radius:50%}
 .timeline .when{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#666}
-.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0;position:relative}
-.tabs button{border:1px solid #111;background:#fff;padding:12px 16px;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;min-height:48px;position:relative;z-index:1}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;position:relative}
+.tabs button{border:1px solid #111;background:var(--paper);padding:12px 16px;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;min-height:48px;position:relative;z-index:1}
 .tabs button[aria-selected="true"]{background:transparent;color:#fff}
 /* Sliding tab indicator — a black block that MOVES between tabs
    (transform + width, 260ms ease-inout) instead of the active style
    jumping. Positioned by JS (moveTabInd). */
 .tab-ind{position:absolute;left:0;top:0;background:#000;z-index:0;pointer-events:none;transition:transform var(--dur-std) var(--ease-inout),width var(--dur-std) var(--ease-inout),height var(--dur-std) var(--ease-inout)}
 .tabpanel[hidden]{display:none}
-.notice{border:1px solid var(--line-light);border-left:4px solid var(--orange);padding:14px 16px;background:#fff;margin:16px 0}
+.notice{border:1px solid var(--line-light);border-left:4px solid var(--orange);padding:14px 16px;background:var(--paper);margin:16px 0}
 /* Photo thumbnails in the job detail timeline tab */
 .photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin:12px 0}
 .photo{margin:0;border:1px solid var(--line-light);padding:8px}
@@ -293,7 +297,7 @@ html.js .faq-row.open .faq-a{grid-template-rows:1fr;opacity:1}
 .q-block{border:1px solid var(--line-light);padding:16px;margin:0 0 12px}
 .q-block .q{font-weight:700;margin-bottom:10px}
 .opt-row{display:flex;flex-wrap:wrap;gap:8px}
-.opt-row button{border:1px solid #999;background:#fff;padding:12px 14px;min-height:48px;font-size:14px}
+.opt-row button{border:1px solid #999;background:var(--paper);padding:12px 14px;min-height:48px;font-size:14px}
 .opt-row button[aria-pressed="true"]{background:#000;color:#fff;border-color:#000}
 .steps{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px}
 .steps span{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;border:1px solid #ccc;padding:8px 12px}
@@ -329,18 +333,18 @@ footer{border-top:1px solid var(--line);padding:56px 0 32px;min-height:100svh}
 .visual-card .vrows div{display:flex;justify-content:space-between;gap:16px;border-top:1px solid var(--line);padding:10px 0;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
 .visual-card .vrows span{color:#bdbdbd}
 .visual-card .vrows b{color:#fff;font-weight:400}
-.section-white .visual-card{border-color:var(--line-light);background:#fff;color:#111;box-shadow:0 12px 32px rgba(0,0,0,.08)}
+.section-white .visual-card{border-color:var(--line-light);background:var(--paper);color:#111;box-shadow:0 12px 32px rgba(0,0,0,.08)}
 .section-white .visual-card .vrows div{border-top-color:var(--line-light)}
 .section-white .visual-card .vrows span{color:#555}
 .section-white .visual-card .vrows b{color:#111}
 .record-preview{margin:0 0 24px}
 .status{font-family:var(--mono);font-size:12px;letter-spacing:.06em;margin:12px 0;color:#111}
 /* Worker + passport light pages */
-.light-page{background:#fff;color:#111;min-height:100vh}
+.light-page{background:var(--page);color:#111;min-height:100vh}
 .light-page .topbar{background:#000;color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
 .light-page main{max-width:720px;margin:0 auto;padding:28px 20px 64px}
-.big-btn{display:block;width:100%;min-height:64px;font-size:19px;font-weight:700;margin:12px 0;border-radius:999px;border:2px solid #000;background:#000;color:#fff}
-.big-btn.ghost{background:#fff;color:#000}
+.big-btn{display:flex;align-items:center;justify-content:center;gap:8px;text-align:center;width:100%;min-height:64px;padding:0 16px;box-sizing:border-box;font-size:19px;font-weight:700;margin:12px 0;border-radius:999px;border:2px solid #000;background:#000;color:#fff}
+.big-btn.ghost{background:var(--paper);color:#000}
 .big-btn.orange{background:var(--orange);border-color:var(--orange)}
 .big-btn:disabled{opacity:.45}
 .pass-num{font-family:var(--display);font-size:64px;line-height:1}
@@ -358,7 +362,7 @@ footer{border-top:1px solid var(--line);padding:56px 0 32px;min-height:100svh}
 }
 
 /* ---- live location ---- */
-#loc-map{height:260px;border:1px solid #222;background:#111;margin:12px 0;z-index:0}
+#loc-map{height:160px;border:1px solid #222;background:#111;margin:12px 0;z-index:0}
 #site-map{height:220px;border:1px solid #ccc;background:#f4f4f4;margin:8px 0 12px;z-index:0}
 .loc-dot{background:transparent;border:0}
 .loc-dot-in{display:block;width:18px;height:18px;border-radius:50%;background:#FF5A1F;border:3px solid #fff;box-shadow:0 0 0 3px rgba(255,90,31,.4)}
@@ -366,7 +370,7 @@ footer{border-top:1px solid var(--line);padding:56px 0 32px;min-height:100svh}
 
 /* ---- ChangeLock journey strip (detail tab) ---- */
 .cl-journey{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin:12px 0 16px}
-.cl-step{flex:1 1 120px;border:1px solid #ddd;padding:12px;background:#fff}
+.cl-step{flex:1 1 120px;border:1px solid #ddd;padding:12px;background:var(--paper)}
 .cl-ver{font-family:var(--display);font-size:24px;color:var(--text-orange)}
 .cl-price{font-size:20px;font-weight:700;margin-top:4px}
 .cl-arrow{align-self:center;font-size:20px;color:var(--text-orange)}
@@ -570,11 +574,10 @@ h1.hero-title .hl-2{--ld:.22s}
 
 /* Journey — the sticky visual is the record card; centred in its column. */
 .journey-visual .jcard{max-width:480px;margin:0 auto 28px}
-#app.app-grey{background:#f4f4f4}
-#view-detail.detail-sheet{background:#fff;border-radius:24px;border:1px solid #e6e6e6;box-shadow:0 24px 60px rgba(0,0,0,.12),0 4px 14px rgba(0,0,0,.06);padding:28px}
+#view-detail.detail-sheet{background:var(--paper);border-radius:24px;border:1px solid var(--line-light);box-shadow:0 24px 60px rgba(0,0,0,.12),0 4px 14px rgba(0,0,0,.06);padding:28px}
 @media(min-width:700px){#view-detail.detail-sheet{padding:36px}}
-.balance{border:0;background:transparent;gap:12px}
-.balance>div{background:#fff;border:1px solid #e6e6e6;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.05);padding:18px 16px}
+.balance{border:0;background:transparent;gap:12px;margin:12px 0}
+.balance>div{background:var(--paper);border:1px solid var(--line-light);border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.05);padding:12px 16px}
 /* The base rule `.balance div` also matches .amt/.lbl descendants — on the
    dark tile that painted white boxes around invisible white text. */
 .balance .amt,.balance .lbl{background:transparent;padding:0}
@@ -588,8 +591,8 @@ h1.hero-title .hl-2{--ld:.22s}
 .bar i{background:var(--orange);border-radius:999px;transition:width .6s var(--ease-inout)}
 /* Timeline as individual cards on a solid neutral spine */
 .timeline{position:relative;padding-left:22px}
-.timeline::before{content:"";position:absolute;left:7px;top:10px;bottom:10px;width:2px;background:#e6e6e6}
-.timeline li{background:#fff;border:1px solid #e6e6e6;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.05);padding:14px 16px;margin:0 0 10px;border-left:0;opacity:0;transform:translateY(12px);transition:opacity 700ms var(--ease-out),transform 700ms var(--ease-out)}
+.timeline::before{content:"";position:absolute;left:7px;top:10px;bottom:10px;width:2px;background:var(--line-light)}
+.timeline li{background:var(--paper);border:1px solid var(--line-light);border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.05);padding:14px 16px;margin:0 0 10px;border-left:0;opacity:0;transform:translateY(12px);transition:opacity 700ms var(--ease-out),transform 700ms var(--ease-out)}
 .timeline li.in{opacity:1;transform:none}
 .timeline li::before{left:auto;right:calc(100% + 8px);top:20px;background:#111}
 .timeline li.tl-pay::before{background:#FF5A1F}
@@ -629,7 +632,7 @@ h1.hero-title .hl-2{--ld:.22s}
 .pp-id-card::after{content:"";position:absolute;top:0;bottom:0;left:0;width:72px;background:rgba(255,255,255,.13);transform:translateX(var(--shine,-90px)) skewX(-18deg);transition:transform var(--dur-std) var(--ease-inout);pointer-events:none}
 .pp-id-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
 .pp-id-name{font-family:'Oswald','Noto Sans Bengali',sans-serif;font-size:38px;line-height:1;text-transform:uppercase;margin:6px 0 4px}
-.pp-id-sub{color:#FF5A1F;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin:0}
+.pp-id-sub{color:#FFA07A;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin:0}
 .pp-qr{background:#fff;border-radius:16px;padding:10px;width:112px;flex:none;box-shadow:4px 4px 0 #000}
 .pp-qr img{width:100%;display:block}
 .pp-stats{display:flex;gap:12px;margin-top:22px}
@@ -642,7 +645,7 @@ h1.hero-title .hl-2{--ld:.22s}
    One matte card per job, hard offset shadow, hover depth; the numeral
    (amount, or job number when amounts are hidden) is the visual. */
 .pp-jobs{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin:0 0 28px}
-.pp-job{background:#fff;color:#111;border:1px solid #e6e6e6;border-radius:16px;padding:20px 18px 16px;box-shadow:var(--shadow-2);transition:transform var(--dur-std) var(--ease-out),box-shadow var(--dur-std) var(--ease-out);animation:ppJobIn var(--dur-em) var(--ease-out) both;animation-delay:calc(var(--i,0)*70ms)}
+.pp-job{background:var(--paper);color:#111;border:1px solid var(--line-light);border-radius:16px;padding:20px 18px 16px;box-shadow:var(--shadow-2);transition:transform var(--dur-std) var(--ease-out),box-shadow var(--dur-std) var(--ease-out);animation:ppJobIn var(--dur-em) var(--ease-out) both;animation-delay:calc(var(--i,0)*70ms)}
 .pp-job:hover{transform:translateY(-4px);box-shadow:var(--shadow-3)}
 .pp-job-num{display:block;font-family:var(--display);font-size:34px;line-height:1}
 .pp-job-lab{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-orange);margin:6px 0 12px}
@@ -705,7 +708,7 @@ h1.hero-title .hl-2{--ld:.22s}
 /* .small is pale grey for black sections; on white it needs dark ink. */
 .section-white .small{color:#555}
 .light-page .small{color:#555}
-.bid-demo{border:1px solid var(--line-light);background:#fff;color:#111;box-shadow:0 12px 32px rgba(0,0,0,.08);margin:24px 0 8px}
+.bid-demo{border:1px solid var(--line-light);background:var(--paper);color:#111;box-shadow:0 12px 32px rgba(0,0,0,.08);margin:24px 0 8px}
 .bid-job{display:flex;gap:16px;padding:20px;align-items:flex-start}
 .bid-photo{flex:none;width:96px;height:96px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
 .bid-job-trade{font-family:var(--display);font-size:20px;text-transform:uppercase}
@@ -733,7 +736,7 @@ html,body{height:100%}
 body{overflow:hidden}
 main{height:100dvh}
 .hero{height:100dvh;min-height:0;border-bottom:0}
-#app{height:100dvh;min-height:0;padding:0}
+#app{height:100dvh;min-height:0;padding:0;background:var(--page)}
 .app-wrap{height:100%;display:flex;flex-direction:column;padding-top:64px}
 .app-topbar{display:flex;align-items:center;gap:12px;padding:14px 0 8px;flex:none}
 .app-topbar .app-title-h{flex:1;margin:0;font-size:22px;text-align:center}
@@ -771,21 +774,21 @@ h1.hero-title{margin:0 0 12px}
 }
 
 /* Prompt box — white card on black, one line + parsed chips. */
-.prompt-box{background:#fff;color:#111;padding:14px 16px;border:1px solid #e6e6e6;box-shadow:var(--shadow-2)}
+.prompt-box{background:var(--paper);color:#111;padding:14px 16px;border:1px solid var(--line-light);box-shadow:var(--shadow-2)}
 .prompt-box label{color:#111;margin:0 0 8px}
 .prompt-row{display:flex;gap:10px;align-items:stretch}
 .prompt-row textarea{flex:1;min-height:52px;resize:none;border:1px solid #111}
 .prompt-go{flex:none;min-height:52px}
 .prompt-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .prompt-chips .chip{background:#000;color:#fff;border-radius:999px;padding:8px 12px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
-.prompt-chips .chip.miss{border:1px solid var(--orange);color:var(--orange);background:#fff}
+.prompt-chips .chip.miss{border:1px solid var(--orange);color:var(--orange);background:var(--paper)}
 .prompt-hint{color:#666;margin:10px 0 0}
 .prompt-box-app{box-shadow:4px 4px 0 #000;margin:8px 0 16px}
 .prompt-box-app textarea{border:1px solid #111}
 
 /* Two hire choices, side by side. */
 .hire-choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.hire-choice{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;background:#fff;color:#000;border:2px solid #000;min-height:64px;padding:12px 14px;cursor:pointer;box-shadow:var(--shadow-orange)}
+.hire-choice{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;background:var(--paper);color:#000;border:2px solid #000;min-height:64px;padding:12px 14px;cursor:pointer;box-shadow:var(--shadow-orange)}
 .hire-choice:active{transform:translate(var(--press-dist),var(--press-dist));box-shadow:2px 2px 0 #FF5A1F}
 .hire-choice-t{font-family:var(--condensed);font-size:19px;line-height:1.05;text-transform:uppercase}
 .hire-choice-s{font-size:13px;color:#555;line-height:1.3}
@@ -817,22 +820,22 @@ h1.hero-title{margin:0 0 12px}
 .btn-hero.btn-3d:active{box-shadow:1px 1px 0 #c23c00}
 
 /* Floating action bar — pinned to the bottom of each app view. */
-.fab-bar{flex:none;display:flex;gap:10px;align-items:center;padding:12px 0 4px;border-top:1px solid var(--line-light);margin-top:8px;background:#fff}
+.fab-bar{flex:none;display:flex;gap:10px;align-items:center;padding:12px 0 4px;border-top:1px solid var(--line-light);margin-top:8px;background:var(--paper)}
 .fab-bar .fab-primary{flex:1}
-#view-detail .fab-bar{border-top-color:#e6e6e6}
+#view-detail .fab-bar{border-top-color:var(--line-light)}
 
 /* Sheets — floating overlays for secondary content. */
 .sheet{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.72);display:flex;align-items:flex-end;justify-content:center}
 .sheet[hidden]{display:none!important}
-.sheet-card{background:#fff;color:#111;width:100%;max-width:760px;max-height:calc(100dvh - 72px);overflow-y:auto;padding:24px 20px 32px;border-radius:24px 24px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.4);animation:sheetUp var(--dur-std) var(--ease-out) both}
+.sheet-card{background:var(--paper);color:#111;width:100%;max-width:760px;max-height:calc(100dvh - 72px);overflow-y:auto;padding:24px 20px 32px;border-radius:24px 24px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.4);animation:sheetUp var(--dur-std) var(--ease-out) both}
 @media(min-width:900px){.sheet{align-items:center;padding:24px}.sheet-card{border-radius:24px;padding:32px}}
 @keyframes sheetUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
 .sheet-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
 .sheet-head h2{font-family:var(--display);font-size:28px;line-height:1;text-transform:uppercase;margin:0}
-.sheet-close{flex:none;width:52px;height:52px;border-radius:50%;border:2px solid #000;background:#fff;color:#000;font-size:18px}
+.sheet-close{flex:none;width:52px;height:52px;border-radius:50%;border:2px solid #000;background:var(--paper);color:#000;font-size:18px}
 .sheet .section-white .small{color:#555}
 .sheet .why-row p{color:#555}
-.sheet .faq-row{border-bottom-color:#e6e6e6}
+.sheet .faq-row{border-bottom-color:var(--line-light)}
 .sheet .faq-q{color:#111}
 .sheet .faq-row p{color:#555}
 .sheet .faq-q-chev{color:var(--text-orange)}
@@ -866,16 +869,22 @@ h1.hero-title{margin:0 0 12px}
 .pay-methods button{min-height:56px;flex:1;font-size:16px;font-weight:700}
 .pay-methods button[aria-pressed="true"]{background:var(--orange);color:#000;border-color:var(--orange)}
 
-/* Receipt card — small, after an ACKNOWLEDGED payment. */
-.receipt-card{border:2px solid #000;background:#fff;padding:16px;margin:16px 0;box-shadow:var(--shadow-2)}
+/* Receipt card — small, after an ACKNOWLEDGED payment. The card spans
+   its container, so its 6px hard shadow (8px on hover) stuck out past
+   the panel and caused an inner horizontal scrollbar in step 4: the
+   8px right margin absorbs the shadow. Rows may shrink so long content
+   wraps instead of forcing the card wider. */
+.receipt-card{border:2px solid #000;background:var(--paper);padding:16px;margin:16px 8px 16px 0;box-shadow:var(--shadow-2);scroll-margin-top:16px}
 .receipt-card h4{font-family:var(--display);font-size:20px;text-transform:uppercase;margin:0 0 8px}
 .receipt-card .rc-row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid #eee;font-size:15px}
 .receipt-card .rc-row span:first-child{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#666;padding-top:3px}
 .receipt-card .rc-row b{font-size:17px}
+.receipt-card .rc-row>*{min-width:0}
+.receipt-card .rc-row b{overflow-wrap:anywhere}
 
 /* My jobs tabs (hirer / worker). */
 .jobs-tabs{display:flex;gap:8px;flex:none;margin:12px 0 4px}
-.jobs-tabs button{flex:1;min-height:52px;border:2px solid #000;background:#fff;color:#000;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.jobs-tabs button{flex:1;min-height:52px;border:2px solid #000;background:var(--paper);color:#000;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
 .jobs-tabs button[aria-selected="true"]{background:#000;color:#fff}
 
 /* Detail sheet keeps its card look inside the one-screen app. */
@@ -894,7 +903,6 @@ h1.hero-title{margin:0 0 12px}
   .demo-player{padding:8px 12px}
   .demo-track{height:28px;margin:8px 0 4px}
   .demo-dist{display:none}
-  #demo-open{display:none}
   .hero-panel{padding:18px 16px 14px}
   h1.hero-title{margin-bottom:8px}
   .hero-sub{font-size:14px;margin-bottom:8px}
@@ -956,8 +964,8 @@ h1.hero-title{margin:0 0 12px}
 
 /* ---- Worker profile card (shared renderer: app.js renderProfileCard,
    worker.html / passport.html inline copies — identical markup) ---- */
-.profile-card{display:flex;gap:16px;align-items:flex-start;background:#fff;color:#111;border:2px solid #000;padding:18px;margin:16px 0}
-.pc-photo{flex:none;width:72px;height:72px;border:2px solid #000;background:#fff;overflow:hidden}
+.profile-card{display:flex;gap:16px;align-items:flex-start;background:var(--paper);color:#111;border:2px solid #000;padding:18px;margin:16px 0}
+.pc-photo{flex:none;width:72px;height:72px;border:2px solid #000;background:var(--paper);overflow:hidden}
 .pc-photo img{width:100%;height:100%;object-fit:cover}
 .pc-initials{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--orange);color:#000;font-family:var(--display);font-size:28px;line-height:1}
 .pc-main{flex:1;min-width:0}
@@ -1046,11 +1054,15 @@ h1.hero-title{margin:0 0 12px}
 #view-detail .tabpanel,
 .cmp,
 #sheet-more .tabpanel{
-  background:#fff;border:1px solid #e6e6e6;box-shadow:var(--shadow-2);
+  background:var(--paper);border:1px solid var(--line-light);box-shadow:var(--shadow-2);
 }
 #loc-map,#trip-map{box-shadow:var(--shadow-2)}
-#view-detail .tabpanel{padding:16px;margin:2px 0 12px}
-#sheet-more .tabpanel{padding:4px 0 12px}
+#view-detail .tabpanel{padding:12px;margin:2px 0 12px}
+/* The sheet-card is the More sheet's only scroller: the panels used to
+   carry their own near-viewport max-height + inner scroll (inline
+   style), so the billing panel's last link sat half-cut below the
+   sheet's bottom edge. The extra bottom padding clears it fully. */
+#sheet-more .tabpanel{padding:4px 0 24px;max-height:none!important;overflow-y:visible!important}
 /* The map card itself: the live-location map inside the job detail. */
 #loc-map{border:1px solid #222}
 
@@ -1058,9 +1070,16 @@ h1.hero-title{margin:0 0 12px}
 .hire-choice:active{box-shadow:2px 2px 0 #FF5A1F}
 
 /* ---- Step / state changes animate the card in 3D (flip/slide/scale),
-   transform + opacity only, 200ms. ---- */
-.step-flip{animation:stepFlip var(--dur-card) var(--ease-out) both}
-@keyframes stepFlip{from{opacity:0;transform:perspective(900px) rotateY(-9deg) translateX(14px) scale(.985)}to{opacity:1;transform:none}}
+   transform + opacity only, 200ms. The flip is hinged on the LEFT edge:
+   rotateY(+9deg) swings the right edge AWAY from the viewer (it shrinks
+   in perspective) so the panel never extends past its own box — the old
+   centre-hinged rotateY(-9deg) swung the right edge TOWARD the viewer
+   and, magnified by perspective, pushed it up to 74px past the scroller's
+   right edge, inflating #detail-scroll's scrollWidth to 1335 and leaving
+   a horizontal scrollbar on step 4. The class stays on the panel after
+   the animation (the suite pins cls + animationName after stepping). ---- */
+.step-flip{animation:stepFlip var(--dur-card) var(--ease-out) both;transform-origin:left center}
+@keyframes stepFlip{from{opacity:0;transform:perspective(900px) rotateY(9deg) translateX(14px) scale(.985)}to{opacity:1;transform:none}}
 .card-pop{animation:cardPop var(--dur-card) var(--ease-out) both}
 @keyframes cardPop{from{opacity:0;transform:scale(.96) translateY(6px)}to{opacity:1;transform:none}}
 .pill-flip{animation:cardPop var(--dur-card) var(--ease-out) both}
@@ -1072,3 +1091,51 @@ h1.hero-title{margin:0 0 12px}
   .visual-card,.pp-job,.trip-card,.profile-card,#loc-box{transition:none}
   .step-flip,.card-pop,.pill-flip{animation:none}
 }
+
+/* ============================================================
+   PALETTE — CANDIDATE A (WARM PAPER) + REVIEW ITEMS 2026-11-27
+   Page #F4F2EE, card #FBFAF7, deeper border #E3DED4, text #111,
+   muted #555. Tokens in :root (--page / --paper / --line-light).
+   No gradients, no glass, no glow — hard offset shadows only.
+   ============================================================ */
+
+/* L2: demo-player ghost button — white text/border on the dark player;
+   the ::before sweep paints white on hover so the black text reads. */
+.demo-player .btn-dark-ghost{color:#fff;border-color:#fff;background:transparent}
+.demo-player .btn-dark-ghost::before{background:#fff}
+.demo-player .btn-dark-ghost:hover{background:#fff;color:#000}
+
+/* P1: passport tabs — segmented control, two 52px buttons directly
+   under the kicker; exactly one .pp-panel visible at a time (JS
+   toggles [hidden]; the global [hidden] rule hides the rest). */
+.pp-tabs{display:flex;gap:8px;margin:12px 0 16px;flex:none}
+.pp-tabs button{flex:1;min-height:52px;border:2px solid #000;background:var(--paper);color:#000;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.pp-tabs button[aria-selected="true"]{background:#000;color:#fff}
+.pp-panel{display:block;min-height:0}
+body.pp-page{height:100dvh;overflow:hidden}
+
+/* Item 8: step-3 panel clears the floating action bar. The bar sits in
+   normal flow below the scroll window, so 90px was dead space pushing
+   the map/fallback below the fold — 16px keeps the clearance. */
+#tab-s3{padding-bottom:16px}
+
+/* R1: More-sheet nav — 4-button segmented nav directly under
+   .sheet-head, same pattern as .jobs-tabs / .pp-tabs. */
+.sheet-nav{display:flex;gap:8px;margin:0 0 16px;flex:none}
+.sheet-nav button{flex:1;min-height:52px;border:2px solid #000;background:var(--paper);color:#000;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.sheet-nav button[aria-selected="true"]{background:#000;color:#fff}
+
+/* Map fallback — schematic container shown when tiles/GPS fail.
+   Card background (not pure white), 260px like #loc-map, 2px black
+   border, hard shadow. The SVG schematic is drawn by JS; the
+   "Try map again" button reuses .btn. */
+#loc-fallback,#trip-fallback,#site-nomap{height:260px;background:var(--paper);color:#111;border:2px solid #000;box-shadow:var(--shadow-2);margin:12px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;text-align:center}
+#loc-fallback p,#trip-fallback p,#site-nomap p{margin:0;color:#555}
+/* Item (f)(iii): step 3 must fit one viewport at 1440px and 390px, so
+   the step-3 map/fallback is shorter (160px, was 260px) and the spacing
+   inside its panel is tightened — the trip/site fallbacks keep 260px.
+   No content is removed, only sizes/spacing. */
+#loc-fallback{height:160px;padding:12px;gap:8px}
+#loc-box{margin:8px 0;padding:10px 16px}
+#loc-box>p{margin:8px 0}
+#tab-s3 .btn-row{margin-top:16px}

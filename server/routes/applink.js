@@ -2,7 +2,7 @@
 // (route split; no behaviour change). Paths, middleware and responses
 // are identical to the monolith.
 const express = require('express');
-const { db, getMode, readLog, err, authedUser, normalizeBdPhone, maskLogEntry, applinkCallback } = require('../src/shared');
+const { db, now, getMode, readLog, err, authedUser, normalizeBdPhone, maskLogEntry, applinkCallback } = require('../src/shared');
 const router = express.Router();
 const callbacksRouter = express.Router();
 
@@ -41,7 +41,7 @@ callbacksRouter.post('/api/applink/caas-notify', (req, res) => {
     if (chargeId && ok) {
       const row = db.prepare("SELECT * FROM Billing WHERE id = ? AND kind = 'caas'").get(chargeId);
       if (row) {
-        db.prepare("UPDATE Billing SET status = 'VERIFIED' WHERE id = ?").run(chargeId);
+        db.prepare("UPDATE Billing SET status = 'VERIFIED', verified_at = ? WHERE id = ?").run(now(), chargeId);
         db.prepare('UPDATE Job SET billing_paid = 1 WHERE id = ?').run(row.job_id);
       }
     }

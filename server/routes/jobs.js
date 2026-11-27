@@ -137,7 +137,19 @@ router.post('/api/jobs', requireAuth, async (req, res) => {
 
 router.get('/api/jobs', requireAuth, (req, res) => {
   const jobs = db.prepare('SELECT * FROM Job WHERE hirer_id = ? ORDER BY created_at DESC').all(req.user.id);
-  res.json({ jobs });
+  // List rows carry the current version's price/deadline and the worker
+  // name, so the client never needs a detail fetch per row.
+  res.json({
+    jobs: jobs.map((job) => {
+      const version = getCurrentVersion(job);
+      return {
+        ...job,
+        price: version ? version.price : null,
+        deadline: version ? version.deadline : null,
+        worker_name: job.worker_name || null,
+      };
+    }),
+  });
 });
 
 router.get('/api/jobs/:id', requireJobAccess, (req, res) => {

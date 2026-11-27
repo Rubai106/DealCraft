@@ -138,8 +138,9 @@ function deadlineCandidates(low, norm, todayIso, todayNum) {
 }
 
 // --- Trade -----------------------------------------------------------------
-// Specific keywords first; a bare "mistri"/"মিস্ত্রি" only counts when no
-// other trade keyword matched (a mistri can be any trade).
+// Specific trade keywords only. A bare "mistri"/"মিস্ত্রি" matches no
+// trade — a mistri can be any trade, so the chat must ask "Which trade?"
+// instead of the server guessing one.
 const TRADE_KEYWORDS = [
   { trade: 'ELECTRICIAN', words: ['ইলেকট্রিশিয়ান', 'ইলেকট্রিক মিস্ত্রি', 'ইলেকট্রিক মিস্ত্রী', 'electric mistri', 'electrician', 'electrical', 'rewiring', 'rewire', 'wiring', 'switch', 'socket', 'ফ্যান', 'fan', 'সুইচ', 'light', 'bulb', 'লাইট'] },
   { trade: 'PAINTER', words: ['পেইন্টার', 'পেইন্ট', 'রং', 'রঙ', 'painter', 'painting', 'paint'] },
@@ -157,9 +158,6 @@ function tradeMatch(low) {
     }
   }
   if (best) return best;
-  // Bare mistri, any trade's handyman word — defaults to electrician.
-  const hit = wordRe('মিস্ত্রি|মিস্ত্রী|mistri').exec(low);
-  if (hit) return { trade: 'ELECTRICIAN', start: hit.index, end: hit.index + hit[0].length };
   return null;
 }
 

@@ -2,7 +2,7 @@
 // (route split; no behaviour change). Paths, middleware and responses
 // are identical to the monolith.
 const express = require('express');
-const { db, now, fingerprint, newId, questionsFor, computeMissingTerms, getAdapter, requireBidding, err, baseUrl, addEvent, getJob, createWorkerToken, normalizeBdPhone, requireAuth, validLatLng, upsertUser, isRealImage, upload, getBidJob, bidJobPhotos, expireBids, addBiddingEvent, bidJobPublic, bidPublic, parseBidCoords, MAX_BID_PHOTOS, MAX_LIVE_BIDS_PER_JOB, BID_TTL_MS, passportData } = require('../src/shared');
+const { db, now, fingerprint, newId, questionsFor, computeMissingTerms, getAdapter, requireBidding, err, baseUrl, addEvent, getJob, createWorkerToken, normalizeBdPhone, requireAuth, validLatLng, upsertUser, isRealImage, upload, getBidJob, bidJobPhotos, expireBids, addBiddingEvent, bidJobPublic, bidPublic, parseBidCoords, validateDeadline, MAX_BID_PHOTOS, MAX_LIVE_BIDS_PER_JOB, BID_TTL_MS, passportData } = require('../src/shared');
 const { parsePrompt } = require('../src/prompt-parse');
 const router = express.Router();
 
@@ -39,12 +39,13 @@ function withWorkerProfile(bids, trade) {
 // description, job site (map pin / current location / address). No price
 // is set by the hirer — workers bid the price.
 router.post('/api/bid-jobs', requireBidding, requireAuth, (req, res) => {
-  let { trade, description, site } = req.body || {};
+  let { trade, description, deadline, site } = req.body || {};
   // Prompt-based posting: parsed server-side; client-parsed values are
   // advisory only. The hirer sets no price here — workers bid it — so
-  // only trade/description/deadline come from the prompt. BidJob has no
-  // deadline column, so a parsed deadline is carried in the posted
-  // event and echoed in the response.
+  // only trade/description/deadline come from the prompt. A prompt
+  // deadline wins over a direct deadline, exactly as POST /api/jobs
+  // lets prompt values win; a direct deadline is used when the prompt
+  // carries none. The deadline is stored on the BidJob (nullable).
   let promptDeadline = null;
   if (typeof (req.body || {}).prompt === 'string' && req.body.prompt.trim()) {
     const parsed = parsePrompt(req.body.prompt);
@@ -59,6 +60,9 @@ router.post('/api/bid-jobs', requireBidding, requireAuth, (req, res) => {
   if (typeof description !== 'string' || !description.trim() || description.trim().length > 500) {
     return err(res, 400, 'description is required (max 500 characters)');
   }
+  const effectiveDeadline = promptDeadline || deadline || null;
+  const deadlineErr = validateDeadline(effectiveDeadline, 'en');
+  if (deadlineErr) return err(res, 400, deadlineErr);
   let siteLat = null, siteLng = null, siteAddress = null;
   if (site != null && (site.lat != null || site.lng != null || site.address)) {
     if (site.lat != null || site.lng != null) {
@@ -69,15 +73,15 @@ router.post('/api/bid-jobs', requireBidding, requireAuth, (req, res) => {
   }
   const bidJobId = newId();
   db.prepare(
-    'INSERT INTO BidJob (id, hirer_id, trade, description, site_lat, site_lng, site_address, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(bidJobId, req.user.id, trade.toUpperCase(), description.trim(), siteLat, siteLng, siteAddress, 'OPEN', now());
+    'INSERT INTO BidJob (id, hirer_id, trade, description, deadline, site_lat, site_lng, site_address, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(bidJobId, req.user.id, trade.toUpperCase(), description.trim(), effectiveDeadline, siteLat, siteLng, siteAddress, 'OPEN', now());
   addBiddingEvent(bidJobId, 'BID_JOB_POSTED', 'hirer:' + req.user.phone, {
     trade: trade.toUpperCase(), description: description.trim(),
     site: siteLat != null ? { lat: siteLat, lng: siteLng, address: siteAddress } : null,
-    deadline: promptDeadline,
+    deadline: effectiveDeadline,
   });
   const out = { bidJob: getBidJob(bidJobId) };
-  if (promptDeadline) out.deadline = promptDeadline;
+  if (effectiveDeadline) out.deadline = effectiveDeadline;
   res.status(201).json(out);
 });
 

@@ -40,7 +40,22 @@ function workerProfileFor(phone, trade, nameFallback) {
 // below, so 'jobs' is never mistaken for a worker token.
 router.get('/api/worker/jobs', requireAuth, (req, res) => {
   const jobs = db.prepare('SELECT * FROM Job WHERE worker_phone = ? ORDER BY created_at DESC').all(req.user.phone);
-  res.json({ jobs });
+  // Same list shape as GET /api/jobs: current version's price/deadline
+  // plus the worker name, so no detail fetch per row. everWorker is
+  // true when this phone has ever been the worker on any job.
+  const everWorker = db.prepare('SELECT COUNT(*) AS n FROM Job WHERE worker_phone = ?').get(req.user.phone).n > 0;
+  res.json({
+    jobs: jobs.map((job) => {
+      const version = getCurrentVersion(job);
+      return {
+        ...job,
+        price: version ? version.price : null,
+        deadline: version ? version.deadline : null,
+        worker_name: job.worker_name || null,
+      };
+    }),
+    everWorker,
+  });
 });
 
 router.get('/api/worker/:token', (req, res) => {

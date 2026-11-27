@@ -23,6 +23,7 @@
 //                         avgSegmentsPerRecord is the unit-economics
 //                         number for the summary SMS (item 14).
 const { db } = require('./db');
+const { getMode } = require('./applink');
 
 function rateOf(numerator, denominator) {
   if (!denominator) return 0;
@@ -57,6 +58,7 @@ function computeMetrics() {
     ? Math.round((sms.segments / sms.records) * 100) / 100
     : 0;
   return {
+    applinkMode: getMode(),
     generatedAt: new Date().toISOString(),
     totalRecords,
     confirmed,

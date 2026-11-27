@@ -1395,7 +1395,12 @@ check(p2PassI.status === 409 && (p2PassI.body?.error || '').includes('hirer-only
 const p2PassportAfterI = await req(`/api/passport/${p2Profile}`);
 check(p2PassportAfterI.body?.completedJobs === 3 && p2PassportAfterI.body?.distinctHirers === 2, 'passport anti-gaming: the forced-close job never counts — totals unchanged after the 409');
 const p2PassPage = await req(`/passport/${p2Profile}`);
-check(p2PassPage.status === 200 && p2PassPage.text.includes('id="p-hirers-count"'), 'passport anti-gaming: passport page shows a distinct-hirers count alongside total jobs');
+// DELIBERATE change (improvement pass 2026-11-27): P2 removed
+// id="p-hirers-count" from the passport ID card — the distinct-hirers
+// count now lives on the profile card (p.profileHirers fact), and the
+// API still proves the count (distinctHirers === 2 above). Pin the
+// removal as well as the new home.
+check(p2PassPage.status === 200 && !p2PassPage.text.includes('p-hirers-count') && p2PassPage.text.includes('p.profileHirers') && p2PassPage.text.includes('distinctHirers'), 'passport anti-gaming: passport page shows the distinct-hirers count on the profile card (P2 removed id="p-hirers-count" from the ID card by design)');
 
 // --- item 12: Bangla-first worker (verify the first pass; fix where it regressed) ---
 const p2WorkerHtml = fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'public', 'worker.html'), 'utf8');
@@ -1459,8 +1464,10 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
 
   console.log('== hardening: route inventory snapshot (split must not add/drop/rename a route) ==');
   {
-    // The 73 routes (method + path, sorted), from the pre-split
-    // inventory plus the six the 2026-11-27 trim added, by design:
+    // The 74 routes (method + path, sorted), from the pre-split
+    // inventory plus the six the 2026-11-27 trim added, by design,
+    // plus GET /API/VERIFY-PACK from the 2026-11-27 improvement pass
+    // (public pack fetch for the verify page):
     // POST /API/AUTH/LOGOUT, GET /API/TRIP/:TOKEN (API), GET /TRIP/:TOKEN
     // (HTML page), GET /API/WORKER/JOBS, POST /API/JOBS/:ID/SHARE-TRIP,
     // POST /API/WORKER/BIDS/:BIDID/WITHDRAW. Rebuilt from the current
@@ -1492,6 +1499,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       'GET /API/PASSPORT/:PROFILEID/QR.PNG',
       'GET /API/TRIP/:TOKEN',
       'GET /API/VERIFY',
+      'GET /API/VERIFY-PACK',
       'GET /API/WORKER/:TOKEN',
       'GET /API/WORKER/JOBS',
       'GET /METRICS',
@@ -1554,8 +1562,8 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       }
     }
     foundRoutes.sort();
-    check(foundRoutes.length === 73, 'route inventory still has exactly 73 routes after the split + trim');
-    check(JSON.stringify(foundRoutes) === JSON.stringify(EXPECTED_ROUTES), 'every route exists after the split + trim, same method + path (no add, drop or rename)');
+    check(foundRoutes.length === 74, 'route inventory still has exactly 74 routes after the split + trim + verify-pack');
+    check(JSON.stringify(foundRoutes) === JSON.stringify(EXPECTED_ROUTES), 'every route exists after the split + trim + verify-pack, same method + path (no add, drop or rename)');
 
   }
 
@@ -1881,18 +1889,44 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     const p1TriggerStmts = [...p1DbJs.matchAll(/CREATE TRIGGER[\s\S]*?END;/gi)].map((m) => m[0]);
     check(p1TriggerStmts.length === 2 && p1TriggerStmts.every((s) => !/JobVersion/i.test(s)), 'part 1: db.js defines exactly two triggers, neither on JobVersion');
 
-    // Item 6 (fonts): no dangling self-hosted font reference anywhere —
-    // fonts.css carries no @font-face rule and no .woff2 url (its header
-    // comment *mentions* both words while explaining why they were
-    // removed, so the check runs on the comment-stripped file), and no
-    // page requests a .woff2 or a /fonts/ path.
+    // Item 6 (fonts) — DELIBERATE change (improvement pass 2026-11-27):
+    // self-hosted fonts are the approved direction now. fonts.css
+    // carries @font-face rules for the bundled public/fonts/*.woff2
+    // files (Archivo Black, Oswald, Noto Sans Bengali), every
+    // referenced file exists on disk, and every page loads fonts.css.
+    // Open-items fix (a) (2026-11-27): the Google Fonts <link> tags
+    // were REMOVED from index.html and passport.html — no page reaches
+    // fonts.googleapis.com or fonts.gstatic.com any more; the check
+    // below pins that absence on every page.
     const p1FontsCssRaw = fs.readFileSync(path.resolve(ROOT_P1, 'public', 'fonts.css'), 'utf8');
     const p1FontsCss = p1FontsCssRaw.replace(/\/\*[\s\S]*?\*\//g, '');
-    check(!p1FontsCss.includes('@font-face') && !p1FontsCss.includes('.woff2'), 'part 1: fonts.css has no @font-face rule and no .woff2 reference (Google Fonts is the sole source)');
-    for (const page of ['index.html', 'worker.html', 'passport.html', 'verify.html']) {
+    check(p1FontsCss.includes('@font-face') && p1FontsCss.includes('.woff2'), 'part 1: fonts.css carries @font-face rules for self-hosted .woff2 files (Google Fonts is no longer the sole source)');
+    const p1FontFaces = (p1FontsCss.match(/@font-face/g) || []).length;
+    check(p1FontFaces >= 10, 'part 1: fonts.css declares at least 10 @font-face rules (Archivo Black + Oswald + Noto Sans Bengali, latin + bengali subsets)', 'found ' + p1FontFaces);
+    const p1FontUrls = [...p1FontsCss.matchAll(/url\("?([^")]*\.woff2)"?\)/g)].map((m) => m[1]);
+    check(p1FontUrls.length > 0 && p1FontUrls.every((u) => fs.existsSync(path.resolve(ROOT_P1, 'public', u))), 'part 1: every .woff2 file fonts.css references exists on disk (no dangling self-hosted font)', 'missing: ' + p1FontUrls.filter((u) => !fs.existsSync(path.resolve(ROOT_P1, 'public', u))).join(', '));
+    for (const page of ['index.html', 'worker.html', 'passport.html', 'verify.html', 'trip.html']) {
       const html = fs.readFileSync(path.resolve(ROOT_P1, 'public', page), 'utf8');
-      check(!html.includes('.woff2') && !/\/fonts\//.test(html), 'part 1: ' + page + ' requests no self-hosted font file');
+      check(html.includes('fonts.css'), 'part 1: ' + page + ' loads the self-hosted fonts.css sheet');
     }
+    // Open-items fix (a): no page may reach Google Fonts at all —
+    // neither fonts.googleapis.com nor fonts.gstatic.com, in any page.
+    for (const page of fs.readdirSync(path.resolve(ROOT_P1, 'public')).filter((f) => f.endsWith('.html'))) {
+      const html = fs.readFileSync(path.resolve(ROOT_P1, 'public', page), 'utf8');
+      check(!html.includes('fonts.googleapis.com') && !html.includes('fonts.gstatic.com'), 'open-items: ' + page + ' has no Google Fonts link (no fonts.googleapis.com / fonts.gstatic.com)', '');
+    }
+    // Open-items fix (b): no pure-white large surfaces on the verify,
+    // metrics and trip pages — bodies are warm paper #F4F2EE, cards
+    // #FBFAF7. (color:#fff text on dark/orange pills and buttons is
+    // fine and is NOT a background, so only background: #fff/#ffffff
+    // is pinned here.)
+    for (const page of ['verify.html', 'metrics.html', 'trip.html']) {
+      const html = fs.readFileSync(path.resolve(ROOT_P1, 'public', page), 'utf8');
+      check(!/background\s*:\s*#(?:fff|ffffff)\b/i.test(html), 'open-items: ' + page + ' has no pure-white background (#fff / #ffffff)', '');
+    }
+    // Open-items fix (c): the 800ms marker tween is labelled in app.js.
+    const oiAppJs = fs.readFileSync(path.resolve(ROOT_P1, 'public', 'app.js'), 'utf8');
+    check(oiAppJs.includes('800ms'), 'open-items: public/app.js names the 800ms marker tween', '');
     // Item 8 (hygiene): .taste-skill/ is REMOVED from the repo (2026-11-27)
     // — tooling output, not product — and .gitignore covers the whole
     // directory. (An earlier pass pinned the gate files' existence; the
@@ -1902,11 +1936,11 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     check(fs.readFileSync(path.resolve(ROOT_P1, '.gitignore'), 'utf8').split('\n').some((l) => l.trim() === '.taste-skill/'), 'part 1: .gitignore covers .taste-skill/');
     // Item 8 (docs show the TRUE count): the README must carry the exact
     // number this run reports. EXPECTED_COUNT is the FINAL suite total
-    // (782 after the 2026-11-27 trim verification; 612 after the dotenv
-    // fix; 611 after the demo-CTA hit-test fix); this check runs
+    // (783 after the 2026-11-27 map fix; 782 after the trim verification;
+    // 612 after the dotenv fix); this check runs
     // mid-suite (live count here was 526 before it), so it pins only
     // that the README states the final total, not the live count.
-    const EXPECTED_COUNT = 783; // final measured total, map-fix 2026-11-27 (782 after trim verification; 612 pre-trim)
+    const EXPECTED_COUNT = 871; // final measured total, open-items fixes 2026-11-27 (855 improvement pass; 783 after the map fix; 782 after trim verification; 612 pre-trim)
     const p1Readme = fs.readFileSync(path.resolve(ROOT_P1, 'README.md'), 'utf8');
     check(p1Readme.includes(EXPECTED_COUNT + ' assertions'), 'part 1: README shows the true assertion count (live count at this point: ' + passed + ', final suite total: ' + EXPECTED_COUNT + ')');
   }
@@ -2380,7 +2414,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
         landedCTA = JSON.parse(await evalCTA(`(() => { const d = document.getElementById('view-detail'); const t = document.getElementById('detail-title'); return JSON.stringify({ detailHidden: d ? d.hidden : true, title: t ? t.textContent.trim() : '' }); })()`));
         if (!landedCTA.detailHidden && landedCTA.title && landedCTA.title !== '—') break;
       }
-      check(hitCTA.hit === 'cta-demo' && seedStatuses.includes(200) && !landedCTA.detailHidden && landedCTA.title.includes('ELECTRICIAN'),
+      check(hitCTA.hit === 'cta-demo' && seedStatuses.includes(200) && !landedCTA.detailHidden && landedCTA.title.includes('KARIM MISTRI'),
         'demo CTA hit-test (1440px): elementFromPoint at #cta-demo centre is #cta-demo, real click seeds (POST /api/demo/seed → 200) and lands in the seeded job detail',
         JSON.stringify({ hit: hitCTA.hit, seedStatuses, landed: landedCTA }));
     } finally {
@@ -2519,10 +2553,10 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     const tvBanned = ['US' + 'SD', 'legal' + 'ly binding', 'e-sign' + 'ature', 'enforce' + 'able'];
     const tvServerParser = fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'server', 'src', 'prompt-parse.js'), 'utf8');
     check(tvBanned.every((w) => !tvServerParser.toLowerCase().includes(w.toLowerCase()) && !tvClientSrc.toLowerCase().includes(w.toLowerCase())), 'parser: no banned words in either parser file (checked list)');
-    // Remote HEAD 7c95bb7a via raw.githubusercontent (the API itself is
+    // Remote HEAD e4f1b62f via raw.githubusercontent (the API itself is
     // rate-limited for this shared egress IP, so SHAs are compared as
     // sha256 of the raw file bytes instead of git blob SHAs).
-    const tvRemoteBase = 'https://raw.githubusercontent.com/Rubai106/DealCraft/7c95bb7a/';
+    const tvRemoteBase = 'https://raw.githubusercontent.com/Rubai106/DealCraft/e4f1b62f/';
     const tvRemoteFiles = ['package.json', ...['caas.js', 'index.js', 'live.js', 'log.js', 'otp-rate-limit.js', 'otp-transactions.js', 'otp.js', 'sms.js', 'subscription.js'].map((f) => 'server/src/applink/' + f)];
     const tvRemoteDiffs = [];
     for (const tvF of tvRemoteFiles) {
@@ -2532,7 +2566,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       const tvLocalText = fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', tvF), 'utf8');
       if (tvSha256(tvRemoteText) !== tvSha256(tvLocalText)) tvRemoteDiffs.push(tvF);
     }
-    check(tvRemoteDiffs.length === 0, 'parser: server/src/applink/* + package.json byte-identical to remote HEAD 7c95bb7a (sha256 vs raw.githubusercontent)', 'differs: ' + tvRemoteDiffs.join(', '));
+    check(tvRemoteDiffs.length === 0, 'parser: server/src/applink/* + package.json byte-identical to remote HEAD e4f1b62f (sha256 vs raw.githubusercontent)', 'differs: ' + tvRemoteDiffs.join(', '));
     const tvPkg = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'package.json'), 'utf8'));
     check(JSON.stringify(Object.keys(tvPkg.dependencies || {}).sort()) === JSON.stringify(['dotenv', 'express', 'multer', 'pdfkit', 'qrcode']), 'parser: package.json has no new dependency vs remote HEAD (dotenv, express, multer, pdfkit, qrcode only)', JSON.stringify(tvPkg.dependencies));
 
@@ -3070,30 +3104,31 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       await tvCdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
       await tvNav(tvBaseUI + '/');
       tvNoScroll(JSON.parse(await tvMeasure()), 'UI: landing 1440x900 fits one viewport (no page scroll)');
-      const tvBtns1440 = JSON.parse(await tvEval(`JSON.stringify(['cta-demo','hire-direct','prompt-go'].map(id => { const el = document.getElementById(id); return el ? {id, h: Math.round(el.getBoundingClientRect().height)} : {id, missing: true}; }))`));
-      check(tvBtns1440.every((b) => b.h >= 52), 'UI: landing 1440x900 — #cta-demo, #hire-direct, #prompt-go each >= 52px tall', JSON.stringify(tvBtns1440));
+      const tvBtns1440 = JSON.parse(await tvEval(`JSON.stringify(['cta-demo','hire-direct','cta-start'].map(id => { const el = document.getElementById(id); return el ? {id, h: Math.round(el.getBoundingClientRect().height)} : {id, missing: true}; }))`));
+      check(tvBtns1440.every((b) => b.h >= 52), 'UI: landing 1440x900 — #cta-demo, #hire-direct, #cta-start each >= 52px tall', JSON.stringify(tvBtns1440));
       await tvEval(`(() => { const i = document.getElementById('prompt-input'); i.value = 'need a painter for 2 rooms by Sunday'; i.dispatchEvent(new Event('input', {bubbles: true})); })()`);
       await sleep(400);
       const tvChips = await tvEval(`document.getElementById('prompt-chips') ? document.getElementById('prompt-chips').textContent : ''`);
-      check(tvChips.includes('PAINTER'), 'UI: typing the painter prompt shows parsed chips including PAINTER', tvChips);
+      check(tvChips.includes('পেইন্টার'), 'UI: typing the painter prompt shows parsed chips including পেইন্টার (language default is bn now)', tvChips);
       // Pause auto-play through the real play/pause button: its label
-      // reads 'Pause' while the timer runs. (app.js is IIFE-wrapped, so
-      // demoTimer/demoIdx/demoRender are NOT on window.) Then two
-      // #demo-next taps step en-route -> arriving -> arrived; the loop
-      // only covers a timer tick landing between the pause and the taps.
+      // reads 'Pause' (bn: 'থামান') while the timer runs. (app.js is
+      // IIFE-wrapped, so demoTimer/demoIdx/demoRender are NOT on
+      // window.) Then two #demo-next taps step en-route -> arriving ->
+      // arrived; the loop only covers a timer tick landing between the
+      // pause and the taps.
       const tvPlayLabel = await tvEval(`document.getElementById('demo-play') ? document.getElementById('demo-play').textContent : ''`);
-      if (tvPlayLabel.includes('Pause')) await tvClickAt(`document.getElementById('demo-play')`);
+      if (tvPlayLabel.includes('Pause') || tvPlayLabel.includes('থামান')) await tvClickAt(`document.getElementById('demo-play')`);
       await tvClickAt(`document.getElementById('demo-next')`);
       await tvClickAt(`document.getElementById('demo-next')`);
       let tvDemoStatus = await tvEval(`document.getElementById('demo-status').textContent`);
-      for (let tvDi = 0; tvDi < 2 && !tvDemoStatus.includes('Arrived'); tvDi++) { await tvClickAt(`document.getElementById('demo-next')`); tvDemoStatus = await tvEval(`document.getElementById('demo-status').textContent`); }
-      check(tvDemoStatus.includes('Arrived'), 'UI: clicking #demo-next twice (auto-play paused) shows Arrived in #demo-status', tvDemoStatus);
+      for (let tvDi = 0; tvDi < 2 && !tvDemoStatus.includes('পৌঁছেছে'); tvDi++) { await tvClickAt(`document.getElementById('demo-next')`); tvDemoStatus = await tvEval(`document.getElementById('demo-status').textContent`); }
+      check(tvDemoStatus.includes('পৌঁছেছে'), 'UI: clicking #demo-next twice (auto-play paused) shows পৌঁছেছে (Arrived) in #demo-status', tvDemoStatus);
       // --- Landing, 390x844 (still no login). ---
       await tvCdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
       await tvNav(tvBaseUI + '/');
       tvNoScroll(JSON.parse(await tvMeasure()), 'UI: landing 390x844 fits one viewport (no page scroll)');
-      const tvBtns390 = JSON.parse(await tvEval(`JSON.stringify(['cta-demo','hire-direct','prompt-go'].map(id => { const el = document.getElementById(id); return el ? {id, h: Math.round(el.getBoundingClientRect().height)} : {id, missing: true}; }))`));
-      check(tvBtns390.every((b) => b.h >= 52), 'UI: landing 390x844 — #cta-demo, #hire-direct, #prompt-go each >= 52px tall', JSON.stringify(tvBtns390));
+      const tvBtns390 = JSON.parse(await tvEval(`JSON.stringify(['cta-demo','hire-direct','cta-start'].map(id => { const el = document.getElementById(id); return el ? {id, h: Math.round(el.getBoundingClientRect().height)} : {id, missing: true}; }))`));
+      check(tvBtns390.every((b) => b.h >= 52), 'UI: landing 390x844 — #cta-demo, #hire-direct, #cta-start each >= 52px tall', JSON.stringify(tvBtns390));
       // --- Real click on #cta-demo at 1440px. ---
       await tvCdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
       await tvNav(tvBaseUI + '/');
@@ -3101,7 +3136,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       await tvClickAt(`document.getElementById('cta-demo')`);
       const tvLanded = await tvWaitFor(`(() => { const d = document.getElementById('view-detail'); const t = document.getElementById('detail-title'); return d && !d.hidden && t && t.textContent.trim() && t.textContent.trim() !== '—'; })()`);
       const tvLandedTitle = await tvEval(`document.getElementById('detail-title').textContent`);
-      check(tvHit.hit === 'cta-demo' && tvSeedStatuses.includes(200) && tvLanded && tvLandedTitle.includes('ELECTRICIAN'), 'UI: real click on #cta-demo at 1440px — POST /api/demo/seed -> 200 and #view-detail visible with #detail-title containing ELECTRICIAN', JSON.stringify({ hit: tvHit.hit, seedStatuses: tvSeedStatuses, landed: tvLanded, title: tvLandedTitle }));
+      check(tvHit.hit === 'cta-demo' && tvSeedStatuses.includes(200) && tvLanded && tvLandedTitle.includes('KARIM MISTRI'), 'UI: real click on #cta-demo at 1440px — POST /api/demo/seed -> 200 and #view-detail visible with #detail-title containing the worker name KARIM MISTRI', JSON.stringify({ hit: tvHit.hit, seedStatuses: tvSeedStatuses, landed: tvLanded, title: tvLandedTitle }));
       // --- Job detail (the API-activated job) at 1440px. ---
       await tvEval(`localStorage.setItem('dc_token', ${JSON.stringify(tvUIHirerToken)}); localStorage.setItem('dc_user', ${JSON.stringify(JSON.stringify({ phone: tvUIHirerPhone, name: 'Rahim Uddin' }))});`);
       await tvNav(tvBaseUI + '/');
@@ -3148,8 +3183,22 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       // tile.openstreetmap.org in headless Chrome), so the check counts
       // the tile *requests* since before the step loop, not rendered tiles.
       const tvTileReqs = tvRequestedUrls.slice(tvTilesBefore).filter((u) => u.includes('tile.openstreetmap.org')).length;
+      // Improvement pass 2026-11-27 (DELIBERATE): with tiles blocked the
+      // step-3 map is COVERED by the dotted schematic fallback, so
+      // #loc-map is hidden (0x0) by design — the old non-zero-size
+      // requirement is wrong when the fallback is showing. What must
+      // hold: Leaflet initialised and requested a tile grid (the
+      // invalidateSize fix), AND either the live map is visible at a
+      // real size or the fallback schematic is visible on the warm
+      // paper background (never a blank void). Wait for one of the two
+      // states first — the fallback fires on 3 tile errors or 6s.
+      await tvWaitFor(`(() => { const m = document.getElementById('loc-map'); const f = document.getElementById('loc-fallback'); return (m && m.getBoundingClientRect().height > 0) || (f && !f.hidden); })()`);
       const tvLocMap = JSON.parse(await tvEval(`(() => { const el = document.getElementById('loc-map'); if (!el) return JSON.stringify({missing: true}); const r = el.getBoundingClientRect(); return JSON.stringify({w: Math.round(r.width), h: Math.round(r.height), leaflet: el.classList.contains('leaflet-container'), attribution: !!el.querySelector('.leaflet-control-attribution'), domTiles: el.querySelectorAll('.leaflet-tile-pane img').length}); })()`));
-      check(tvLocMap.w > 0 && tvLocMap.h > 0 && tvLocMap.leaflet === true && tvLocMap.attribution === true && tvTileReqs >= 4, 'map: opening step 3 re-measures the live map (invalidateSize) — #loc-map has a real non-zero size, Leaflet initialised, and Leaflet requests a tile grid for the viewport', JSON.stringify({ ...tvLocMap, tileReqs: tvTileReqs }));
+      const tvLocFb = JSON.parse(await tvEval(`(() => { const fb = document.getElementById('loc-fallback'); if (!fb) return JSON.stringify({missing: true}); const cs = getComputedStyle(fb); const svg = fb.querySelector('#loc-fallback-svg svg'); return JSON.stringify({visible: !fb.hidden, h: Math.round(fb.getBoundingClientRect().height), bg: cs.backgroundColor, hasSvg: !!svg, dotted: !!svg && svg.innerHTML.includes('circle'), text: (document.getElementById('loc-fallback-text') || {}).textContent || '', retry: !!document.getElementById('btn-loc-retry')}); })()`));
+      // Open-items fix (f) (2026-11-27): the step-3 map/fallback was
+      // tightened from 260px to 160px, so the fallback branch pins
+      // h >= 150 (the briefed 160px), not the old h >= 200.
+      check(tvLocMap.leaflet === true && tvLocMap.attribution === true && tvTileReqs >= 4 && ((tvLocMap.w > 0 && tvLocMap.h > 0) || (tvLocFb.visible === true && tvLocFb.hasSvg === true && tvLocFb.dotted === true && tvLocFb.h >= 150 && tvLocFb.bg === 'rgb(251, 250, 247)' && tvLocFb.text.trim().length > 0 && tvLocFb.retry === true)), 'map: opening step 3 re-measures the live map (invalidateSize) — Leaflet initialised + tile grid requested, and either the live map shows at a real size or the dotted schematic fallback covers it on paper #FBFAF7 with distance/ETA text + Try-map-again (never a blank void)', JSON.stringify({ ...tvLocMap, tileReqs: tvTileReqs, fallback: tvLocFb }));
       // Job-page profile card (hirer view).
       const tvDetailCard = JSON.parse(await tvEval(`(() => { const c = document.querySelector('#detail-profile .profile-card'); if (!c) return JSON.stringify({missing: true}); return JSON.stringify({text: c.textContent, hasVerified: !!c.querySelector('.pc-verified'), hasInitials: !!c.querySelector('.pc-initials'), initials: c.querySelector('.pc-initials') ? c.querySelector('.pc-initials').textContent : ''}); })()`));
       check(tvDetailCard.text?.includes('Karim Mistri') && tvDetailCard.hasVerified === true && tvDetailCard.hasInitials === true && tvDetailCard.initials === 'KM', 'profile: job page hirer view shows the profile card (name, trade, verified badge, counts, initials tile)', JSON.stringify(tvDetailCard));
@@ -3179,9 +3228,10 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       await tvEval(`localStorage.setItem('dc_token', ${JSON.stringify(workerB)});`);
       await tvNav(tvBaseUI + '/');
       await tvClickAt(`document.getElementById('jobs-tab-worker')`);
-      const tvWorkerListed = await tvWaitFor(`(() => { const l = document.getElementById('worker-jobs-list'); return l && l.textContent.includes('PLUMBER'); })()`);
+      const tvWorkerListed = await tvWaitFor(`(() => { const l = document.getElementById('worker-jobs-list'); return l && l.textContent.includes('প্লাম্বার') && l.textContent.includes('BID WORKER B'); })()`);
       const tvWorkerJobsCalled = tvRequestedUrls.slice(tvReqBefore).some((u) => u.includes('/api/worker/jobs'));
-      check(tvWorkerListed && tvWorkerJobsCalled, 'UI: worker tab lists worker jobs via GET /api/worker/jobs', JSON.stringify({ listed: tvWorkerListed, apiCalled: tvWorkerJobsCalled }));
+      const tvWorkerListText = await tvEval(`document.getElementById('worker-jobs-list') ? document.getElementById('worker-jobs-list').textContent : ''`);
+      check(tvWorkerListed && tvWorkerJobsCalled && tvWorkerListText.includes('৳'), 'UI: worker tab lists worker jobs via GET /api/worker/jobs — rows show price/deadline/worker name (bn trade label প্লাম্বার)', JSON.stringify({ listed: tvWorkerListed, apiCalled: tvWorkerJobsCalled, text: tvWorkerListText.slice(0, 160) }));
       // --- New-job prompt fills the price. ---
       await tvEval(`localStorage.setItem('dc_token', ${JSON.stringify(tvUIHirerToken)});`);
       await tvNav(tvBaseUI + '/');
@@ -3201,12 +3251,23 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       const tvWorkerEls = JSON.parse(await tvEval(`JSON.stringify({myjobs: !!document.getElementById('w-myjobs'), freeOtp: document.querySelectorAll('.free-otp').length, freeText: [...document.querySelectorAll('.free-otp')].every((e) => e.textContent.includes('Verification is free')), callHref: document.getElementById('w-call') ? document.getElementById('w-call').href : ''})`));
       check(tvWorkerEls.myjobs === true && tvWorkerEls.freeOtp === 3 && tvWorkerEls.freeText === true && tvWorkerEls.callHref.startsWith('tel:'), 'fix-ups: worker page shows #w-myjobs, three .free-otp elements with the free-verification text, and #w-call with a tel: href', JSON.stringify(tvWorkerEls));
       await tvClickAt(`document.getElementById('w-confirm')`);
-      const tvOtpShown = await tvWaitFor(`(() => { const t = document.getElementById('w-otp-note-text'); return t && t.textContent.trim().length === 6; })()`);
-      const tvOtpCode = await tvEval(`document.getElementById('w-otp-note-text').textContent.trim()`);
-      check(tvOtpShown, 'fix-ups: worker-confirm OTP is shown on the worker page (sandbox code)', 'code ' + tvOtpCode);
+      // Improvement pass 2026-11-27 (DELIBERATE): the sandbox code is
+      // no longer bare 6 digits — it carries the "Demo code (test only)
+      // — in real use the code arrives by SMS:" prefix, so the check
+      // extracts the 6 digits instead of requiring length 6.
+      const tvOtpShown = await tvWaitFor(`(() => { const t = document.getElementById('w-otp-note-text'); return t && /[0-9]{6}/.test(t.textContent); })()`);
+      const tvOtpNote = await tvEval(`document.getElementById('w-otp-note-text').textContent`);
+      const tvOtpCode = (tvOtpNote.match(/[0-9]{6}/) || [])[0] || '';
+      check(tvOtpShown && tvOtpCode.length === 6 && tvOtpNote.includes('SMS'), 'fix-ups: worker-confirm OTP is shown on the worker page (sandbox code with the demo-code/SMS prefix)', 'code ' + tvOtpCode);
       await tvEval(`(() => { const i = document.getElementById('w-otp'); i.value = ${JSON.stringify(tvOtpCode)}; })()`);
       await tvClickAt(`document.getElementById('w-confirm-send')`);
-      const tvConfirmed = await tvWaitFor(`(() => { const t = localStorage.getItem('dc_token'); const sec = document.getElementById('w-myjobs'); return t && t.length > 10 && sec && !sec.hidden; })()`);
+      // Test-timing fix 2026-11-27: the old wait (token present +
+      // section visible) was satisfiable by STALE state — load()
+      // fetches My jobs with whatever dc_token the browser already
+      // holds, so with a leftover hirer token the section shows
+      // (empty, wrong account) before the post-confirm fetch lands.
+      // Wait for the post-confirm list content itself instead.
+      const tvConfirmed = await tvWaitFor(`(() => { const l = document.getElementById('w-myjobs-list'); return l && l.textContent.includes('ELECTRICIAN'); })()`);
       const tvDcToken = await tvEval(`localStorage.getItem('dc_token') || ''`);
       const tvMyJobsText = await tvEval(`document.getElementById('w-myjobs-list') ? document.getElementById('w-myjobs-list').textContent : ''`);
       check(tvConfirmed && tvDcToken.length > 10 && tvMyJobsText.includes('ELECTRICIAN'), 'fix-ups: confirming with a worker-confirm OTP stores dc_token and shows My jobs', JSON.stringify({ confirmed: tvConfirmed, hasToken: tvDcToken.length > 10, list: tvMyJobsText.slice(0, 160) }));
@@ -3244,14 +3305,19 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       await tvCdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
       await tvNav(tvBaseUI + '/trip/' + tvTripToken);
       tvNoScroll(JSON.parse(await tvMeasure()), '3D: trip page 390x844 fits one viewport (no page scroll)');
-      const tvTrip390 = JSON.parse(await tvEval(`JSON.stringify({hasStyle: !!document.querySelector('link[href$="style.css"]'), hasL: typeof window.L !== 'undefined', mapH: document.getElementById('trip-map') ? Math.round(document.getElementById('trip-map').getBoundingClientRect().height) : 0, mapBottom: document.getElementById('trip-map') ? Math.round(document.getElementById('trip-map').getBoundingClientRect().bottom) : 0})`));
+      const tvTrip390 = JSON.parse(await tvEval(`JSON.stringify({hasStyle: !!document.querySelector('link[href$="style.css"]'), hasL: typeof window.L !== 'undefined', mapH: document.getElementById('trip-map') ? Math.round(document.getElementById('trip-map').getBoundingClientRect().height) : 0, mapBottom: document.getElementById('trip-map') ? Math.round(document.getElementById('trip-map').getBoundingClientRect().bottom) : 0, fbVisible: !!document.getElementById('trip-fallback') && !document.getElementById('trip-fallback').hidden, fbSvg: !!document.querySelector('#trip-fallback svg'), fbBg: document.getElementById('trip-fallback') ? getComputedStyle(document.getElementById('trip-fallback')).backgroundColor : ''})`));
       check(tvTrip390.hasStyle === true && tvTrip390.hasL === true, 'fix-ups: loaded trip page has a stylesheet ending in style.css and Leaflet (window.L) is defined', JSON.stringify(tvTrip390));
-      check(tvTrip390.mapH > 100 && tvTrip390.mapBottom <= 844, '3D: trip page 390x844 — the map takes the leftover height within one viewport', JSON.stringify(tvTrip390));
+      // Improvement pass 2026-11-27 (DELIBERATE): with tiles blocked the
+      // trip page shows the dotted schematic fallback INSTEAD of the
+      // live map (#trip-map hidden -> height 0). Either state is
+      // correct; a blank void is not. The old 390 check passed only
+      // because the fallback had not fired yet when it measured.
+      check((tvTrip390.mapH > 100 && tvTrip390.mapBottom <= 844) || (tvTrip390.fbVisible === true && tvTrip390.fbSvg === true && tvTrip390.fbBg === 'rgb(251, 250, 247)'), '3D: trip page 390x844 — the map takes the leftover height within one viewport, or the dotted schematic fallback replaces it on paper #FBFAF7 (tiles blocked) — never a blank void', JSON.stringify(tvTrip390));
       await tvCdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
       await tvNav(tvBaseUI + '/trip/' + tvTripToken);
       tvNoScroll(JSON.parse(await tvMeasure()), '3D: trip page 1440x900 fits one viewport (no page scroll)');
-      const tvTrip1440 = JSON.parse(await tvEval(`JSON.stringify({mapH: document.getElementById('trip-map') ? Math.round(document.getElementById('trip-map').getBoundingClientRect().height) : 0, mapBottom: document.getElementById('trip-map') ? Math.round(document.getElementById('trip-map').getBoundingClientRect().bottom) : 0})`));
-      check(tvTrip1440.mapH > 100 && tvTrip1440.mapBottom <= 900, '3D: trip page 1440x900 — the map takes the leftover height within one viewport', JSON.stringify(tvTrip1440));
+      const tvTrip1440 = JSON.parse(await tvEval(`JSON.stringify({mapH: document.getElementById('trip-map') ? Math.round(document.getElementById('trip-map').getBoundingClientRect().height) : 0, mapBottom: document.getElementById('trip-map') ? Math.round(document.getElementById('trip-map').getBoundingClientRect().bottom) : 0, fbVisible: !!document.getElementById('trip-fallback') && !document.getElementById('trip-fallback').hidden, fbSvg: !!document.querySelector('#trip-fallback svg'), fbBg: document.getElementById('trip-fallback') ? getComputedStyle(document.getElementById('trip-fallback')).backgroundColor : ''})`));
+      check((tvTrip1440.mapH > 100 && tvTrip1440.mapBottom <= 900) || (tvTrip1440.fbVisible === true && tvTrip1440.fbSvg === true && tvTrip1440.fbBg === 'rgb(251, 250, 247)'), '3D: trip page 1440x900 — the map takes the leftover height within one viewport, or the dotted schematic fallback replaces it on paper #FBFAF7 (tiles blocked) — never a blank void', JSON.stringify(tvTrip1440));
       // --- Bidding pick screen: one profile card per bid; picking animates. ---
       await tvEval(`localStorage.setItem('dc_token', ${JSON.stringify(tvUIHirerToken)});`);
       await tvNav(tvBaseUI + '/');
@@ -3262,6 +3328,155 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       const tvPicked = await tvWaitFor(`!document.getElementById('view-detail').hidden`);
       const tvPickedAnim = await tvEval(`(() => { const v = document.getElementById('view-detail'); const s = document.getElementById('success-check'); return JSON.stringify({viewAnim: v ? v.className : '', checkVisible: s ? !s.hidden : false}); })()`);
       check(tvPicked && (tvPickedAnim.includes('view-enter') || tvPickedAnim.includes('view-enter-fwd') || tvPickedAnim.includes('view-enter-back')) && JSON.parse(tvPickedAnim).checkVisible === true, '3D: picking a bid animates the new record into view (view-enter) with the success check', tvPickedAnim);
+      // --- Improvement pass 2026-11-27: new browser coverage. ---
+      // Fresh profile defaults to Bangla (language default is 'bn').
+      await tvEval(`localStorage.clear();`);
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+      await tvNav(tvBaseUI + '/');
+      const tvBnCta = await tvEval(`document.getElementById('cta-start') ? document.getElementById('cta-start').textContent.trim() : ''`);
+      check(tvBnCta === 'রেকর্ড শুরু করুন', 'improve: fresh profile defaults to Bangla — the hero Start button reads রেকর্ড শুরু করুন', tvBnCta);
+      const tvBnTag = await tvEval(`document.querySelector('[data-i18n="demo.liveTag"]') ? document.querySelector('[data-i18n="demo.liveTag"]').textContent.trim() : ''`);
+      check(tvBnTag.includes('নমুনা'), 'improve: fresh profile defaults to Bangla — the demo tag reads নমুনা ডেমো · ঢাকা (SIMULATED in English)', tvBnTag);
+      // Prompt auto-grow: five lines grow the box past its rows=2 start, capped at 156px of content height.
+      const tvAg0 = JSON.parse(await tvEval(`(() => { const i = document.getElementById('prompt-input'); return JSON.stringify({h: Math.round(i.getBoundingClientRect().height), sh: i.style.height}); })()`));
+      await tvEval(`(() => { const i = document.getElementById('prompt-input'); i.value = ['line one', 'line two', 'line three', 'line four', 'line five'].join(String.fromCharCode(10)); i.dispatchEvent(new Event('input', {bubbles: true})); })()`);
+      await sleep(400);
+      const tvAg1 = JSON.parse(await tvEval(`(() => { const i = document.getElementById('prompt-input'); return JSON.stringify({h: Math.round(i.getBoundingClientRect().height), sh: i.style.height}); })()`));
+      check(tvAg1.h > tvAg0.h && parseInt(tvAg1.sh, 10) <= 156, 'improve: prompt textarea auto-grows with longer input (rows=2 start, content height capped at 156px)', JSON.stringify({ before: tvAg0, after: tvAg1 }));
+      // Chips are tappable buttons, not spans.
+      await tvEval(`(() => { const i = document.getElementById('prompt-input'); i.value = 'need a painter for 2 rooms by Sunday'; i.dispatchEvent(new Event('input', {bubbles: true})); })()`);
+      await sleep(400);
+      const tvChipBtns = JSON.parse(await tvEval(`JSON.stringify([...document.querySelectorAll('#prompt-chips .chip')].map((c) => c.tagName))`));
+      check(tvChipBtns.length > 0 && tvChipBtns.every((t) => t === 'BUTTON'), 'improve: prompt chips are tappable <button> elements (not spans)', JSON.stringify(tvChipBtns));
+      // Demo banner: tapping the demo seeds a demo and the banner shows with Restart/Exit.
+      await tvClickAt(`document.getElementById('cta-demo')`);
+      const tvDemoBanner = await tvWaitFor(`(() => { const b = document.getElementById('demo-banner'); return b && !b.hidden; })()`);
+      const tvDemoBannerText = await tvEval(`document.getElementById('demo-banner') ? document.getElementById('demo-banner').textContent : ''`);
+      check(tvDemoBanner && tvDemoBannerText.includes('ডেমো') && (await tvEval(`!!document.getElementById('demo-restart') && !!document.getElementById('demo-exit')`)), 'improve: demo mode shows the demo banner (ডেমো — not a real record) with Restart/Exit buttons', tvDemoBannerText.slice(0, 120));
+      // Demo stops at Arrived: step to the end, wait past one auto-play
+      // tick, the status must not move (no auto-play, no wrap-around).
+      await tvEval(`localStorage.clear();`);
+      await tvNav(tvBaseUI + '/');
+      let tvStopStatus = await tvEval(`document.getElementById('demo-status').textContent`);
+      for (let tvSi = 0; tvSi < 4 && !tvStopStatus.includes('পৌঁছেছে'); tvSi++) { await tvClickAt(`document.getElementById('demo-next')`); tvStopStatus = await tvEval(`document.getElementById('demo-status').textContent`); }
+      await sleep(3000);
+      const tvStopStatus2 = await tvEval(`document.getElementById('demo-status').textContent`);
+      check(tvStopStatus.includes('পৌঁছেছে') && tvStopStatus2 === tvStopStatus, 'improve: demo stops at Arrived — no auto-play past the last state', JSON.stringify({ atEnd: tvStopStatus, after3s: tvStopStatus2 }));
+      // Passport tabs swap panels, exactly one visible, no scroll.
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+      await tvNav(tvBaseUI + '/passport/' + demoProfileId);
+      await tvWaitFor(`!!document.querySelector('.profile-card')`);
+      check(await tvEval(`!!document.getElementById('pp-tab-1') && !!document.getElementById('pp-tab-2')`), 'improve: passport has two tabs (পরিচয় | সম্পন্ন কাজ)', '');
+      await tvClickAt(`document.getElementById('pp-tab-2')`);
+      await sleep(400);
+      const tvPpTabs = JSON.parse(await tvEval(`JSON.stringify({p1hidden: document.getElementById('pp-panel-1').hidden, p2hidden: document.getElementById('pp-panel-2').hidden})`));
+      check(tvPpTabs.p1hidden === true && tvPpTabs.p2hidden === false, 'improve: passport tabs swap panels — exactly one visible, neither scrolls', JSON.stringify(tvPpTabs));
+      tvNoScroll(JSON.parse(await tvMeasure()), 'improve: passport page with panel 2 open still fits one viewport');
+      // Receipt card: top of step 4, acknowledged payment, Share/Print/Copy.
+      await tvEval(`localStorage.setItem('dc_token', ${JSON.stringify(tvUIHirerToken)}); localStorage.setItem('dc_user', ${JSON.stringify(JSON.stringify({ phone: tvUIHirerPhone, name: 'Rahim Uddin' }))});`);
+      await tvNav(tvBaseUI + '/');
+      await tvOpenJob(tvUIJobId);
+      await tvClickAt(`document.querySelector('#view-detail .tabs button[data-tab="s4"]')`);
+      await sleep(400);
+      const tvReceipt2 = JSON.parse(await tvEval(`(() => { const rc = document.getElementById('receipt-card'); if (!rc) return JSON.stringify({missing: true}); const form = document.getElementById('form-pay'); return JSON.stringify({visible: !rc.hidden, copy: !!document.getElementById('btn-receipt-copy'), share: !!document.getElementById('btn-receipt-share'), print: !!document.getElementById('btn-receipt-print'), beforeForm: !!(form && (rc.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0), text: rc.textContent}); })()`));
+      check(tvReceipt2.visible === true && tvReceipt2.copy === true && tvReceipt2.share === true && tvReceipt2.print === true && tvReceipt2.beforeForm === true && tvReceipt2.text.includes('৳5,000') && tvReceipt2.text.includes('কোনো টাকা রাখে না'), 'improve: receipt sits at the top of step 4 for the acknowledged payment (৳5,000) with Share/Print/Copy and the acknowledgement-only line', tvReceipt2.text.slice(0, 160));
+      // Resend buttons exist: login OTP resend + job-detail confirm resend.
+      check(await tvEval(`!!document.getElementById('otp-resend') && !!document.getElementById('btn-confirm-resend')`), 'improve: resend buttons exist (login #otp-resend, job detail #btn-confirm-resend)', '');
+      // Sticky cheapest bar + LOWEST pill on the cheapest LIVE bid only.
+      // A FRESH bid job: accepting a bid marks the losers NOT_SELECTED,
+      // so the earlier fixture has no LIVE bid left and the bar hides.
+      const tvBarPost = await tvReqUI('/api/bid-jobs', tvAjUI(tvUIHirerToken, { trade: 'PLUMBER', description: 'Sticky bar fixture', site: { lat: 23.8103, lng: 90.4125 } }));
+      if (tvBarPost.status !== 201) throw new Error('improve: sticky-bar fixture bid job failed: ' + tvBarPost.status);
+      const tvBarJobId = tvBarPost.body.bidJob.id;
+      const tvBarA = await tvReqUI(`/api/bid-jobs/${tvBarJobId}/bids`, tvAjUI(tvPickA, { amount: 4500, note: 'Including materials', earliestStart: '2026-11-28' }));
+      const tvBarB = await tvReqUI(`/api/bid-jobs/${tvBarJobId}/bids`, tvAjUI(tvPickB, { amount: 3800, note: 'Can start tomorrow', earliestStart: '2026-11-28' }));
+      if (tvBarA.status !== 201 || tvBarB.status !== 201) throw new Error('improve: sticky-bar fixture bids failed: ' + tvBarA.status + '/' + tvBarB.status);
+      await tvNav(tvBaseUI + '/');
+      await tvOpenBidDetail(tvBarJobId);
+      const tvBidBar = JSON.parse(await tvEval(`(() => { const bar = document.getElementById('bid-cheapest-bar'); if (!bar) return JSON.stringify({missing: true}); const cs = getComputedStyle(bar); return JSON.stringify({visible: !bar.hidden, sticky: cs.position === 'sticky', text: (document.getElementById('bid-cheapest-text') || {}).textContent || ''}); })()`));
+      check(tvBidBar.visible === true && tvBidBar.sticky === true && tvBidBar.text.includes('সবচেয়ে কম') && tvBidBar.text.includes('৳'), 'improve: bidding pick screen has the sticky cheapest-LIVE bar', JSON.stringify(tvBidBar));
+      const tvLowest = JSON.parse(await tvEval(`JSON.stringify([...document.querySelectorAll('#bid-list .pill-orange')].map((p) => p.textContent.trim()))`));
+      check(tvLowest.filter((t) => t === 'সবচেয়ে কম' || t === 'Lowest').length === 1, 'improve: LOWEST pill appears exactly once, on the cheapest LIVE bid only (the other orange pills are the Phone-verified badges)', JSON.stringify(tvLowest));
+      // More sheet: segmented nav switches panels; billing shows the fee-paid pill.
+      await tvNav(tvBaseUI + '/');
+      await tvOpenJob(tvUIJobId);
+      await tvClickAt(`document.getElementById('btn-more-job')`);
+      await sleep(500);
+      const tvMoreNav = JSON.parse(await tvEval(`JSON.stringify([...document.querySelectorAll('#more-nav button')].map((b) => b.getAttribute('data-panel')))`));
+      check(JSON.stringify(tvMoreNav) === JSON.stringify(['change', 'dispute', 'passport', 'billing']), 'improve: More sheet has segmented nav (বদল | সমস্যা | পাসপোর্ট | বিল)', JSON.stringify(tvMoreNav));
+      await tvClickAt(`document.querySelector('#more-nav button[data-panel="dispute"]')`);
+      await sleep(300);
+      const tvMorePanels = JSON.parse(await tvEval(`JSON.stringify({changeHidden: document.getElementById('tab-change').hidden, disputeHidden: document.getElementById('tab-dispute').hidden, closeRadios: !!document.getElementById('close-mode-otp') && !!document.getElementById('close-anyway')})`));
+      check(tvMorePanels.changeHidden === true && tvMorePanels.disputeHidden === false && tvMorePanels.closeRadios === true, 'improve: More nav switches panels; the dispute panel carries the two close-method radios', JSON.stringify(tvMorePanels));
+      await tvClickAt(`document.querySelector('#more-nav button[data-panel="billing"]')`);
+      // Fee-paid pill: the fixture job's ৳10 fee was paid via API, so the
+      // pill only lights once the app learns the fee is paid. The in-app
+      // path does that: Pay reuses the existing VERIFIED charge (no second
+      // charge, server/routes/billing.js), and the verify step returns
+      // VERIFIED idempotently for a charge that is already VERIFIED, so
+      // any 6 digits complete it.
+      await tvEval(`document.querySelector('#btn-caas').click()`);
+      await tvWaitFor(`!!document.querySelector('#caas-otp')`, 10000, 'improve: fee-paid pill — CaaS OTP form did not appear');
+      await tvEval(`document.querySelector('#caas-otp').value='000000'`);
+      await tvEval(`document.querySelector('#caas-verify').click()`);
+      const tvFeePillShown = await tvWaitFor(`(() => { const p = document.getElementById('caas-paid-pill'); return p && !p.hidden; })()`);
+      const tvFeePill = JSON.parse(await tvEval(`(() => { const p = document.getElementById('caas-paid-pill'); if (!p) return JSON.stringify({missing: true}); return JSON.stringify({visible: !p.hidden, text: p.textContent.trim()}); })()`));
+      check(tvFeePillShown && tvFeePill.visible === true && tvFeePill.text.includes('৳10'), 'improve: fee-paid pill shows in the More billing panel once the ৳10 record fee is paid', JSON.stringify(tvFeePill));
+      // Open-items fix (e): the fee-paid pill must light from SERVER
+      // state alone. Reload the page — the in-memory feePaidForJob flag
+      // from this session's verify tap is gone in the fresh JS context —
+      // reopen the job and the More billing panel: the pill can only
+      // show if loadBillingStatus reads job-detail fee.paid (primary)
+      // or the billing jobs[] feePaid (secondary) from the server.
+      await tvNav(tvBaseUI + '/');
+      await tvOpenJob(tvUIJobId);
+      await tvClickAt(`document.getElementById('btn-more-job')`);
+      await sleep(500);
+      await tvClickAt(`document.querySelector('#more-nav button[data-panel="billing"]')`);
+      const tvFeePillFresh = await tvWaitFor(`(() => { const p = document.getElementById('caas-paid-pill'); return p && !p.hidden; })()`);
+      const tvFeeFresh = JSON.parse(await tvEval(`(() => { const p = document.getElementById('caas-paid-pill'); const c = document.getElementById('btn-caas'); return JSON.stringify({pillVisible: !!(p && !p.hidden), pillText: p ? p.textContent.trim() : '', caasHidden: !!(c && c.hidden)}); })()`));
+      check(tvFeePillFresh && tvFeeFresh.pillVisible === true && tvFeeFresh.pillText.includes('৳10'), 'open-items: fee-paid pill shows after a FRESH page load (fee paid on the server, no in-memory flag set)', JSON.stringify(tvFeeFresh));
+      check(tvFeeFresh.caasHidden === true, 'open-items: Pay ৳10 button is hidden after a fresh load once the server says the fee is paid', JSON.stringify(tvFeeFresh));
+      // Open-items fix (f): the More billing "ব্যবহারের হিসাব" (Usage
+      // metrics) link must sit fully inside the sheet — the old inner
+      // scroller used to cut it half off below the sheet's bottom edge.
+      const tvMetricsLink = JSON.parse(await tvEval(`(() => { const a = document.querySelector('#tab-billing a[href="/metrics"]'); const s = document.getElementById('sheet-more'); if (!a || !s) return JSON.stringify({missing: true}); const r = a.getBoundingClientRect(); const sr = s.getBoundingClientRect(); return JSON.stringify({top: Math.round(r.top), bottom: Math.round(r.bottom), left: Math.round(r.left), right: Math.round(r.right), sheetTop: Math.round(sr.top), sheetBottom: Math.round(sr.bottom), sheetLeft: Math.round(sr.left), sheetRight: Math.round(sr.right), text: a.textContent.trim()}); })()`));
+      check(tvMetricsLink.missing !== true && tvMetricsLink.text.includes('ব্যবহারের হিসাব') && tvMetricsLink.top >= tvMetricsLink.sheetTop - 1 && tvMetricsLink.bottom <= tvMetricsLink.sheetBottom + 1 && tvMetricsLink.left >= tvMetricsLink.sheetLeft - 1 && tvMetricsLink.right <= tvMetricsLink.sheetRight + 1, 'open-items: More billing "ব্যবহারের হিসাব" link is fully visible inside the sheet', JSON.stringify(tvMetricsLink));
+      await tvEval(`(() => { const b = document.querySelector('#sheet-more [data-close]'); if (b) b.click(); })()`);
+      await sleep(400);
+      // Open-items fix (f): step 3 at 1440x900 — the tightened map /
+      // fallback (160px, was 260px) keeps the whole page in one
+      // viewport AND the fallback schematic inside the first viewport.
+      await tvClickAt(`document.querySelector('#view-detail .tabs button[data-tab="s3"]')`);
+      await sleep(600);
+      const tvS3x1440 = JSON.parse(await tvEval(`(() => { const fb = document.getElementById('loc-fallback'); const fr = fb ? fb.getBoundingClientRect() : {bottom: -1}; return JSON.stringify({sh: document.documentElement.scrollHeight, ih: window.innerHeight, fbBottom: Math.round(fr.bottom), fbVisible: !!(fb && !fb.hidden)}); })()`));
+      check(tvS3x1440.sh <= tvS3x1440.ih + 2 && (!tvS3x1440.fbVisible || tvS3x1440.fbBottom <= tvS3x1440.ih + 2), 'open-items: step 3 at 1440x900 fits one viewport and the fallback schematic sits inside it', JSON.stringify(tvS3x1440));
+      // Open-items fix (f): step 4 at 1440x900 — no inner horizontal
+      // scrollbar anywhere. The real scroller is #detail-scroll (the
+      // receipt card's 8px margin fix did NOT remove it — verified
+      // 2026-11-27: #detail-scroll still overflows 3–72px at 1440px),
+      // so it is measured directly, plus document, panel and card.
+      await tvClickAt(`document.querySelector('#view-detail .tabs button[data-tab="s4"]')`);
+      await sleep(400);
+      const tvS4x = JSON.parse(await tvEval(`(() => { const d = document.getElementById('detail-scroll'); const t = document.getElementById('tab-s4'); const rc = document.getElementById('receipt-card'); return JSON.stringify({docSw: document.documentElement.scrollWidth, iw: window.innerWidth, dsSw: d ? d.scrollWidth : -1, dsCw: d ? d.clientWidth : -1, tabSw: t ? t.scrollWidth : -1, tabCw: t ? t.clientWidth : -1, rcSw: rc ? rc.scrollWidth : -1, rcCw: rc ? rc.clientWidth : -1}); })()`));
+      check(tvS4x.docSw <= tvS4x.iw + 2 && tvS4x.dsSw <= tvS4x.dsCw + 2 && tvS4x.tabSw <= tvS4x.tabCw + 2 && tvS4x.rcSw <= tvS4x.rcCw + 2, 'open-items: step 4 at 1440x900 has no inner horizontal scrollbar (document, #detail-scroll, step-4 panel, receipt card)', JSON.stringify(tvS4x));
+      // Open-items fix (f): step 3 at 390x844 — same one-viewport fit
+      // on the small screen.
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+      await tvNav(tvBaseUI + '/');
+      await tvOpenJob(tvUIJobId);
+      await tvClickAt(`document.querySelector('#view-detail .tabs button[data-tab="s3"]')`);
+      await sleep(600);
+      const tvS3x390 = JSON.parse(await tvEval(`(() => { const fb = document.getElementById('loc-fallback'); const fr = fb ? fb.getBoundingClientRect() : {bottom: -1}; return JSON.stringify({sh: document.documentElement.scrollHeight, ih: window.innerHeight, fbBottom: Math.round(fr.bottom), fbVisible: !!(fb && !fb.hidden)}); })()`));
+      check(tvS3x390.sh <= tvS3x390.ih + 2 && (!tvS3x390.fbVisible || tvS3x390.fbBottom <= tvS3x390.ih + 2), 'open-items: step 3 at 390x844 fits one viewport and the fallback schematic sits inside it', JSON.stringify(tvS3x390));
+      await tvEval(`(() => { const b = document.querySelector('#sheet-more [data-close]'); if (b) b.click(); })()`);
+      await sleep(400);
+      // Worker page after confirm: confirm button hidden, banner reads Confirmed.
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+      await tvNav(tvBaseUI + '/worker.html?lang=en&token=' + tvF5Token);
+      await tvWaitFor(`!!document.querySelector('.profile-card')`);
+      const tvWBanner = JSON.parse(await tvEval(`JSON.stringify({banner: (document.getElementById('w-step-banner') || {}).textContent || '', confirmHidden: document.getElementById('w-confirm') ? document.getElementById('w-confirm').hidden : null})`));
+      check(tvWBanner.confirmHidden === true && tvWBanner.banner.includes('Confirmed'), 'improve: after confirming, the worker confirm button is hidden and the step banner reads Confirmed', JSON.stringify(tvWBanner));
       // --- No uncaught page errors anywhere in the flow. ---
       check(tvPageErrors.length === 0, 'UI: no uncaught page errors anywhere in the flow', tvPageErrors.join(' | ').slice(0, 1000));
     } finally {
@@ -3272,6 +3487,131 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     }
   }
 
+
+  // =====================================================================
+  // Improvement pass 2026-11-27 — palette, parser, verify-pack,
+  // metrics, BidJob deadline, worker/trip/passport/verify/More files.
+  // (File-level + API checks; the browser half lives in the trim
+  // browser block, before the page-errors check.)
+  // =====================================================================
+  console.log('== improvement pass 2026-11-27: palette, parser, verify-pack, metrics ==');
+  {
+    const ROOT_I = path.resolve(import.meta.dirname, '..', '..');
+    // --- palette: warm paper tokens (page #F4F2EE, cards #FBFAF7) ---
+    const impCss = fs.readFileSync(path.resolve(ROOT_I, 'public', 'style.css'), 'utf8');
+    check(/--page\s*:\s*#F4F2EE/i.test(impCss) && /--paper\s*:\s*#FBFAF7/i.test(impCss) && /--line-light\s*:\s*#E3DED4/i.test(impCss) && /--orange\s*:\s*#FF5A1F/i.test(impCss), 'improve: palette tokens are warm paper — page #F4F2EE, cards #FBFAF7, borders #E3DED4, orange #FF5A1F unchanged', '');
+    check(impCss.includes('--text-orange:#c73e0e'), 'improve: dark-orange text token stays #c73e0e (pinned at line 926, do not change)', '');
+    check(/\.section-white\s*\{\s*background\s*:\s*var\(--paper\)/.test(impCss), 'improve: light sections use the paper token, not a hard-coded white', '');
+    // No pure-white LARGE surfaces in the main stylesheet: every
+    // background:#fff rule must be one of the deliberate exceptions
+    // (QR quiet zone, map-dot borders, small nav controls).
+    const impWhiteSel = [];
+    {
+      const impRuleRe = /([^{}]+)\{([^{}]*)\}/g;
+      let impM;
+      while ((impM = impRuleRe.exec(impCss))) {
+        if (/background\s*:\s*#fff(?![0-9a-f])/i.test(impM[2])) impWhiteSel.push(impM[1].trim().replace(/\s+/g, ' '));
+      }
+    }
+    const impWhiteAllow = ['.skip-link', '.menu-btn[aria-expanded="true"]', '.lang-toggle button[aria-pressed="true"]', '.btn-ghost::before', '.cmp .cmp-handle', '.pp-qr', '.demo-player .btn-dark-ghost::before', '.demo-player .btn-dark-ghost:hover'];
+    check(impWhiteSel.length > 0 && impWhiteSel.every((sel) => impWhiteAllow.includes(sel)), 'improve: no pure-white (#fff) large surfaces remain in style.css — only the QR quiet zone, map-dot borders and small nav controls keep white', 'white-background rules: ' + impWhiteSel.join(' | '));
+    check(!/#ffffff/i.test(impCss), 'improve: no #ffffff anywhere in style.css', '');
+    for (const page of ['index.html', 'worker.html', 'passport.html']) {
+      const html = fs.readFileSync(path.resolve(ROOT_I, 'public', page), 'utf8');
+      check(!/background\s*:\s*#fff(?![0-9a-f])/i.test(html), 'improve: ' + page + ' has no pure-white inline background (verify/metrics/trip-card still do — open item, see report)');
+    }
+    // Body-text contrast AA (>= 4.5:1) on the new backgrounds.
+    function impLum(hex) {
+      const c = [1, 3, 5].map((i) => parseInt(hex.substr(i, 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)));
+      return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    }
+    function impRatio(fg, bg) {
+      const a = impLum(fg), b = impLum(bg);
+      return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    }
+    const impBodyMin = Math.min(impRatio('#111111', '#FBFAF7'), impRatio('#111111', '#F4F2EE'));
+    check(impBodyMin >= 4.5, 'improve: body text #111111 on #FBFAF7/#F4F2EE passes WCAG AA', 'min ratio ' + impBodyMin.toFixed(2));
+    const impMutedMin = Math.min(impRatio('#555555', '#FBFAF7'), impRatio('#555555', '#F4F2EE'));
+    check(impMutedMin >= 4.5, 'improve: muted text #555555 on #FBFAF7/#F4F2EE passes WCAG AA', 'min ratio ' + impMutedMin.toFixed(2));
+    const impOrangeMin = Math.min(impRatio('#c73e0e', '#FBFAF7'), impRatio('#c73e0e', '#F4F2EE'));
+    check(impOrangeMin >= 4.5, 'improve: dark-orange text #c73e0e on #FBFAF7/#F4F2EE passes WCAG AA', 'min ratio ' + impOrangeMin.toFixed(2));
+    check(impRatio('#ffffff', '#111111') >= 4.5, 'improve: white text on the dark cards (#111) passes WCAG AA', 'ratio ' + impRatio('#ffffff', '#111111').toFixed(2));
+    // --- parser fixes: no bare-mistri default, bare numbers < 100 ignored ---
+    const impParseMod = await import(path.resolve(ROOT_I, 'server', 'src', 'prompt-parse.js'));
+    const impParse = impParseMod.parsePrompt || impParseMod.default?.parsePrompt;
+    const impMistri = impParse('mistri');
+    check(impMistri.trade === null, 'improve: parser — bare "mistri" on its own sets no trade (a mistri can be any trade)', JSON.stringify(impMistri));
+    const impBare50 = impParse('2 bedroom flat rewiring, 50');
+    check(impBare50.price === null, 'improve: parser — a bare number under 100 is ignored as a price ("2 bedroom flat rewiring, 50" -> price null)', JSON.stringify(impBare50));
+    const impCur50 = impParse('rewiring, ৳50');
+    check(impCur50.price === 50, 'improve: parser — a currency-marked number counts even under 100 ("rewiring, ৳50" -> 50)', JSON.stringify(impCur50));
+    // --- verify-pack API (fresh job, so nothing depends on the demo seed) ---
+    const impJob = await abCreateJob(token, { trade: 'ELECTRICIAN', workerPhone: '01900000090', workerName: 'Pack Worker', scope: 'Pack check job', price: 3000, deadline: '2026-12-20', milestones: [{ title: 'Advance', amount: 3000 }], answers: SEED_ANSWERS, skippedTerms: [] });
+    const impDetail = await abDetail(impJob.id, impJob.workerToken);
+    const impFp = impDetail.versions?.[0]?.fingerprint;
+    check(typeof impFp === 'string' && /^[0-9a-f]{64}$/.test(impFp), 'improve: verify-pack fixture — a fresh job has a 64-hex V1 fingerprint', String(impFp).slice(0, 12));
+    const impPack = await req('/api/verify-pack?fp=' + encodeURIComponent(impFp));
+    check(impPack.status === 200 && impPack.body?.jobId === impJob.id && Array.isArray(impPack.body?.versions) && Array.isArray(impPack.body?.events) && impPack.body?.chainHead === impDetail.chainHead, 'improve: GET /api/verify-pack?fp=<full> returns {jobId, versions, events, chainHead} for the job', 'chainHead match: ' + (impPack.body?.chainHead === impDetail.chainHead));
+    const impPack8 = await req('/api/verify-pack?fp=' + encodeURIComponent(impFp.slice(0, 8)));
+    check(impPack8.status === 200 && impPack8.body?.jobId === impJob.id, 'improve: GET /api/verify-pack accepts an 8-hex fingerprint prefix', 'status ' + impPack8.status);
+    const impPackNoFp = await req('/api/verify-pack');
+    check(impPackNoFp.status === 400, 'improve: GET /api/verify-pack without fp is 400', 'status ' + impPackNoFp.status);
+    const impPackMiss = await req('/api/verify-pack?fp=' + '0'.repeat(64));
+    check(impPackMiss.status === 200 && impPackMiss.body?.match === false, 'improve: GET /api/verify-pack for an unknown fingerprint is {match:false}', JSON.stringify(impPackMiss.body));
+    const impVerifyHtml = fs.readFileSync(path.resolve(ROOT_I, 'public', 'verify.html'), 'utf8');
+    check(impVerifyHtml.includes("fetch('/api/verify-pack?fp='"), 'improve: verify page auto-fetches /api/verify-pack for the superseded-version button', '');
+    check(impVerifyHtml.includes('validFp') && impVerifyHtml.includes('scan-btn') && impVerifyHtml.includes('BarcodeDetector'), 'improve: verify page validates fingerprints, hides the scan button without BarcodeDetector, and keeps the collapsed pack section', '');
+    // --- metrics: applinkMode + generatedAt ---
+    const impMetrics = await req('/api/metrics', { headers: { 'x-demo-token': 'test-demo-token' } });
+    check(impMetrics.status === 200 && impMetrics.body?.applinkMode === 'sandbox' && typeof impMetrics.body?.generatedAt === 'string' && impMetrics.body.generatedAt.length > 0, 'improve: /api/metrics carries applinkMode + generatedAt', JSON.stringify({ applinkMode: impMetrics.body?.applinkMode, generatedAt: impMetrics.body?.generatedAt }));
+    const impMetricsHtml = fs.readFileSync(path.resolve(ROOT_I, 'public', 'metrics.html'), 'utf8');
+    check(impMetricsHtml.includes('applinkMode') && impMetricsHtml.includes('generatedAt') && impMetricsHtml.includes('demoToken') && impMetricsHtml.includes('avg-segments-note'), 'improve: metrics page shows applinkMode/generatedAt rows, takes the token from the URL, and shows live avg SMS segments', '');
+    // --- BidJob deadline column + list rows carry price/deadline/worker_name ---
+    {
+      const { DatabaseSync } = await import('node:sqlite');
+      const impDb = new DatabaseSync(path.resolve(ROOT_I, 'server', 'data', 'dealcraft.db'));
+      const impCols = impDb.prepare('PRAGMA table_info(BidJob)').all().map((r) => r.name);
+      check(impCols.includes('deadline'), 'improve: BidJob has a deadline column (ALTER TABLE, not a table rebuild)', impCols.join(','));
+      impDb.close();
+    }
+    const impBidDl = await req('/api/bid-jobs', aj(token, { trade: 'PLUMBER', description: 'Deadline column check', deadline: '2026-12-20' }));
+    check(impBidDl.status === 201 && impBidDl.body?.bidJob?.deadline === '2026-12-20', 'improve: POST /api/bid-jobs stores the deadline on the BidJob', 'status ' + impBidDl.status + ' ' + JSON.stringify(impBidDl.body?.bidJob || null));
+    const impJobs = await req('/api/jobs', { headers: auth(token) });
+    check(impJobs.status === 200 && impJobs.body.jobs.length > 0 && impJobs.body.jobs.every((x) => 'price' in x && 'deadline' in x && 'worker_name' in x), 'improve: job list rows include price/deadline/worker_name (no detail fetch per row)', 'rows ' + impJobs.body.jobs.length);
+    const impWJobs = await req('/api/worker/jobs', { headers: auth(workerB) });
+    check(impWJobs.status === 200 && impWJobs.body?.everWorker === true, 'improve: GET /api/worker/jobs carries the everWorker boolean', 'everWorker ' + impWJobs.body?.everWorker);
+    // --- login / OTP / drafts (file-level) ---
+    const impAppJs = fs.readFileSync(path.resolve(ROOT_I, 'public', 'app.js'), 'utf8');
+    check(impAppJs.includes("localStorage.getItem('dc_lang')||'bn'"), 'improve: language default is bn (was en)', '');
+    check(impAppJs.includes('otp-resend') && impAppJs.includes('otp.resendIn'), 'improve: login OTP has a resend button with a countdown', '');
+    check(impAppJs.includes('৫ মিনিট') && impAppJs.includes('login.tooMany'), 'improve: login rate-limit message states the 5-minute wait', '');
+    check(impAppJs.includes('auto-submit the code form at 6 digits'), 'improve: login OTP auto-submits at 6 digits', '');
+    check(impAppJs.includes("localStorage.setItem('dc_draft'") && impAppJs.includes("localStorage.getItem('dc_draft'"), 'improve: new-job drafts persist in localStorage', '');
+    check(impAppJs.includes('E1855') && impAppJs.includes('otp.tooMany'), 'improve: AppLink E1855 (too many codes) maps to the 5-minute message, never a raw code', '');
+    // --- worker / trip / passport / More / receipt / bidding (file-level) ---
+    const impWorkerHtml = fs.readFileSync(path.resolve(ROOT_I, 'public', 'worker.html'), 'utf8');
+    check(impWorkerHtml.includes('w-step-banner') && impWorkerHtml.includes('w.bannerConfirmed'), 'improve: worker page has a step banner (step 2 / confirmed / active)', '');
+    check(impWorkerHtml.includes('acc>100') && impWorkerHtml.includes('wLocSchematic'), 'improve: worker location has the ≤100m accuracy gate and the schematic fallback', '');
+    check(impWorkerHtml.includes('w-photo-preview') && impWorkerHtml.includes('wDownscale') && impWorkerHtml.includes('1280'), 'improve: worker photo has a preview and a 1280px downscale before upload', '');
+    check(impWorkerHtml.includes('w-otp-resend') && impWorkerHtml.includes('w.demoCode') && impWorkerHtml.includes("w-confirm').hidden=true"), 'improve: worker OTP has resend + the demo-code label, and the confirm button hides once confirmed', '');
+    check(impWorkerHtml.includes('data-chip="w.chipUnfinished"') && impWorkerHtml.includes('data-chip="w.chipPayWrong"') && impWorkerHtml.includes('data-chip="w.chipQuality"'), 'improve: worker dispute reasons are tappable chips', '');
+    const impTripHtml = fs.readFileSync(path.resolve(ROOT_I, 'public', 'trip.html'), 'utf8');
+    check(impTripHtml.includes('showFallback') && impTripHtml.includes('tileerror') && impTripHtml.includes('trip-refresh') && impTripHtml.includes('r.status===404||r.status===410') && impTripHtml.includes('backoffMs'), 'improve: trip page has the schematic fallback, poll backoff, 404/410 end handling and a Refresh button', '');
+    const impPassHtml = fs.readFileSync(path.resolve(ROOT_I, 'public', 'passport.html'), 'utf8');
+    check(impPassHtml.includes('pp-tab-1') && impPassHtml.includes('pp-tab-2') && impPassHtml.includes('pShowPanel'), 'improve: passport has two tabs with exactly one panel visible', '');
+    check(impPassHtml.includes("localStorage.getItem('dc_lang')||'bn'") && impPassHtml.includes('qr.onerror'), 'improve: passport defaults to bn and has a QR fallback', '');
+    const impIndexHtml = fs.readFileSync(path.resolve(ROOT_I, 'public', 'index.html'), 'utf8');
+    check(/<button[^>]*id="jobs-empty"/.test(impIndexHtml), 'improve: jobs-empty is a tappable button, not a paragraph', '');
+    check(impIndexHtml.includes('more-nav') && impIndexHtml.includes('data-panel="change"') && impIndexHtml.includes('data-panel="dispute"') && impIndexHtml.includes('data-panel="passport"') && impIndexHtml.includes('data-panel="billing"'), 'improve: More sheet has segmented nav (বদল | সমস্যা | পাসপোর্ট | বিল)', '');
+    check(impIndexHtml.includes('caas-paid-pill') && impIndexHtml.includes('close-mode-otp') && impIndexHtml.includes('close-anyway'), 'improve: More sheet has the fee-paid pill and the two close-method radios', '');
+    check(impIndexHtml.includes('bid-cheapest-bar') && impIndexHtml.includes('position:sticky'), 'improve: bidding pick screen has the sticky cheapest bar', '');
+    check(impIndexHtml.includes('id="pay-confirm"'), 'improve: job detail has a payment confirm step', '');
+    check(impAppJs.includes('btn-pay-confirm'), 'improve: payment confirm step has its confirm button', '');
+    check(impIndexHtml.includes('site-nomap') && impIndexHtml.includes('id="site-map"'), 'improve: site picker is lazy with a #site-nomap fallback line', '');
+    check(impAppJs.includes('LOWEST pill is computed over LIVE bids only') && impAppJs.includes('bnToEn'), 'improve: LOWEST is computed over LIVE bids only, and bid amounts normalise Bengali digits', '');
+    check(impAppJs.includes('latest payment in ANY state') && impAppJs.includes('btn-receipt-copy') && impAppJs.includes('btn-receipt-share') && impAppJs.includes('btn-receipt-print'), 'improve: receipt renders for any payment state, with Share/Print/Copy', '');
+    check(impAppJs.includes("if(open&&!siteMap)initSiteMap()") && impAppJs.includes('reveal #new-details only once the prompt questions are done'), 'improve: site map initialises lazily on open; #new-details stays hidden until the prompt questions are done', '');
+  }
 
   console.log(`REGRESSION: PASS (${passed} assertions)`);
   code = 0;

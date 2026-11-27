@@ -10,7 +10,6 @@
 <title>DealCraft — Live trip</title>
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Oswald:wght@500;600;700&family=Noto+Sans+Bengali:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="style.css">
@@ -22,8 +21,10 @@
 body.trip-page{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
 body.trip-page .topbar{flex:none}
 body.trip-page main{flex:1;min-height:0;height:auto;display:flex;flex-direction:column;padding:12px 16px;overflow:hidden}
-#trip-map{flex:1;min-height:120px;height:auto;border:1px solid #222;background:#111;z-index:0;margin:10px 0}
-.trip-card{flex:none;background:#fff;color:#111;padding:14px 16px;border:1px solid #e6e6e6;box-shadow:6px 6px 0 #000}
+#trip-map{flex:1;min-height:120px;height:auto;border:1px solid #222;background:#FBFAF7;z-index:0;margin:10px 0}
+#trip-fallback{flex:1;min-height:120px;border:2px solid #111;background:#FBFAF7;margin:10px 0;z-index:0}
+#trip-fallback p{margin:6px 10px 10px;color:#555555}
+.trip-card{flex:none;background:#FBFAF7;color:#111;padding:14px 16px;border:1px solid #E3DED4;box-shadow:6px 6px 0 #000}
 .trip-card h1{font-family:'Oswald',sans-serif;font-size:24px;text-transform:uppercase;margin:6px 0}
 .trip-card p{margin:6px 0}
 body.trip-page main>.small{flex:none;margin:4px 0}
@@ -44,44 +45,117 @@ body.trip-page main>.small{flex:none;margin:4px 0}
     <p class="small">Only this trip's live location is shown. No phone number is shown here.</p>
   </div>
   <div id="trip-map" class="card-3d"></div>
-  <p class="small" id="trip-nomap" hidden>Map did not load — showing text only.</p>
+  <div id="trip-fallback" hidden></div>
   <p class="small" id="trip-err" hidden></p>
-  <p class="small"><a href="index.html">DealCraft home</a></p>
+  <p class="small"><button type="button" id="trip-refresh" style="padding:8px 14px;border:2px solid #111;background:#FBFAF7;color:#111;font-weight:700;cursor:pointer">Refresh / রিফ্রেশ</button> <a href="index.html">DealCraft home</a></p>
 </main>
 <script>
 (function(){'use strict';
 var token=new URLSearchParams(location.search).get('token')||location.pathname.split('/').pop();
 var map=null, marker=null, trail=null;
 var STATUS={'en-route':'En route','arriving':'Arriving','arrived':'Arrived on site','on-site':'On site','paused':'Paused','not-sharing':'Not sharing','stopped':'Sharing stopped'};
+var lastGood=null, lastUpdatedAt=null, pollTimer=null, backoffMs=10000, tileErrs=0, tileTimer=null, fallbackShown=false, tripEnded=false;
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+/* Fallback schematic — plain inline SVG, no network: dotted grid, dashed
+   route, orange worker dot, black site square. The site coordinates never
+   reach this page (/api/trip returns only the worker's fix), so the site
+   square is a fixed schematic landmark, not a real position. */
+function showFallback(){
+ var fb=document.getElementById('trip-fallback'); if(!fb)return;
+ var W=360,H=180,step=18,svg='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Trip schematic" style="display:block;width:100%">';
+ svg+='<defs><pattern id="tgrid" width="'+step+'" height="'+step+'" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.6" fill="#E3DED4"/></pattern></defs>';
+ svg+='<rect width="'+W+'" height="'+H+'" fill="#FBFAF7"/><rect width="'+W+'" height="'+H+'" fill="url(#tgrid)"/>';
+ var sx=292,sy=36, wx=68,wy=132;
+ if(lastGood){wx=40+((Math.abs(lastGood.lat*100)%1)*280);wy=40+((Math.abs(lastGood.lng*100)%1)*110);}
+ svg+='<line x1="'+wx.toFixed(0)+'" y1="'+wy.toFixed(0)+'" x2="'+sx+'" y2="'+sy+'" stroke="#FF5A1F" stroke-width="2" stroke-dasharray="6 6"/>';
+ svg+='<rect x="'+(sx-8)+'" y="'+(sy-8)+'" width="16" height="16" fill="#111111"/>';
+ svg+='<text x="'+(sx+14)+'" y="'+(sy+4)+'" font-size="11" font-family="monospace" fill="#111111">JOB SITE</text>';
+ if(lastGood){
+  svg+='<circle cx="'+wx.toFixed(0)+'" cy="'+wy.toFixed(0)+'" r="8" fill="#FF5A1F"/>';
+  svg+='<circle cx="'+wx.toFixed(0)+'" cy="'+wy.toFixed(0)+'" r="13" fill="none" stroke="#FF5A1F" stroke-width="1.5"/>';
+  svg+='<text x="'+(wx+16)+'" y="'+(wy+4)+'" font-size="11" font-family="monospace" fill="#111111">WORKER</text>';
+ }
+ svg+='</svg>';
+ svg+='<p>'+(lastGood?'Map unavailable — showing a schematic. / ম্যাপ খোলা যায়নি — স্কিম্যাটিক দেখানো হচ্ছে।':'Worker has not shared yet — showing the job site. / ওয়ার্কার এখনো শেয়ার করেননি — কাজের জায়গা দেখানো হচ্ছে।')+'</p>';
+ fb.innerHTML=svg; fb.hidden=false;
+ var m=document.getElementById('trip-map'); if(m)m.hidden=true;
+ fallbackShown=true;
+}
+function hideFallback(){
+ var fb=document.getElementById('trip-fallback'); if(fb){fb.hidden=true;fb.innerHTML='';}
+ var m=document.getElementById('trip-map'); if(m)m.hidden=false;
+ fallbackShown=false;
+}
 function initMap(lat,lng){
- if(typeof L==='undefined'){document.getElementById('trip-nomap').hidden=false;return;}
+ if(typeof L==='undefined'){showFallback();return;}
  map=L.map('trip-map').setView([lat,lng],14);
- L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+ var layer=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'});
+ layer.on('tileerror',function(){tileErrs++;if(tileErrs>=3)showFallback();});
+ layer.on('tileload',function(){tileErrs=0;if(tileTimer){clearTimeout(tileTimer);tileTimer=null;}if(fallbackShown)hideFallback();});
+ layer.addTo(map);
+ /* No tile at all within 6 s: the map is a blank box — show the schematic. */
+ tileTimer=setTimeout(function(){if(tileErrs===0&&!fallbackShown){/* tiles may still be loading; only fall back if none arrived */showFallback();}},6000);
  marker=L.marker([lat,lng],{icon:L.divIcon({className:'loc-dot',html:'<span class="loc-dot-in"></span>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(map);
  trail=L.polyline([[lat,lng]],{color:'#FF5A1F',weight:3}).addTo(map);
 }
+function agoText(ts){
+ if(!ts)return '';
+ var mins=Math.max(0,Math.round((Date.now()-new Date(ts).getTime())/60000));
+ return mins<1?'just now':mins===1?'1 min ago':mins+' min ago';
+}
+function schedulePoll(ms){
+ if(pollTimer)clearTimeout(pollTimer);
+ pollTimer=setTimeout(poll,ms);
+}
 async function poll(){
+ if(tripEnded)return;
  try{
   var r=await fetch('/api/trip/'+encodeURIComponent(token));
-  if(!r.ok)throw new Error('Trip link is not valid any more (HTTP '+r.status+').');
+  if(r.status===404||r.status===410){
+   tripEnded=true;
+   if(pollTimer)clearTimeout(pollTimer);
+   var el=document.getElementById('trip-err');el.hidden=false;
+   el.innerHTML='This trip link has ended — ask the worker to share a new trip. / এই ট্রিপ লিংকটি শেষ হয়ে গেছে — ওয়ার্কারকে নতুন ট্রিপ শেয়ার করতে বলুন। <a href="index.html">DealCraft home</a>';
+   document.getElementById('trip-status').textContent='Ended';
+   return;
+  }
+  if(!r.ok)throw new Error('HTTP '+r.status);
   var d=await r.json();
+  backoffMs=10000;
+  var errEl=document.getElementById('trip-err');errEl.hidden=true;errEl.textContent='';
   var trade=(d.trade||'WORKER').toUpperCase();
   document.getElementById('trip-title').textContent=trade+' — '+(d.worker_name||'Worker');
   var st=STATUS[(d.status||'').toLowerCase()]||d.status||'—';
   document.getElementById('trip-status').textContent=st;
   document.getElementById('trip-eta').textContent=d.eta_minutes!=null?('ETA ~'+d.eta_minutes+' min'):'';
-  document.getElementById('trip-updated').textContent=d.updated_at?('Updated '+new Date(d.updated_at).toLocaleTimeString()):'';
+  if(d.updated_at)lastUpdatedAt=d.updated_at;
+  document.getElementById('trip-updated').textContent=lastUpdatedAt?('Updated '+new Date(lastUpdatedAt).toLocaleTimeString()):'';
   if(d.lat!=null&&d.lng!=null){
+   lastGood={lat:d.lat,lng:d.lng};
    if(!map)initMap(d.lat,d.lng);
    else{marker.setLatLng([d.lat,d.lng]);trail.addLatLng([d.lat,d.lng]);map.panTo([d.lat,d.lng]);}
+   if(fallbackShown)showFallback();
+  }else if(!map&&!fallbackShown){
+   /* First poll, no fix yet: schematic centred on the job site. */
+   showFallback();
   }
  }catch(e){
-  var el=document.getElementById('trip-err');el.hidden=false;el.textContent=e.message;
+  var el2=document.getElementById('trip-err');el2.hidden=false;
+  el2.textContent='Connection lost — trying again… Last update '+(lastUpdatedAt?agoText(lastUpdatedAt):'—')+'. / সংযোগ হারিয়ে গেছে — আবার চেষ্টা করা হচ্ছে… শেষ আপডেট '+(lastUpdatedAt?agoText(lastUpdatedAt):'—')+'।';
+  /* Back off: 20 s, then 30 s (cap). */
+  backoffMs=backoffMs===10000?20000:30000;
+  schedulePoll(backoffMs);
+  return;
  }
+ schedulePoll(10000);
 }
+document.getElementById('trip-refresh').addEventListener('click',function(){
+ if(tripEnded)return;
+ if(pollTimer)clearTimeout(pollTimer);
+ backoffMs=10000;
+ poll();
+});
 poll();
-setInterval(poll,10000);
 })();
 </script>
 </body>

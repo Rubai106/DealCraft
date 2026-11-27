@@ -10,9 +10,6 @@
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23000'/%3E%3Ctext x='16' y='23' font-size='20' font-family='sans-serif' font-weight='bold' fill='%23FF5A1F' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Oswald:wght@500;600;700&family=Noto+Sans+Bengali:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="style.css">
 <style>
@@ -21,8 +18,11 @@
 body.pp-page{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
 body.pp-page .topbar{flex:none}
 body.pp-page main{flex:1;min-height:0;height:auto;display:flex;flex-direction:column;padding:16px 20px 12px;overflow:hidden}
-#p-scroll{flex:1;min-height:0;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding-bottom:8px}
 body.pp-page main{min-width:0}
+/* P1: no scrolling container anywhere — the two panels swap, exactly one
+   visible, and neither ever scrolls. */
+.pp-panel{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.pp-panel[hidden]{display:none}
 /* The ID card's name + QR row needs ~380px at desktop sizes but only
    ~254px is available at 390px: without min-width:0 the flex row's
    min-content expands the whole layout viewport (517px). Let the name
@@ -32,8 +32,6 @@ body.pp-page main{min-width:0}
 @media(max-width:480px){
   .pp-id-name{font-size:24px}
   .pp-qr{width:64px;padding:6px}
-  .pp-stats{flex-wrap:wrap}
-  .pp-stat{flex:1 1 40%}
 }
 </style>
 </head>
@@ -41,8 +39,14 @@ body.pp-page main{min-width:0}
 <header class="topbar"><span style="font-family:'Oswald',sans-serif;font-size:20px">DEALCRAFT<span style="color:#FF5A1F">.</span></span><div class="lang-toggle" role="group" aria-label="Language / ভাষা"><button type="button" id="lang-bn" aria-pressed="false">বাংলা</button><button type="button" id="lang-en" aria-pressed="true">EN</button></div><span class="mono" style="color:#bbb">WORKPASSPORT</span></header>
 <main>
   <p class="mono" data-i18n="p.kicker" style="color:#666">WORKPASSPORT · কাজের পরিচয়পত্র</p>
+  <div class="pp-tabs" role="tablist" aria-label="WorkPassport sections" style="display:flex;gap:8px;margin:4px 0 12px">
+    <button type="button" id="pp-tab-1" role="tab" aria-selected="true" style="flex:1;min-height:52px;border:2px solid #111;background:#111;color:#fff;font-weight:700;cursor:pointer">পরিচয়</button>
+    <button type="button" id="pp-tab-2" role="tab" aria-selected="false" style="flex:1;min-height:52px;border:2px solid #111;background:#FBFAF7;color:#111;font-weight:700;cursor:pointer">সম্পন্ন কাজ</button>
+  </div>
   <div id="p-err" class="error" hidden></div>
-  <div id="p-scroll">
+  <!-- P1: two panels, exactly one visible, neither scrolls. Panel 1 =
+       profile card + ID card + QR; Panel 2 = completed-jobs list only. -->
+  <div id="pp-panel-1" class="pp-panel" role="tabpanel">
   <!-- Worker profile card — same shared renderer as the app and the
        worker page (identical markup + .profile-card), fed by
        GET /api/passport/:id workerProfile. -->
@@ -59,23 +63,28 @@ body.pp-page main{min-width:0}
       </div>
       <div class="pp-qr"><img id="p-qr" alt="WorkPassport QR code"></div>
     </div>
-    <div class="pp-stats">
-      <div class="pp-stat"><b id="p-count">0</b><span data-i18n="p.countLabel">CONFIRMED JOBS</span></div>
-      <div class="pp-stat"><b id="p-hirers-count">0</b><span data-i18n="p.hirersLabel">DISTINCT HIRERS</span></div>
-      <div class="pp-stat"><b id="p-trades-count">0</b><span data-i18n="p.tradesLabel">TRADES</span></div>
-      <div class="pp-stat"><b id="p-photos-count">0</b><span data-i18n="p.photosLabel">PHOTOS SHARED</span></div>
-    </div>
     <p class="pp-id-foot" data-i18n="p.foot">DEALCRAFT · VERIFIED BY QR</p>
   </div>
   </div>
+  </div>
+  <div id="pp-panel-2" class="pp-panel" role="tabpanel" hidden>
   <div id="p-body" hidden>
     <h2 data-i18n="p.jobs" style="font-family:'Oswald',sans-serif;text-transform:uppercase">Completed jobs</h2>
     <div id="p-jobs" class="pp-jobs"></div>
+    <div id="p-pager" style="display:flex;gap:8px;align-items:center;margin-top:12px">
+      <button type="button" id="p-prev" style="flex:1;min-height:52px;border:2px solid #111;background:#FBFAF7;color:#111;font-weight:700;cursor:pointer">আগের</button>
+      <span class="small" id="p-page-label" style="flex:none"></span>
+      <button type="button" id="p-next" style="flex:1;min-height:52px;border:2px solid #111;background:#FBFAF7;color:#111;font-weight:700;cursor:pointer">পরের</button>
+    </div>
     <div id="p-photos" hidden><h2 data-i18n="p.photos" style="font-family:'Oswald',sans-serif;text-transform:uppercase">Photos · ছবি</h2><div id="p-photos-list"></div></div>
     <p class="small" data-i18n="p.note" style="color:#666">Amounts, client names and photos are shown only if the worker enabled them. / টাকার অঙ্ক, ক্লায়েন্টের নাম আর ছবি worker না চাইলে দেখানো হয় না।</p>
   </div>
-  <p class="small"><a href="index.html" data-i18n="p.home">DealCraft হোম</a></p>
+  <div id="p-empty" hidden>
+    <p>এখনো কোনো সম্পন্ন কাজ নেই। দুই পক্ষ মিলে একটি কাজ শেষ করলে তা এখানে দেখাবে।</p>
+    <p><a class="big-btn orange" href="index.html" style="display:block;text-align:center;text-decoration:none">কাজ শুরু করুন</a></p>
   </div>
+  </div>
+  <p class="small"><a href="index.html" data-i18n="p.home">DealCraft হোম</a></p>
 </main>
 <script>
 (function(){'use strict';
@@ -83,8 +92,9 @@ var q=new URLSearchParams(location.search), profileId=q.get('id')||q.get('profil
 /* Also served at /passport/:id (the QR target): take the id from the path
    when there is no query string. */
 if(!profileId){var m=location.pathname.match(/^\/passport\/([^\/]+)$/);if(m)profileId=decodeURIComponent(m[1]);}
-/* Language toggle — same pattern as index.html (dc_lang, default en). */
-var pLang=localStorage.getItem('dc_lang')||'en';
+/* Language toggle — same pattern as index.html (dc_lang, default bn
+   on this page: the WorkPassport is most often opened by Bangla readers). */
+var pLang=localStorage.getItem('dc_lang')||'bn';
 var PI18N={
  'p.kicker':{bn:'WORKPASSPORT · কাজের পরিচয়পত্র',en:'WORKPASSPORT · Work identity'},
  'p.countLabel':{bn:'সম্পন্ন কাজ',en:'Confirmed jobs'},
@@ -113,7 +123,9 @@ function pApplyLang(){document.documentElement.lang=pLang;
  localStorage.setItem('dc_lang',pLang);
  var qr=$('p-qr'); if(qr)qr.alt=pLang==='bn'?'WorkPassport QR কোড':'WorkPassport QR code';
  /* Re-render the profile card in the new language (same renderer). */
- var profBox=$('p-profile'); if(profBox&&pLastProfile)profBox.innerHTML=pRenderProfileCard(pLastProfile);}
+ var profBox=$('p-profile'); if(profBox&&pLastProfile)profBox.innerHTML=pRenderProfileCard(pLastProfile);
+ /* Re-render the paged jobs list in the new language (same page). */
+ if(pEntries.length&&!$('p-body').hidden)pRenderJobs();}
 function $(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function jobNum(n){return (n<10?'0':'')+n;}
@@ -151,16 +163,40 @@ function pRenderProfileCard(p){
   +'<div class="pc-fact"><b>'+esc(since)+'</b><span>'+esc(L('p.profileSince'))+'</span></div>'
   +'</div></div></article>';
 }
+/* P1: segmented tabs — exactly one panel visible, neither scrolls.
+   Panel 2 shows at most 4 jobs per page with আগের / পরের. */
+var pEntries=[], pPage=0, P_PER_PAGE=4;
+function pShowPanel(n){
+ $('pp-panel-1').hidden=n!==1;
+ $('pp-panel-2').hidden=n!==2;
+ var t1=$('pp-tab-1'),t2=$('pp-tab-2');
+ if(t1){t1.setAttribute('aria-selected',n===1?'true':'false');t1.style.background=n===1?'#111':'#FBFAF7';t1.style.color=n===1?'#fff':'#111';}
+ if(t2){t2.setAttribute('aria-selected',n===2?'true':'false');t2.style.background=n===2?'#111':'#FBFAF7';t2.style.color=n===2?'#fff':'#111';}
+}
+function pRenderJobs(){
+ var pages=Math.max(1,Math.ceil(pEntries.length/P_PER_PAGE));
+ pPage=Math.max(0,Math.min(pPage,pages-1));
+ var slice=pEntries.slice(pPage*P_PER_PAGE,(pPage+1)*P_PER_PAGE);
+ $('p-jobs').innerHTML=shelf(slice,pPage*P_PER_PAGE);
+ var prev=$('p-prev'),next=$('p-next'),lab=$('p-page-label');
+ if(prev)prev.disabled=pPage===0;
+ if(next)next.disabled=pPage>=pages-1;
+ if(lab)lab.textContent=pEntries.length?((pPage+1)+' / '+pages):'';
+ var pager=$('p-pager'); if(pager)pager.style.display=pEntries.length>P_PER_PAGE?'flex':'none';
+}
 /* Completed jobs as objects on a shelf: one card per job, big numeral first
    (the amount when the worker enabled it, else the job number), then trade,
-   date, and the client name only when enabled. No invented figures. */
-function shelf(entries){
+   date, and the client name only when enabled. No invented figures.
+   offset keeps the global job number across paged slices. */
+function shelf(entries,offset){
+ offset=offset||0;
  return entries.map(function(e,i){
+  var n=i+offset;
   var hasAmt=e.showAmounts&&e.amount!=null;
-  var num=hasAmt?'৳'+Number(e.amount).toLocaleString('en-IN'):jobNum(i+1);
-  var lab=hasAmt?(PI18N['p.amountLabel'][pLang]||'Amount'):(PI18N['p.jobNo'][pLang]||'Job no.')+' '+jobNum(i+1);
+  var num=hasAmt?'৳'+Number(e.amount).toLocaleString('en-IN'):jobNum(n+1);
+  var lab=hasAmt?(PI18N['p.amountLabel'][pLang]||'Amount'):(PI18N['p.jobNo'][pLang]||'Job no.')+' '+jobNum(n+1);
   var client=(e.showClient&&e.clientName)?'<span class="pp-job-meta">'+esc(e.clientName)+'</span>':'';
-  return '<article class="pp-job" style="--i:'+i+'"><b class="pp-job-num">'+esc(num)+'</b><span class="pp-job-lab">'+esc(lab)+'</span><span class="pp-job-trade">'+esc(pTradeLabel(e.trade))+'</span><span class="pp-job-meta">'+esc(String(e.completedAt||'').slice(0,10))+'</span>'+client+'</article>';
+  return '<article class="pp-job" style="--i:'+n+'"><b class="pp-job-num">'+esc(num)+'</b><span class="pp-job-lab">'+esc(lab)+'</span><span class="pp-job-trade">'+esc(pTradeLabel(e.trade))+'</span><span class="pp-job-meta">'+esc(String(e.completedAt||'').slice(0,10))+'</span>'+client+'</article>';
  }).join('')||'<span class="small">—</span>';
 }
 async function load(){
@@ -173,25 +209,50 @@ async function load(){
   pLastProfile=d.workerProfile||{name:p.workerName||null,trade:(p.trades&&p.trades[0])||null,photoUrl:null,phoneVerified:true,completedJobs:p.completedJobs,distinctHirers:p.distinctHirers,memberSince:d.memberSince||null};
   var profBox=$('p-profile'); if(profBox)profBox.innerHTML=pRenderProfileCard(pLastProfile);
   $('p-name').textContent=p.workerName||p.name||(pLang==='bn'?'DealCraft ওয়ার্কার':'DealCraft worker');
-  $('p-count').textContent=p.completedJobs!=null?p.completedJobs:(p.count!=null?p.count:0);
-  /* Distinct hirers (Part 2, item 11): ten jobs for one cousin reads
-     differently from ten jobs for ten customers. */
-  var hc=$('p-hirers-count'); if(hc)hc.textContent=p.distinctHirers!=null?p.distinctHirers:0;
+  /* P2: the ID card no longer carries the four stats — they already live
+     on the profile card above it. */
   /* entries: [{jobId, trade, completedAt, showAmounts, showClient, showPhotos, amount?}] */
-  var entries=p.entries||[];
-  var tc=$('p-trades-count'); if(tc)tc.textContent=(p.trades||[]).length;
-  $('p-jobs').innerHTML=shelf(entries);
+  pEntries=p.entries||[];
+  /* P4: no completed jobs yet — the empty state (with a start button)
+     instead of an empty list. The same state shows when every entry is
+     hidden by the worker's own visibility choices (nothing renderable). */
+  var visible=pEntries.filter(function(e){return e&&(e.trade||e.completedAt||e.amount!=null);});
+  if(!visible.length){
+   $('p-body').hidden=true;
+   $('p-empty').hidden=false;
+  }else{
+   pPage=0; pRenderJobs();
+   $('p-empty').hidden=true;
+   $('p-body').hidden=false;
+  }
   /* Client names and photos come back per entry (clientName / photoUrls),
      only when the worker enabled them for that job — never from the top level. */
-  var shownPhotos=[];entries.forEach(function(e){if(e.showPhotos&&e.photoUrls)e.photoUrls.forEach(function(u){shownPhotos.push(u);});});
-  var pc=$('p-photos-count'); if(pc)pc.textContent=shownPhotos.length;
+  var shownPhotos=[];pEntries.forEach(function(e){if(e.showPhotos&&e.photoUrls)e.photoUrls.forEach(function(u){shownPhotos.push(u);});});
   if(shownPhotos.length){$('p-photos').hidden=false;$('p-photos-list').innerHTML=shownPhotos.map(function(u){return '<img src="'+esc(typeof u==='string'?u:u.url)+'" alt="" style="max-width:160px;display:inline-block;margin:0 8px 8px 0">';}).join('');}
-  $('p-qr').src='/api/passport/'+encodeURIComponent(profileId)+'/qr.png';
-  $('p-qr').onerror=function(){this.style.display='none';};
-  $('p-body').hidden=false;
+  var qr=$('p-qr');
+  /* P3: a failed QR is not just hidden — offer the link instead. Never
+     show the pp_… id or any phone number here. */
+  qr.onerror=function(){
+   var box=qr.parentNode; if(!box)return;
+   box.innerHTML='<p class="small" style="margin:0 0 8px">QR খোলা যায়নি — লিংক কপি করে শেয়ার করুন</p>'
+    +'<button type="button" id="p-qr-copy" style="min-height:52px;padding:10px 16px;border:2px solid #111;background:#111;color:#fff;font-weight:700;cursor:pointer">লিংক কপি করুন</button>';
+   var btn=$('p-qr-copy');
+   if(btn)btn.addEventListener('click',function(){
+    var url=location.href;
+    function done(ok){btn.textContent=ok?'কপি হয়েছে':'লিংক কপি করুন';}
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+     navigator.clipboard.writeText(url).then(function(){done(true);},function(){prompt('লিংকটি কপি করুন:',url);});
+    }else{prompt('লিংকটি কপি করুন:',url);}
+   });
+  };
+  qr.src='/api/passport/'+encodeURIComponent(profileId)+'/qr.png';
  }catch(e){var er=$('p-err');er.hidden=false;er.textContent=(pLang==='bn'?'WorkPassport খোলা যায়নি: ':'Could not open WorkPassport: ')+e.message;}}
 $('lang-bn').addEventListener('click',function(){pLang='bn';pApplyLang();});
 $('lang-en').addEventListener('click',function(){pLang='en';pApplyLang();});
+$('pp-tab-1').addEventListener('click',function(){pShowPanel(1);});
+$('pp-tab-2').addEventListener('click',function(){pShowPanel(2);});
+$('p-prev').addEventListener('click',function(){if(pPage>0){pPage--;pRenderJobs();}});
+$('p-next').addEventListener('click',function(){pPage++;pRenderJobs();});
 /* P3: ID-card tilt + solid-band shine — pointer on fine pointers, scroll
    otherwise; transform only; static under prefers-reduced-motion. */
 (function(){
@@ -211,8 +272,10 @@ $('lang-en').addEventListener('click',function(){pLang='en';pApplyLang();});
    card.style.setProperty('--shine','-90px');
   });
  }else{
-  var sc=document.getElementById('p-scroll')||window;
-  sc.addEventListener('scroll',function(){
+  /* P1: no scrolling container any more — the shine follows the window
+     scroll (which is none: the page is 100dvh, overflow hidden), so the
+     tilt stays at its resting position on coarse pointers. */
+  window.addEventListener('scroll',function(){
    var r=card.getBoundingClientRect();
    var p=Math.max(0,Math.min(1,1-r.top/window.innerHeight));
    card.style.setProperty('--shine',((p*1.3-0.3)*r.width).toFixed(1)+'px');
