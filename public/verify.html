@@ -20,6 +20,11 @@
   .card{border:2px solid #111;background:#FBFAF7;padding:20px;margin-top:20px}
   .card.match{border-color:#111}
   .card.mismatch{border-color:#c73e0e}
+  /* P1-6: the no-fingerprint state is neutral guidance, not an error —
+     plain card, plain dark text; red is reserved for a submitted
+     fingerprint that does not match. */
+  .card.guide{border-color:#111}
+  .verdict.guide{color:#111}
   .verdict{font-size:20px;font-weight:700;margin:0 0 8px}
   .verdict.ok{color:#111}
   .verdict.bad{color:#c73e0e}
@@ -60,7 +65,7 @@
   <p class="small" id="scan-note" hidden></p>
   <!-- V2: the whole pack section sits behind one button (collapsed by
        default); the fingerprint verdict card above stays primary. -->
-  <p><button type="button" id="pack-toggle" aria-expanded="false" style="width:100%;min-height:52px">নিজে যাচাই করুন — হ্যাশ চেইন আবার হিসাব করুন</button></p>
+  <p><button type="button" id="pack-toggle" aria-expanded="false" data-i18n="v.packToggle" style="width:100%;min-height:52px">Check it yourself — recompute the hash chain</button></p>
   <div id="pack-section" hidden>
   <!-- Part 2, item 10: verify that recomputes. Paste or upload a
        ResolvePack JSON and this page recomputes the ENTIRE hash chain in
@@ -88,9 +93,8 @@
 <script>
 (function(){
   /* Language toggle — same pattern as passport.html (dc_lang). The
-     verify page is most often opened from a Bangla SMS/QR, so Bangla
-     is the default here. */
-  var vLang=localStorage.getItem('dc_lang')||'bn';
+     default is English; a saved choice always wins. */
+  var vLang=localStorage.getItem('dc_lang')||'en';
   var VI18N={
    'v.heading':{bn:'রেকর্ড যাচাই করুন',en:'Verify a record'},
    'v.intro':{bn:'প্রতিটি ResolvePack-এ একটি QR কোড থাকে, যা এই পৃষ্ঠাটি খোলে। এই পৃষ্ঠা ফিঙ্গারপ্রিন্টটি সংরক্ষিত রেকর্ডের সঙ্গে মিলিয়ে দেখে — শুধু একটি খোঁজ, এর বেশি কিছু নয়। কাজের অবস্থা ও এই সংস্করণটি এখনো বর্তমান কি না, তাও দেখায়, যাতে পুরনো প্যাক নতুন চুক্তি বলে চালানো না যায়।',en:'Every ResolvePack carries a QR code that opens this page for the job\'s version. This page checks that fingerprint against the stored record — a lookup, nothing more. It also shows the job\'s status and whether this version is still the current one, so an old pack cannot pass as the live deal.'},
@@ -126,7 +130,60 @@
    'v.scanNoCam':{bn:'এই ব্রাউজার ক্যামেরা দিয়ে QR কোড স্ক্যান করতে পারে না — উপরে ফিঙ্গারপ্রিন্ট পেস্ট করুন।',en:'This browser cannot scan QR codes with the camera — paste the fingerprint above instead.'},
    'v.scanCamOff':{bn:'ক্যামেরা পাওয়া যাচ্ছে না — ক্যামেরার অনুমতি দেখুন, বা উপরে ফিঙ্গারপ্রিন্ট পেস্ট করুন।',en:'Camera unavailable — check the camera permission, or paste the fingerprint above instead.'},
    'v.currentBtn':{bn:'বর্তমান সংস্করণ (V{n}) দেখুন',en:'View the current version (V{n})'},
-   'v.packAutoFail':{bn:'QR থেকে প্যাকটি স্বয়ংক্রিয়ভাবে আনা যায়নি — নিচে JSON পেস্ট করুন বা ফাইল আপলোড করুন।',en:'The pack could not be fetched automatically from the QR — paste the JSON below or upload the file.'}
+   'v.packAutoFail':{bn:'QR থেকে প্যাকটি স্বয়ংক্রিয়ভাবে আনা যায়নি — নিচে JSON পেস্ট করুন বা ফাইল আপলোড করুন।',en:'The pack could not be fetched automatically from the QR — paste the JSON below or upload the file.'},
+   /* P1-4: placeholders, result-row labels and pack strings — every
+      label the page renders, in both languages. */
+   'v.fpPh':{bn:'ফিঙ্গারপ্রিন্ট পেস্ট করুন (SHA-256)',en:'Paste a fingerprint (SHA-256)'},
+   'v.packJsonPh':{bn:'এখানে ResolvePack JSON পেস্ট করুন',en:'Paste a ResolvePack JSON here'},
+   'v.packToggle':{bn:'নিজে যাচাই করুন — হ্যাশ চেইন আবার হিসাব করুন',en:'Check it yourself — recompute the hash chain'},
+   'v.yes':{bn:'হ্যাঁ',en:'Yes'},
+   'v.no':{bn:'না',en:'No'},
+   'v.rTrade':{bn:'কাজের ধরন',en:'Trade'},
+   'v.rVersion':{bn:'সংস্করণ',en:'Version'},
+   'v.rStatus':{bn:'অবস্থা',en:'Status'},
+   'v.rConfirmed':{bn:'দুই পক্ষই নিশ্চিত করেছে',en:'Confirmed by both sides'},
+   'v.rScope':{bn:'বিবরণ (ফিঙ্গারপ্রিন্ট যা আচ্ছাদন করে)',en:'Scope (what the fingerprint covers)'},
+   'v.rPrice':{bn:'এই সংস্করণের দাম',en:'Price of this version'},
+   'v.rCurrentPrice':{bn:'বর্তমানে ঠিক হওয়া দাম',en:'Current agreed price'},
+   'v.rDeadline':{bn:'শেষ তারিখ',en:'Deadline'},
+   'v.rMatch':{bn:'মিল',en:'Match'},
+   'v.rJob':{bn:'কাজ',en:'Job'},
+   'v.rFingerprint':{bn:'ফিঙ্গারপ্রিন্ট',en:'Fingerprint'},
+   'v.rChain':{bn:'হ্যাশ চেইন',en:'Hash chain'},
+   'v.rChainHead':{bn:'চেইন হেড',en:'Chain head'},
+   'v.rFpPrefix':{bn:'ফিঙ্গারপ্রিন্টের শুরুর অংশ',en:'Fingerprint prefix'},
+   'v.rChainValid':{bn:'ঠিক আছে — {n}টি ঘটনা',en:'Valid — {n} events'},
+   'v.rChainBroken':{bn:'ভাঙা',en:'BROKEN'},
+   'v.pChain':{bn:'চেইন',en:'Chain'},
+   'v.pSupBy':{bn:', V{cur} দ্বারা প্রতিস্থাপিত',en:', superseded by V{cur}'},
+   'v.pCurrent':{bn:' — বর্তমান',en:' — current'},
+   'v.pEvents':{bn:'যাচাই করা ঘটনা',en:'Events checked'},
+   'v.pPrice':{bn:'এই সংস্করণের দাম',en:'Price of this version'},
+   'v.pRecomputed':{bn:'আবার হিসাব করা চেইন হেড',en:'Recomputed chain head'},
+   'v.pPackHead':{bn:'প্যাকে থাকা চেইন হেড',en:'Chain head in the pack'},
+   'v.packValid':{bn:'✓ হ্যাশ চেইন ঠিক আছে — {n}টি ঘটনা, কিছুই বদলায়নি',en:'✓ Hash chain valid — {n} events, nothing changed'},
+   'v.packValidDetail':{bn:'প্রতিটি ঘটনার হ্যাশ এই ব্রাউজারে আবার হিসাব করে মিলেছে। ',en:'Every event hash recomputed in this browser matches the stored hash. '},
+   'v.packSuperseded':{bn:'এই প্যাকটি V{n} সংস্করণের, এখন V{cur} চলছে।',en:'This pack is version V{n}, superseded by V{cur}.'},
+   'v.packCurrent':{bn:'এটি বর্তমান সংস্করণ, V{n}।',en:'This is the current version, V{n}.'},
+   'v.packJobStatus':{bn:' কাজের অবস্থা: {s}।',en:' Job status: {s}.'},
+   'v.packBroken':{bn:'✕ হ্যাশ চেইন ভাঙা — #{n} নম্বর ঘটনায় ({t})',en:'✕ Hash chain BROKEN at event #{n} ({t})'},
+   'v.packBrokenDetail':{bn:'{n} নম্বর ঘটনাটি ({t}) সংরক্ষিত হ্যাশের সঙ্গে মিলছে না ({r}) — এর পরের ইতিহাসে ভরসা করা যায় না। ',en:'The event at position {n} ({t}) does not match its stored hash ({r}) — the history after it cannot be trusted. '},
+   'v.packRecomputing':{bn:'আবার হিসাব করা হচ্ছে…',en:'Recomputing…'},
+   'v.packRecomputingDetail':{bn:'ব্রাউজারে প্রতিটি ঘটনার হ্যাশ আবার হিসাব করা হচ্ছে।',en:'Recomputing every event hash in this browser.'},
+   'v.packNoEvents':{bn:'✕ এই JSON-এ কোনো ঘটনার ইতিহাস নেই',en:'✕ That JSON has no event history'},
+   'v.packNoEventsDetail':{bn:'ResolvePack JSON-এ job, versions, events আর chainHead থাকে। এটাতে events অ্যারে নেই।',en:'A ResolvePack JSON carries job, versions, events and chainHead. This one has no events array.'},
+   'v.packNoCrypto':{bn:'✕ এই ব্রাউজার চেইন আবার হিসাব করতে পারবে না',en:'✕ This browser cannot recompute the chain'},
+   'v.packNoCryptoDetail':{bn:'চেইন আবার হিসাব করতে WebCrypto লাগে (নিরাপদ পরিবেশ)। উপরের সার্ভার যাচাই এখনো কাজ করে।',en:'Chain recompute needs WebCrypto (a secure context). The server lookup above still works.'},
+   'v.packBadJson':{bn:'✕ এটি ResolvePack JSON নয়',en:'✕ That is not a ResolvePack JSON'},
+   'v.packBadJsonDetail':{bn:'/api/jobs/:id/resolvepack.json থেকে JSON পেস্ট করুন, বা .json ফাইল আপলোড করুন।',en:'Paste the JSON from /api/jobs/:id/resolvepack.json, or upload the .json file.'},
+   'v.crossMatch':{bn:'সার্ভার যাচাই: ফিঙ্গারপ্রিন্টটি V{n} ({s})-এর সঙ্গে মিলেছে, অবস্থা {st}, সার্ভারের চেইন {cv}, সার্ভারের চেইন হেড {hd}।',en:'Server cross-check: fingerprint matches V{n} ({s}), status {st}, server chain {cv}, server chain head {hd}.'},
+   'v.crossValid':{bn:'ঠিক আছে',en:'valid'},
+   'v.crossBroken':{bn:'ভাঙা',en:'BROKEN'},
+   'v.crossSameHead':{bn:'আবার হিসাব করা হেডের সঙ্গে মিলেছে',en:'matches the recomputed head'},
+   'v.crossDiffHead':{bn:'আবার হিসাব করা হেডের সঙ্গে মিলছে না',en:'DIFFERS from the recomputed head'},
+   'v.crossNoRecord':{bn:'সার্ভার যাচাই: সার্ভারে এই ফিঙ্গারপ্রিন্টের কোনো রেকর্ড নেই।',en:'Server cross-check: the server has no record for this fingerprint.'},
+   'v.crossDown':{bn:'সার্ভার যাচাই: সার্ভার সাড়া দেয়নি।',en:'Server cross-check: the server did not answer.'},
+   'v.packStaleNote':{bn:' মনে রাখবেন: QR লিংকের চেইন হেড আবার হিসাব করা হেডের সঙ্গে মিলছে না — এই প্যাকটি পুরনো বা আবার তৈরি হয়েছে।',en:' Note: the chain head in the QR link differs from the recomputed head — this pack is stale or was regenerated.'}
   };
   function vT(k){var v=VI18N[k];return v?(v[vLang]||v.en):k;}
   function vApplyLang(){document.documentElement.lang=vLang;
@@ -135,18 +192,36 @@
    if(b)b.setAttribute('aria-pressed',vLang==='bn'?'true':'false');
    if(e)e.setAttribute('aria-pressed',vLang==='en'?'true':'false');
    localStorage.setItem('dc_lang',vLang);
+   var fi=document.getElementById('verify-fp'); if(fi)fi.setAttribute('placeholder',vT('v.fpPh'));
+   var pj=document.getElementById('pack-json'); if(pj)pj.setAttribute('placeholder',vT('v.packJsonPh'));
    var sb=document.getElementById('scan-btn'); if(sb&&!scanning)sb.textContent=vT('v.scanBtn');
-   var rb=document.getElementById('verify-retry'); if(rb)rb.textContent=vT('v.retry');}
+   var rb=document.getElementById('verify-retry'); if(rb)rb.textContent=vT('v.retry');
+   /* Re-render the verdict in the new language (same fingerprint, same
+      data — no refetch). Skipped while a check is still in flight. */
+   if(lastFp==='')render('','');
+   else if(lastData)render(lastFp,lastData);
+   if(lastPack&&lastChain)renderPack(lastPack,lastChain);}
   var card=document.getElementById('verify-card');
   var result=document.getElementById('verify-result');
   var detail=document.getElementById('verify-detail');
   var rows=document.getElementById('verify-rows');
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  /* Thousand separators everywhere ('৳18,000'); human dates, same shape
+     as the hirer side ('4 Dec 2026' / Bangla equivalent). vNum is the
+     bare grouped number for strings that already carry a ৳. */
+  function vTaka(n){if(n==null||n==='')return '—';return '৳'+Number(n).toLocaleString('en-IN');}
+  function vNum(n){if(n==null||n==='')return '—';return Number(n).toLocaleString('en-IN');}
+  function vFmtDate(d){if(!d)return '—';var dt=new Date(d);if(isNaN(dt.getTime()))return String(d);try{return dt.toLocaleDateString(vLang==='bn'?'bn-BD':'en-GB',{day:'numeric',month:'short',year:'numeric'});}catch(e){return String(d);}}
   var lastFp='';
+  var lastData=null,lastPack=null,lastChain=null;
   function render(fp,data){
+    lastData=(data&&typeof data==='object')?data:null;
     rows.hidden=true; rows.innerHTML='';
     var cur=document.getElementById('verify-current'); if(cur){cur.hidden=true;cur.innerHTML='';}
-    if(!fp){result.textContent=vT('v.noFp');result.className='verdict bad';card.className='card mismatch';detail.textContent=vT('v.noFpDetail');return;}
+    /* P1-6: no fingerprint in the link is neutral guidance — plain card
+       and plain dark text. Red (.mismatch / .bad) is reserved for a
+       submitted fingerprint that does not match. */
+    if(!fp){result.textContent=vT('v.noFp');result.className='verdict guide';card.className='card guide';detail.textContent=vT('v.noFpDetail');return;}
     if(data&&data.match){
       card.className='card match';
       var superseded = data.versionState === 'superseded';
@@ -154,7 +229,7 @@
       if(superseded){
         result.textContent=vT('v.matchSuperseded').replace('{n}',String(data.currentVersion));
         result.className='verdict ok';
-        detail.textContent=vT('v.supersededDetail').replace('{cur}',String(data.currentVersion)).replace('{price}',String(data.currentPrice));
+        detail.textContent=vT('v.supersededDetail').replace('{cur}',String(data.currentVersion)).replace('{price}',vNum(data.currentPrice));
         /* V4: one primary button to the current version. Its fingerprint
            comes from /api/verify-pack (the current version row) — the
            /api/verify response carries no fingerprint for it. */
@@ -177,33 +252,33 @@
         detail.textContent=vT('v.matchDetailUnconfirmed').replace('{status}',(data.status||'').toLowerCase()||'—');
       }
       rows.hidden=false;
-      rows.innerHTML='<li><span>Trade</span><b>'+esc(data.trade||'—')+'</b></li>'
-        +'<li><span>Version</span><b>V'+esc(data.versionNo)+' — '+esc(data.versionState||'—')+(superseded?' (current: V'+esc(data.currentVersion)+')':'')+'</b></li>'
-        +'<li><span>Status</span><b>'+esc(data.status||'—')+'</b></li>'
-        +'<li><span>Confirmed by both sides</span><b>'+(confirmed?'Yes':'No')+'</b></li>'
-        +'<li><span>Scope (what the fingerprint covers)</span><b>'+esc(data.scope||'—')+'</b></li>'
-        +'<li><span>Price of this version</span><b>৳'+esc(data.price)+'</b></li>'
-        +'<li><span>Current agreed price</span><b>৳'+esc(data.currentPrice!=null?data.currentPrice:data.price)+'</b></li>'
-        +'<li><span>Deadline</span><b>'+esc(data.deadline||'—')+'</b></li>'
-        +'<li><span>Match</span><b>'+esc(data.matchKind||'full fingerprint match')+'</b></li>'
-        +'<li><span>Job</span><b class="mono">'+esc(data.jobId)+'</b></li>'
-        +'<li><span>Fingerprint</span><b class="mono">'+esc(data.fingerprint)+'</b></li>'
-        +'<li><span>Hash chain</span><b>'+(data.chainValid===true?'Valid — '+esc(data.chainEvents!=null?String(data.chainEvents):'?')+' events':data.chainValid===false?'BROKEN'+(data.chainBrokenType?' at '+esc(data.chainBrokenType):''):'—')+'</b></li>'
-        +'<li><span>Chain head</span><b class="mono">'+esc(data.chainHead||'—')+'</b></li>';
+      rows.innerHTML='<li><span>'+esc(vT('v.rTrade'))+'</span><b>'+esc(data.trade||'—')+'</b></li>'
+        +'<li><span>'+esc(vT('v.rVersion'))+'</span><b>V'+esc(data.versionNo)+' — '+esc(data.versionState||'—')+(superseded?' (current: V'+esc(data.currentVersion)+')':'')+'</b></li>'
+        +'<li><span>'+esc(vT('v.rStatus'))+'</span><b>'+esc(data.status||'—')+'</b></li>'
+        +'<li><span>'+esc(vT('v.rConfirmed'))+'</span><b>'+esc(confirmed?vT('v.yes'):vT('v.no'))+'</b></li>'
+        +'<li><span>'+esc(vT('v.rScope'))+'</span><b>'+esc(data.scope||'—')+'</b></li>'
+        +'<li><span>'+esc(vT('v.rPrice'))+'</span><b>'+esc(vTaka(data.price))+'</b></li>'
+        +'<li><span>'+esc(vT('v.rCurrentPrice'))+'</span><b>'+esc(vTaka(data.currentPrice!=null?data.currentPrice:data.price))+'</b></li>'
+        +'<li><span>'+esc(vT('v.rDeadline'))+'</span><b>'+esc(data.deadline?vFmtDate(data.deadline):'—')+'</b></li>'
+        +'<li><span>'+esc(vT('v.rMatch'))+'</span><b>'+esc(data.matchKind||'full fingerprint match')+'</b></li>'
+        +'<li><span>'+esc(vT('v.rJob'))+'</span><b class="mono">'+esc(data.jobId)+'</b></li>'
+        +'<li><span>'+esc(vT('v.rFingerprint'))+'</span><b class="mono">'+esc(data.fingerprint)+'</b></li>'
+        +'<li><span>'+esc(vT('v.rChain'))+'</span><b>'+(data.chainValid===true?vT('v.rChainValid').replace('{n}',esc(data.chainEvents!=null?String(data.chainEvents):'?')):data.chainValid===false?esc(vT('v.rChainBroken'))+(data.chainBrokenType?' ('+esc(data.chainBrokenType)+')':''):'—')+'</b></li>'
+        +'<li><span>'+esc(vT('v.rChainHead'))+'</span><b class="mono">'+esc(data.chainHead||'—')+'</b></li>';
     }else if(data&&data.ambiguous){
       card.className='card mismatch';
       result.textContent=vT('v.ambiguous');
       result.className='verdict bad';
       detail.textContent=vT('v.ambiguousDetail');
       rows.hidden=false;
-      rows.innerHTML='<li><span>Fingerprint prefix</span><b class="mono">'+esc(fp)+'</b></li>';
+      rows.innerHTML='<li><span>'+esc(vT('v.rFpPrefix'))+'</span><b class="mono">'+esc(fp)+'</b></li>';
     }else{
       card.className='card mismatch';
       result.textContent=vT('v.noMatch');
       result.className='verdict bad';
       detail.textContent=vT('v.noMatchDetail');
       rows.hidden=false;
-      rows.innerHTML='<li><span>Fingerprint</span><b class="mono">'+esc(fp)+'</b></li>';
+      rows.innerHTML='<li><span>'+esc(vT('v.rFingerprint'))+'</span><b class="mono">'+esc(fp)+'</b></li>';
     }
   }
   /* V3: a fingerprint is 64 hex (full) or 8 hex (prefix from the SMS).
@@ -344,29 +419,27 @@
       ||versions[versions.length-1]||{};
     var checkedNo=checked.version_no||currentNo;
     var superseded=checkedNo!==currentNo;
+    var packVerTxt=superseded?vT('v.packSuperseded').replace('{n}',String(checkedNo)).replace('{cur}',String(currentNo)):vT('v.packCurrent').replace('{n}',String(checkedNo));
+    var packJobTxt=vT('v.packJobStatus').replace('{s}',job.status||'—');
     if(chain.valid){
       packCard.className='card match';
-      packResult.textContent='✓ Hash chain valid — '+(pack.events||[]).length+' events, nothing changed';
+      packResult.textContent=vT('v.packValid').replace('{n}',String((pack.events||[]).length));
       packResult.className='verdict ok';
-      packDetail.textContent='Every event hash recomputed in this browser matches the stored hash. '
-        +(superseded?('This pack is version V'+checkedNo+', superseded by V'+currentNo+'.'):('This is the current version, V'+checkedNo+'.'))
-        +' Job status: '+(job.status||'—')+'.';
+      packDetail.textContent=vT('v.packValidDetail')+packVerTxt+packJobTxt;
     }else{
       packCard.className='card mismatch';
-      packResult.textContent='✕ Hash chain BROKEN at event #'+chain.brokenIndex+' ('+(chain.brokenType||'?')+')';
+      packResult.textContent=vT('v.packBroken').replace('{n}',String(chain.brokenIndex)).replace('{t}',chain.brokenType||'?');
       packResult.className='verdict bad';
-      packDetail.textContent='The event at position '+chain.brokenIndex+' ('+(chain.brokenType||'unknown type')+') does not match its stored hash ('+chain.reason+') — the history after it cannot be trusted. '
-        +(superseded?('This pack is version V'+checkedNo+', superseded by V'+currentNo+'.'):('This is the current version, V'+checkedNo+'.'))
-        +' Job status: '+(job.status||'—')+'.';
+      packDetail.textContent=vT('v.packBrokenDetail').replace('{n}',String(chain.brokenIndex)).replace('{t}',chain.brokenType||'unknown type').replace('{r}',chain.reason||'')+packVerTxt+packJobTxt;
     }
     packRows.hidden=false;
-    packRows.innerHTML='<li><span>Chain</span><b>'+(chain.valid?'Valid':'BROKEN at #'+chain.brokenIndex)+'</b></li>'
-      +'<li><span>Events checked</span><b>'+(pack.events||[]).length+'</b></li>'
-      +'<li><span>Version</span><b>V'+esc(checkedNo)+(superseded?', superseded by V'+esc(currentNo):' — current')+'</b></li>'
-      +'<li><span>Status</span><b>'+esc(job.status||'—')+'</b></li>'
-      +'<li><span>Price of this version</span><b>৳'+esc(checked.price!=null?checked.price:'—')+'</b></li>'
-      +'<li><span>Recomputed chain head</span><b class="mono">'+esc(chain.chainHead||'—')+'</b></li>'
-      +'<li><span>Chain head in the pack</span><b class="mono">'+esc(pack.chainHead||'—')+'</b></li>';
+    packRows.innerHTML='<li><span>'+esc(vT('v.pChain'))+'</span><b>'+(chain.valid?esc(vT('v.crossValid')):esc(vT('v.rChainBroken'))+' #'+chain.brokenIndex)+'</b></li>'
+      +'<li><span>'+esc(vT('v.pEvents'))+'</span><b>'+(pack.events||[]).length+'</b></li>'
+      +'<li><span>'+esc(vT('v.rVersion'))+'</span><b>V'+esc(checkedNo)+(superseded?vT('v.pSupBy').replace('{cur}',String(currentNo)):vT('v.pCurrent'))+'</b></li>'
+      +'<li><span>'+esc(vT('v.rStatus'))+'</span><b>'+esc(job.status||'—')+'</b></li>'
+      +'<li><span>'+esc(vT('v.pPrice'))+'</span><b>'+esc(checked.price!=null?vTaka(checked.price):'—')+'</b></li>'
+      +'<li><span>'+esc(vT('v.pRecomputed'))+'</span><b class="mono">'+esc(chain.chainHead||'—')+'</b></li>'
+      +'<li><span>'+esc(vT('v.pPackHead'))+'</span><b class="mono">'+esc(pack.chainHead||'—')+'</b></li>';
     /* Secondary cross-check: the server lookup for this version's
        fingerprint, shown alongside — never the verdict itself. */
     if(checked.fingerprint){
@@ -374,40 +447,40 @@
         packCross.hidden=false;
         if(d&&d.match){
           var sameHead=(d.chainHead||null)===(chain.chainHead||null);
-          packCross.textContent='Server cross-check: fingerprint matches V'+d.versionNo+' ('+d.versionState+'), status '+d.status
-            +', server chain '+(d.chainValid?'valid':'BROKEN')+', server chain head '+(sameHead?'matches the recomputed head':'DIFFERS from the recomputed head')+'.';
+          packCross.textContent=vT('v.crossMatch').replace('{n}',String(d.versionNo)).replace('{s}',d.versionState||'—').replace('{st}',d.status||'—').replace('{cv}',d.chainValid?vT('v.crossValid'):vT('v.crossBroken')).replace('{hd}',sameHead?vT('v.crossSameHead'):vT('v.crossDiffHead'));
         }else{
-          packCross.textContent='Server cross-check: the server has no record for this fingerprint.';
+          packCross.textContent=vT('v.crossNoRecord');
         }
-      }).catch(function(){packCross.hidden=false;packCross.textContent='Server cross-check: the server did not answer.';});
+      }).catch(function(){packCross.hidden=false;packCross.textContent=vT('v.crossDown');});
     }
     /* The QR's &ch= is the first 8 hex of the chain head this pack was
        generated with — a stale pack shows a head that no longer matches. */
     var qrHead=new URLSearchParams(window.location.search).get('ch')||'';
     if(qrHead&&chain.chainHead&&chain.chainHead.toLowerCase().indexOf(qrHead.toLowerCase())!==0){
-      packDetail.textContent+=' Note: the chain head in the QR link differs from the recomputed head — this pack is stale or was regenerated.';
+      packDetail.textContent+=vT('v.packStaleNote');
     }
   }
   async function runPack(pack){
-    packResult.textContent='Recomputing…';packResult.className='verdict';
-    packDetail.textContent='Recomputing every event hash in this browser.';
+    packResult.textContent=vT('v.packRecomputing');packResult.className='verdict';
+    packDetail.textContent=vT('v.packRecomputingDetail');
     packRows.hidden=true;packCross.hidden=true;
     if(!pack||!Array.isArray(pack.events)){
-      packCard.className='card mismatch';packResult.textContent='✕ That JSON has no event history';packResult.className='verdict bad';
-      packDetail.textContent='A ResolvePack JSON carries job, versions, events and chainHead. This one has no events array.';return;
+      packCard.className='card mismatch';packResult.textContent=vT('v.packNoEvents');packResult.className='verdict bad';
+      packDetail.textContent=vT('v.packNoEventsDetail');return;
     }
     if(!window.crypto||!crypto.subtle){
-      packCard.className='card mismatch';packResult.textContent='✕ This browser cannot recompute the chain';packResult.className='verdict bad';
-      packDetail.textContent='Chain recompute needs WebCrypto (a secure context). The server lookup above still works.';return;
+      packCard.className='card mismatch';packResult.textContent=vT('v.packNoCrypto');packResult.className='verdict bad';
+      packDetail.textContent=vT('v.packNoCryptoDetail');return;
     }
     var chain=await recomputeChain(pack.events);
+    lastPack=pack;lastChain=chain;
     renderPack(pack,chain);
   }
   async function checkPack(text){
     var pack=null;
     try{pack=JSON.parse(text);}catch(e){
-      packCard.className='card mismatch';packResult.textContent='✕ That is not a ResolvePack JSON';packResult.className='verdict bad';
-      packDetail.textContent='Paste the JSON from /api/jobs/:id/resolvepack.json, or upload the .json file.';return;
+      packCard.className='card mismatch';packResult.textContent=vT('v.packBadJson');packResult.className='verdict bad';
+      packDetail.textContent=vT('v.packBadJsonDetail');return;
     }
     await runPack(pack);
   }

@@ -252,6 +252,12 @@ html.js .faq-row.open .faq-a{grid-template-rows:1fr;opacity:1}
 .app-card h3{font-family:var(--condensed);font-size:24px;text-transform:uppercase;margin:28px 0 8px}
 .record h3{font-size:24px}
 .app-card p{color:#444}
+/* P2-9: inline field errors in the normal UI font. .app-card p{color:#444}
+   outranks a bare .field-err rule (same element, higher specificity), so
+   the error colour must be pinned on the full selector or errors render
+   grey and read as body text. */
+.field-err{color:#C23C00;font-family:var(--sans);font-size:14px;line-height:1.4;margin:6px 0 0;text-transform:none;letter-spacing:0}
+.app-card p.field-err{color:#C23C00}
 .view[hidden]{display:none}
 .field-grid{display:grid;gap:0}
 @media(min-width:700px){.field-grid{grid-template-columns:1fr 1fr;gap:0 20px}}

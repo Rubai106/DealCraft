@@ -42,10 +42,22 @@ body.pp-page main{min-width:0}
 <main>
   <p class="mono" data-i18n="p.kicker" style="color:#666">WORKPASSPORT · কাজের পরিচয়পত্র</p>
   <div class="pp-tabs" role="tablist" aria-label="WorkPassport sections" style="display:flex;gap:8px;margin:4px 0 12px">
-    <button type="button" id="pp-tab-1" role="tab" aria-selected="true" style="flex:1;min-height:52px;border:2px solid #111;background:#111;color:#fff;font-weight:700;cursor:pointer">পরিচয়</button>
-    <button type="button" id="pp-tab-2" role="tab" aria-selected="false" style="flex:1;min-height:52px;border:2px solid #111;background:#FBFAF7;color:#111;font-weight:700;cursor:pointer">সম্পন্ন কাজ</button>
+    <button type="button" id="pp-tab-1" role="tab" aria-selected="true" data-i18n="p.tab1" style="flex:1;min-height:52px;border:2px solid #111;background:#111;color:#fff;font-weight:700;cursor:pointer">Identity</button>
+    <button type="button" id="pp-tab-2" role="tab" aria-selected="false" data-i18n="p.tab2" style="flex:1;min-height:52px;border:2px solid #111;background:#FBFAF7;color:#111;font-weight:700;cursor:pointer">Completed jobs</button>
   </div>
   <div id="p-err" class="error" hidden></div>
+  <!-- P1-6: neutral, designed empty state for no/invalid id — no red
+       error styling, no QR <img>, no '—' presented as data. Hidden
+       until load() decides this page has no passport to show. -->
+  <div id="p-noid" hidden>
+    <div class="card-3d" style="background:#FBFAF7;border:2px solid #111;padding:24px 20px">
+      <p class="mono" style="color:#666;margin:0 0 8px" data-i18n="p.emptyKicker">WORKPASSPORT</p>
+      <h2 style="font-family:'Oswald',sans-serif;text-transform:uppercase;margin:0 0 8px" data-i18n="p.emptyTitle">No WorkPassport here</h2>
+      <p style="margin:0 0 16px" data-i18n="p.emptyText">This link does not open a WorkPassport. Open it from the worker's QR code or shared link, or start a job to create one.</p>
+      <p style="margin:0"><a class="big-btn orange" href="index.html" style="display:block;text-align:center;text-decoration:none" data-i18n="p.start">Start a job</a></p>
+      <p class="small" style="margin:16px 0 0"><a href="index.html" data-i18n="p.home2">DealCraft home</a></p>
+    </div>
+  </div>
   <!-- P1: two panels, exactly one visible, neither scrolls. Panel 1 =
        profile card + ID card + QR; Panel 2 = completed-jobs list only. -->
   <div id="pp-panel-1" class="pp-panel" role="tabpanel">
@@ -74,16 +86,16 @@ body.pp-page main{min-width:0}
     <h2 data-i18n="p.jobs" style="font-family:'Oswald',sans-serif;text-transform:uppercase">Completed jobs</h2>
     <div id="p-jobs" class="pp-jobs"></div>
     <div id="p-pager" style="display:flex;gap:8px;align-items:center;margin-top:12px">
-      <button type="button" id="p-prev" style="flex:1;min-height:52px;border:2px solid #111;background:#FBFAF7;color:#111;font-weight:700;cursor:pointer">আগের</button>
+      <button type="button" id="p-prev" data-i18n="p.prev" style="flex:1;min-height:52px;border:2px solid #111;background:#FBFAF7;color:#111;font-weight:700;cursor:pointer">Previous</button>
       <span class="small" id="p-page-label" style="flex:none"></span>
-      <button type="button" id="p-next" style="flex:1;min-height:52px;border:2px solid #111;background:#FBFAF7;color:#111;font-weight:700;cursor:pointer">পরের</button>
+      <button type="button" id="p-next" data-i18n="p.next" style="flex:1;min-height:52px;border:2px solid #111;background:#FBFAF7;color:#111;font-weight:700;cursor:pointer">Next</button>
     </div>
     <div id="p-photos" hidden><h2 data-i18n="p.photos" style="font-family:'Oswald',sans-serif;text-transform:uppercase">Photos · ছবি</h2><div id="p-photos-list"></div></div>
     <p class="small" data-i18n="p.note" style="color:#666">Amounts, client names and photos are shown only if the worker enabled them. / টাকার অঙ্ক, ক্লায়েন্টের নাম আর ছবি worker না চাইলে দেখানো হয় না।</p>
   </div>
   <div id="p-empty" hidden>
-    <p>এখনো কোনো সম্পন্ন কাজ নেই। দুই পক্ষ মিলে একটি কাজ শেষ করলে তা এখানে দেখাবে।</p>
-    <p><a class="big-btn orange" href="index.html" style="display:block;text-align:center;text-decoration:none">কাজ শুরু করুন</a></p>
+    <p data-i18n="p.empty">No completed jobs yet. One will show here once both sides finish a job together.</p>
+    <p><a class="big-btn orange" href="index.html" style="display:block;text-align:center;text-decoration:none" data-i18n="p.start">Start a job</a></p>
   </div>
   </div>
   <p class="small"><a href="index.html" data-i18n="p.home">DealCraft হোম</a></p>
@@ -94,9 +106,9 @@ var q=new URLSearchParams(location.search), profileId=q.get('id')||q.get('profil
 /* Also served at /passport/:id (the QR target): take the id from the path
    when there is no query string. */
 if(!profileId){var m=location.pathname.match(/^\/passport\/([^\/]+)$/);if(m)profileId=decodeURIComponent(m[1]);}
-/* Language toggle — same pattern as index.html (dc_lang, default bn
-   on this page: the WorkPassport is most often opened by Bangla readers). */
-var pLang=localStorage.getItem('dc_lang')||'bn';
+/* Language toggle — same pattern as index.html (dc_lang, default en
+   on this page). A saved choice always wins over the default. */
+var pLang=localStorage.getItem('dc_lang')||'en';
 var PI18N={
  'p.kicker':{bn:'WORKPASSPORT · কাজের পরিচয়পত্র',en:'WORKPASSPORT · Work identity'},
  'p.countLabel':{bn:'সম্পন্ন কাজ',en:'Confirmed jobs'},
@@ -115,7 +127,20 @@ var PI18N={
  'p.profileJobs':{bn:'সম্পন্ন কাজ',en:'Completed jobs'},
  'p.profileHirers':{bn:'আলাদা হায়ারার',en:'Distinct hirers'},
  'p.profileSince':{bn:'সদস্য',en:'Member since'},
- 'p.profileWorker':{bn:'DealCraft ওয়ার্কার',en:'DealCraft worker'}
+ 'p.profileWorker':{bn:'DealCraft ওয়ার্কার',en:'DealCraft worker'},
+ 'p.tab1':{bn:'পরিচয়',en:'Identity'},
+ 'p.tab2':{bn:'সম্পন্ন কাজ',en:'Completed jobs'},
+ 'p.prev':{bn:'আগের',en:'Previous'},
+ 'p.next':{bn:'পরের',en:'Next'},
+ 'p.empty':{bn:'এখনো কোনো সম্পন্ন কাজ নেই। দুই পক্ষ মিলে একটি কাজ শেষ করলে তা এখানে দেখাবে।',en:'No completed jobs yet. One will show here once both sides finish a job together.'},
+ 'p.start':{bn:'কাজ শুরু করুন',en:'Start a job'},
+ 'p.emptyKicker':{bn:'WORKPASSPORT',en:'WORKPASSPORT'},
+ 'p.emptyTitle':{bn:'এখানে কোনো WorkPassport নেই',en:'No WorkPassport here'},
+ 'p.emptyText':{bn:'এই লিংকে কোনো WorkPassport খুলছে না। ওয়ার্কারের QR কোড বা শেয়ার করা লিংক থেকে খুলুন, অথবা একটি কাজ শুরু করে তৈরি করুন।',en:"This link does not open a WorkPassport. Open it from the worker's QR code or shared link, or start a job to create one."},
+ 'p.home2':{bn:'DealCraft হোম',en:'DealCraft home'},
+ 'p.qrFail':{bn:'QR খোলা যায়নি — লিংক কপি করে শেয়ার করুন',en:'QR did not load — copy the link to share it'},
+ 'p.qrCopy':{bn:'লিংক কপি করুন',en:'Copy link'},
+ 'p.qrCopied':{bn:'কপি হয়েছে',en:'Copied'}
 };
 function pApplyLang(){document.documentElement.lang=pLang;
  document.querySelectorAll('[data-i18n]').forEach(function(el){var v=PI18N[el.getAttribute('data-i18n')];if(v)el.textContent=v[pLang]||v.bn;});
@@ -131,6 +156,9 @@ function pApplyLang(){document.documentElement.lang=pLang;
 function $(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function jobNum(n){return (n<10?'0':'')+n;}
+/* Human dates, same shape as the hirer side ('4 Dec 2026' / Bangla
+   equivalent) — never a raw ISO date. */
+function pFmtDate(d){if(!d)return '—';var dt=new Date(d);if(isNaN(dt.getTime()))return String(d);try{return dt.toLocaleDateString(pLang==='bn'?'bn-BD':'en-GB',{day:'numeric',month:'short',year:'numeric'});}catch(e){return String(d);}}
 var P_TRADE={ELECTRICIAN:{bn:'ইলেকট্রিশিয়ান',en:'Electrician'},PAINTER:{bn:'পেইন্টার',en:'Painter'},PLUMBER:{bn:'প্লাম্বার',en:'Plumber'}};
 function pTradeLabel(tr){if(!tr)return '';var d=P_TRADE[String(tr).toUpperCase()];return d?(d[pLang]||d.en):tr;}
 /* Worker profile card — identical markup to app.js renderProfileCard
@@ -198,13 +226,23 @@ function shelf(entries,offset){
   var num=hasAmt?'৳'+Number(e.amount).toLocaleString('en-IN'):jobNum(n+1);
   var lab=hasAmt?(PI18N['p.amountLabel'][pLang]||'Amount'):(PI18N['p.jobNo'][pLang]||'Job no.')+' '+jobNum(n+1);
   var client=(e.showClient&&e.clientName)?'<span class="pp-job-meta">'+esc(e.clientName)+'</span>':'';
-  return '<article class="pp-job" style="--i:'+n+'"><b class="pp-job-num">'+esc(num)+'</b><span class="pp-job-lab">'+esc(lab)+'</span><span class="pp-job-trade">'+esc(pTradeLabel(e.trade))+'</span><span class="pp-job-meta">'+esc(String(e.completedAt||'').slice(0,10))+'</span>'+client+'</article>';
+  return '<article class="pp-job" style="--i:'+n+'"><b class="pp-job-num">'+esc(num)+'</b><span class="pp-job-lab">'+esc(lab)+'</span><span class="pp-job-trade">'+esc(pTradeLabel(e.trade))+'</span><span class="pp-job-meta">'+esc(e.completedAt?pFmtDate(e.completedAt):'—')+'</span>'+client+'</article>';
  }).join('')||'<span class="small">—</span>';
 }
+/* P1-6: no/invalid id gets the neutral designed empty state — never the
+   red error box, never a QR <img>, never a '—' presented as data. Only a
+   genuine transport failure (the fetch itself throwing) keeps the red
+   error path. */
+function pShowNoId(){
+ var tabs=document.querySelector('.pp-tabs'); if(tabs)tabs.hidden=true;
+ $('pp-panel-1').hidden=true; $('pp-panel-2').hidden=true;
+ var e=$('p-err'); e.hidden=true; e.textContent='';
+ $('p-noid').hidden=false;
+}
 async function load(){
- if(!profileId){var e=$('p-err');e.hidden=false;e.textContent=pLang==='bn'?'লিংকে কোনো WorkPassport নেই।':'No WorkPassport link.';return;}
+ if(!profileId){pShowNoId();return;}
  try{var r=await fetch('/api/passport/'+encodeURIComponent(profileId));var d=await r.json();
-  if(!r.ok)throw new Error((d&&(d.error||d.message))||('HTTP '+r.status));
+  if(!r.ok){if(r.status===404||r.status===400){pShowNoId();return;}throw new Error((d&&(d.error||d.message))||('HTTP '+r.status));}
   var p=d.passport||d;
   /* Profile card above the ID card, from the workerProfile on this
      same response (falls back to the passport fields if absent). */
@@ -236,15 +274,15 @@ async function load(){
      show the pp_… id or any phone number here. */
   qr.onerror=function(){
    var box=qr.parentNode; if(!box)return;
-   box.innerHTML='<p class="small" style="margin:0 0 8px">QR খোলা যায়নি — লিংক কপি করে শেয়ার করুন</p>'
-    +'<button type="button" id="p-qr-copy" style="min-height:52px;padding:10px 16px;border:2px solid #111;background:#111;color:#fff;font-weight:700;cursor:pointer">লিংক কপি করুন</button>';
+   box.innerHTML='<p class="small" style="margin:0 0 8px">'+esc((PI18N['p.qrFail']||{bn:'',en:''})[pLang]||'')+'</p>'
+    +'<button type="button" id="p-qr-copy" style="min-height:52px;padding:10px 16px;border:2px solid #111;background:#111;color:#fff;font-weight:700;cursor:pointer">'+esc((PI18N['p.qrCopy']||{bn:'',en:''})[pLang]||'')+'</button>';
    var btn=$('p-qr-copy');
    if(btn)btn.addEventListener('click',function(){
     var url=location.href;
-    function done(ok){btn.textContent=ok?'কপি হয়েছে':'লিংক কপি করুন';}
+    function done(ok){btn.textContent=ok?((PI18N['p.qrCopied']||{bn:'',en:''})[pLang]||''):((PI18N['p.qrCopy']||{bn:'',en:''})[pLang]||'');}
     if(navigator.clipboard&&navigator.clipboard.writeText){
-     navigator.clipboard.writeText(url).then(function(){done(true);},function(){prompt('লিংকটি কপি করুন:',url);});
-    }else{prompt('লিংকটি কপি করুন:',url);}
+     navigator.clipboard.writeText(url).then(function(){done(true);},function(){prompt(((PI18N['p.qrCopy']||{bn:'',en:''})[pLang]||'')+':',url);});
+    }else{prompt(((PI18N['p.qrCopy']||{bn:'',en:''})[pLang]||'')+':',url);}
    });
   };
   qr.src='/api/passport/'+encodeURIComponent(profileId)+'/qr.png';

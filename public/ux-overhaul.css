@@ -577,3 +577,155 @@ body.trip-page #trip-fallback { border-radius: var(--ux-radius-sm); }
     transition: none !important;
   }
 }
+
+/* ============================================================
+   P1-5 — LAYOUT BREAKAGE (2026-11-28, screenshot-verified)
+   Diagnosed causes, not symptoms:
+   - The app topbar had no flex-wrap while the demo banner carries an
+     inline flex:1 1 100%: in demo mode the banner ate the whole row and
+     squeezed the giant title to a zero-width vertical stack colliding
+     with the HOME pill. That ~215px topbar starved #detail-scroll to
+     253px at 1440x1000 and 21px at 1366x768, which is what half-cut
+     milestone 3 (b3) and the step panels (b1, via a second cause below).
+   - Step switching never reset #detail-scroll.scrollTop, so a panel
+     opened scrolled-down hid its top content above the scroller edge,
+     i.e. "under the stepper" (fixed in app.js, not here).
+   No gradients, no glassmorphism, no glow — hard offset shadows only.
+   ============================================================ */
+
+/* (c) Landing scrolls normally at every height. The unlock used to live
+   only under @media (max-height:760px); at 1440x900 / 1366x768 / 390x844
+   body{overflow:hidden} survived and the demo player sat below the fold
+   (document height == viewport height, scrollY stuck at 0). Lifted out
+   of the gate: the hero keeps min-height:100dvh so the single-screen
+   feel survives at tall viewports, but the page scrolls when content is
+   taller. The short-screen / landscape refinements above stay as-is.
+   Scoped with :has(.hero) — only index.html has a hero. The other
+   pages (worker, passport, verify, trip) keep their one-viewport
+   internal-scroll layout; an unscoped body rule broke the worker page
+   at 390x844 (document grew to 1434px tall). */
+body:not(.show-app):has(.hero) {
+  height: auto;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+body:not(.show-app):has(.hero) main {
+  height: auto;
+  min-height: 100dvh;
+}
+body:not(.show-app):has(.hero) .hero {
+  height: auto;
+  min-height: 100dvh;
+  overflow: visible;
+}
+body:not(.show-app):has(.hero) .hero-grid {
+  height: auto;
+  min-height: 100dvh;
+  align-content: start;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+}
+
+/* (c2) 390px landing overflow (finisher fix, 2026-11-28): at 390px the
+   hero stacked 860px tall against an 844px viewport — the 24px top
+   margin on .hero-visual (style.css, <=979px) was the 16px over. Below
+   480px only, 8px; desktop and wider phones untouched. The old
+   no-scroll assertion still holds at 390x844 and the landing still
+   scrolls at 1366x768 — both intents kept. */
+@media (max-width: 480px) {
+  .hero-visual { margin-top: 8px; }
+}
+
+/* (a) FAQ modal: single column at every width. The old two-column grid
+   (628px + 1fr at >=900px) put the right column 25px past the card's
+   right edge, clipping questions mid-word. min-width:0 on the rows and
+   wrapping question text stop any single long word forcing overflow. */
+#sheet-faq .faq-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+#sheet-faq .faq-row { min-width: 0; }
+#sheet-faq .faq-q-text { min-width: 0; overflow-wrap: anywhere; }
+
+/* (a)+(b2) Sheet cap re-derived from the brief: 90dvh, no 900px hard cap.
+   The branch's min(88dvh, 900px) was shorter than main's
+   calc(100dvh - 72px) on tall screens and fought the FAQ fix and the
+   MORE-modal room. The card itself stays the only scroller
+   (overflow-y:auto from the base sheet rule); the More panels keep
+   max-height:none / overflow-y:visible so they never clip mid-row
+   inside a second nested scroller. */
+.sheet-card {
+  max-height: 90dvh;
+}
+@media (max-width: 560px) {
+  .sheet-card { max-height: 92dvh; }
+}
+
+/* (b1)+(b3) Step panels start below the stepper and stay there: the
+   stepper paints above panel content, and the detail scroller gets
+   bottom padding >= the CALL WORKER bar height (~67px + margin) so the
+   last row (milestone 3, photos, close buttons) can scroll fully above
+   the bar instead of half-cutting at the scroller's bottom edge. */
+#view-detail .stepper {
+  position: relative;
+  z-index: 2;
+}
+#view-detail #detail-scroll {
+  scroll-padding-top: 8px;
+  padding-bottom: 96px;
+}
+
+/* (d) My Jobs at 390px: the ghost buttons kept white-space:nowrap while
+   flex:1 + min-width:0 shrank them below their text width, so the
+   centred label spilled past both edges and clipped mid-word at the
+   screen edge ("মিস্ত্রি খুঁজুন — …" lost its head). Same pattern the
+   branch already applied one view over (#view-detail .fab-bar .btn);
+   extended to every app view's fab-bar so no button label can clip. */
+@media (max-width: 520px) {
+  #view-jobs .fab-bar .btn,
+  #view-new .fab-bar .btn,
+  #view-bid-post .fab-bar .btn,
+  #view-find-work .fab-bar .btn,
+  #view-bid-detail .fab-bar .btn {
+    white-space: normal;
+    font-size: 10px;
+    line-height: 1.35;
+  }
+}
+
+/* (e) App header: the giant stacked display title is replaced with a
+   compact per-view page title (set by updateAppTitle in app.js from the
+   visible view's own heading — no new strings, works in either
+   language). The topbar wraps so the demo banner takes its own row
+   instead of eating the title row: that alone returns ~150px of
+   viewport to the step panels in demo mode. */
+.app-topbar { flex-wrap: wrap; }
+#demo-banner { flex: 1 1 100%; order: -1; }
+#app-page-title {
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: .12em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* (f) Worker passport stats: a proper 3-column grid — number above
+   label in each column, equal columns, shared left edge. The old flex
+   row sized each item to its label text, so columns were uneven and
+   labels drifted away from their numbers. */
+.pc-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+.pc-fact { min-width: 0; }
+.pc-fact b { overflow-wrap: anywhere; }
+.pc-fact span { overflow-wrap: anywhere; }

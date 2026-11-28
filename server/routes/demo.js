@@ -5,6 +5,9 @@ const express = require('express');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const { db, now, fingerprint, randomToken, newId, expiryDate, getAdapter, resetRateLimits, LOG_PATH, baseUrl, addEvent, getJob, createWorkerToken, demoAllowed, upsertUser, createEventTriggers } = require('../src/shared');
+// P2-8: one demo, one dataset — the seed values live in
+// server/src/demo-seed.js and nowhere else.
+const { DEMO_SEED } = require('../src/demo-seed');
 const router = express.Router();
 
 // ---------------------------------------------------------------- demo
@@ -185,25 +188,12 @@ router.post('/api/demo/seed', async (req, res) => {
   try { fs.writeFileSync(LOG_PATH, ''); } catch (_e) {}
   const hirerPhone = visitor.phones.hirer;
   const workerPhone = visitor.phones.worker;
-  const hirer = upsertUser(hirerPhone, 'Rahim Uddin', 'hirer');
-  upsertUser(workerPhone, 'Karim Mistri', 'worker');
-  const answers = {
-    'Who buys wires/materials?': 'Worker buys, hirer pays',
-    'Wire brand and specification': 'BRB 1.5mm / 2.5mm',
-    'Number of points': '24 points',
-    'Circuit breakers included?': 'Yes, included',
-    'Wall cutting and wall repair — included?': 'Worker includes wall repair',
-    'Final testing included?': 'Yes, included',
-    'Transport cost': 'Included',
-    'Waste removal': 'Worker removes waste',
-  };
-  const milestones = [
-    { title: 'Advance', amount: 5000 },
-    { title: 'First stage', amount: 7000 },
-    { title: 'Completion', amount: 6000 },
-  ];
-  const scope = 'Apartment electrical rewiring — 2 bedrooms';
-  const price = 18000;
+  const hirer = upsertUser(hirerPhone, DEMO_SEED.hirerName, 'hirer');
+  upsertUser(workerPhone, DEMO_SEED.workerName, 'worker');
+  const answers = { ...DEMO_SEED.answers };
+  const milestones = DEMO_SEED.milestones.map((m) => ({ title: m.title, amount: m.amount }));
+  const scope = DEMO_SEED.scope;
+  const price = DEMO_SEED.price;
   // Item 12: the seed deadline is relative to seed time (+7 days), never
   // a hard-coded date — a fixed date would pass and the demo job would
   // nudge itself once that date goes by.
@@ -212,13 +202,13 @@ router.post('/api/demo/seed', async (req, res) => {
   const scopeDoc = { scope, milestones, answers, skippedTerms: [] };
   db.prepare(
     'INSERT INTO Job (id, hirer_id, worker_phone, worker_name, trade, status, current_version, site_lat, site_lng, site_address, demo_visitor, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(jobId, hirer.id, workerPhone, 'Karim Mistri', 'ELECTRICIAN', 'DRAFT', 1, 23.8103, 90.4125, 'Demo flat, Dhaka', visitor.tag, now());
+  ).run(jobId, hirer.id, workerPhone, DEMO_SEED.workerName, DEMO_SEED.trade, 'DRAFT', 1, DEMO_SEED.site.lat, DEMO_SEED.site.lng, DEMO_SEED.site.address, visitor.tag, now());
   const fp = fingerprint({ job_id: jobId, version_no: 1, scope, price, deadline, answers, skippedTerms: [], milestones });
   db.prepare(
     'INSERT INTO JobVersion (id, job_id, version_no, scope_json, price, deadline, fingerprint, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(newId(), jobId, 1, JSON.stringify(scopeDoc), price, deadline, fp, now());
   addEvent(jobId, 'AGREEMENT_CREATED', 'hirer:' + hirerPhone, {
-    trade: 'ELECTRICIAN', price, deadline,
+    trade: DEMO_SEED.trade, price, deadline,
     missingTerms: [],
     note: 'Wall repair was "Not decided" at first draft; resolved to "Worker includes wall repair" before seeding.',
   });
@@ -242,7 +232,7 @@ router.post('/api/demo/seed', async (req, res) => {
       // Create-time SMS to the worker is Bangla, like the POST /api/jobs
       // create SMS (Part 2, item 12: the seed used to send this in
       // English — the worker's first message about their record).
-      'DealCraft: Rahim Uddin আপনার জন্য ইলেকট্রিশিয়ান কাজের রেকর্ড তৈরি করেছেন (৳১৮,০০০)। দেখুন: '
+      'DealCraft: ' + DEMO_SEED.hirerName + ' আপনার জন্য ইলেকট্রিশিয়ান কাজের রেকর্ড তৈরি করেছেন (৳১৮,০০০)। দেখুন: '
       + baseUrl(req) + workerLink + ' — DealCraft টাকা রাখে না; এটি কোনো আইনি নথি নয়।');
   } catch (_e) {
     // Sandbox OTP/SMS failures must not break seeding; codes stay null.
@@ -253,8 +243,12 @@ router.post('/api/demo/seed', async (req, res) => {
     hirerPhone,
     workerPhone,
     hirerToken,
-    hirer: { phone: hirerPhone, name: 'Rahim Uddin' },
+    hirer: { phone: hirerPhone, name: DEMO_SEED.hirerName },
     sandboxOtps: { hirerConfirm: hirerOtp, workerConfirm: workerOtp },
+    // P2-8: the seed carries its own dataset, so a client (or a test)
+    // can check the seeded record against the single source without a
+    // second fetch. Phones stay per-visitor (derived), never fixed.
+    seed: DEMO_SEED,
   });
 });
 

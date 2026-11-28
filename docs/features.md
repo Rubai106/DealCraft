@@ -1,7 +1,7 @@
 # Features
 
 Everything below is built and covered by the regression suite
-(`npm test`, 871 assertions, PASS — the count grows as coverage is
+(`npm test`, 973 assertions, PASS — the count grows as coverage is
 added; see `tests/regression/run-demo.mjs`). Nothing in the Planned section of
 [status.md](status.md) is claimed here.
 
@@ -146,7 +146,7 @@ log, and the hirer can close bidding without picking anyone
 |---|---|---|
 | Innovation & Originality | 25% | FairScope missing-term warning (the fight caught before work starts); one append-only event log with SHA-256 version fingerprints; ChangeLock versioning; WorkPassport as proof a worker carries — not a marketplace, not a contract, not escrow |
 | AppLink Integration | 20% | `server/src/applink/` — OTP, SMS, CaaS, Subscription adapters with identical interfaces; CaaS PENDING→VERIFIED two-step handled correctly; sandbox labelled + logged, live switch via env; `GET /api/applink/log` |
-| Technical Implementation | 20% | Express + SQLite (relational, append-only), random token auth, per-job signed worker links, magic-byte-validated photo uploads served job-scoped, server-side PDF + QR, PWA with service worker, live location (opt-in, geofenced arrival; shared only while the job is active, deleted on close, arrival events stored without coordinates); `tests/regression/run-demo.mjs` — 871 assertions, PASS (count grows with coverage), plus GitHub Actions CI on Node 24 |
+| Technical Implementation | 20% | Express + SQLite (relational, append-only), random token auth, per-job signed worker links, magic-byte-validated photo uploads served job-scoped, server-side PDF + QR, PWA with service worker, live location (opt-in, geofenced arrival; shared only while the job is active, deleted on close, arrival events stored without coordinates); `tests/regression/run-demo.mjs` — 973 assertions, PASS (count grows with coverage), plus GitHub Actions CI on Node 24 |
 | Business Viability | 20% | ৳10/record CaaS (idempotent, ownership-checked) + ৳70/month subscription, no DealCraft fee for workers (carrier SMS charges disclosed); ৳10 yields ~৳4–5 under the revenue share before costs — not claimed profitable without settlement data; Banglalink-only limit stated honestly; demo story is a real, repeatable transaction |
 | Problem–Solution Fit & Impact | 10% | The exact fight the product removes: price changes, extra work, disputed payments with no proof — demo story reproduces it end to end in under 2 minutes |
 | Presentation & Demo | 5% | One-click demo seed + script (`GET /api/demo/script`), ResolvePack PDF as the one-page story, Direction 03 poster design, Bangla-first |

@@ -131,13 +131,8 @@
 <!-- APP — one screen per view; secondary content lives in sheets, never below the fold. -->
 <section class="section section-white app" id="app"><div class="wrap app-wrap">
   <div class="app-topbar">
-    <div id="demo-banner" hidden style="flex:1 1 100%"><div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#FBFAF7;border:1px solid #E3DED4;color:#111111;padding:6px 8px;font-size:13px">
-      <span data-i18n="demo.banner">DEMO — not a real record. Nothing here counts.</span>
-      <button type="button" id="demo-restart" class="btn btn-dark-ghost btn-sm" data-i18n="demo.restart">Restart demo</button>
-      <button type="button" id="demo-exit" class="btn btn-dark-ghost btn-sm" data-i18n="demo.exit">Exit demo</button>
-    </div></div>
     <button class="btn btn-dark-ghost btn-sm" type="button" id="btn-home" data-i18n="app.home">← Home</button>
-    <h2 class="sec-title app-title-h" data-i18n="app.title">অ্যাপ — রেকর্ড শুরু করুন</h2>
+    <h2 class="sec-title app-title-h" id="app-page-title" data-i18n="app.title">অ্যাপ — রেকর্ড শুরু করুন</h2>
     <button class="btn btn-dark-ghost btn-sm" type="button" id="btn-more-global" data-i18n="app.more">More</button>
   </div>
   <div id="app-error" class="error" role="alert" hidden></div>
@@ -158,7 +153,6 @@
       <div class="btn-row"><button class="btn btn-dark btn-3d" type="submit" data-i18n="login.send">Send OTP</button></div>
     </form>
     <form id="form-otp" hidden>
-      <div class="notice" id="otp-note" hidden><b data-i18n="otp.code">Your code</b><br><span id="otp-note-text"></span></div>
       <label for="otp-code" data-i18n="login.otp">OTP code</label>
       <input id="otp-code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code" maxlength="6" pattern="[0-9]*" required>
       <button type="button" id="otp-resend" class="btn btn-dark-ghost btn-sm" data-i18n="otp.resend">Resend code</button>
@@ -226,14 +220,9 @@
           <p class="small"><span data-i18n="new.workerLabel">Worker</span>: <b id="worker-summary-text">—</b>
           <button type="button" id="worker-summary-edit" class="btn btn-dark-ghost btn-sm" data-i18n="new.edit">Edit</button></p>
           <div class="field-grid">
-            <div><label for="worker-phone" data-i18n="new.workerPhone">Worker phone</label><input id="worker-phone" type="tel" inputmode="tel" placeholder="01XXXXXXXXX"></div>
+            <div><label for="worker-phone" data-i18n="new.workerPhone">Worker phone</label><input id="worker-phone" type="tel" inputmode="tel" placeholder="01XXXXXXXXX"><p class="field-err" id="err-worker-phone" hidden></p></div>
             <div><label for="worker-name" data-i18n="new.workerName">Worker name</label><input id="worker-name" type="text" placeholder="Worker-এর নাম"></div>
           </div>
-        </div>
-        <div class="opt-row" id="trade-picker">
-          <button type="button" data-trade="ELECTRICIAN" aria-pressed="true" data-i18n="trade.electrician">ELECTRICIAN</button>
-          <button type="button" data-trade="PAINTER" aria-pressed="false" data-i18n="trade.painter">PAINTER</button>
-          <button type="button" data-trade="PLUMBER" aria-pressed="false" data-i18n="trade.plumber">PLUMBER</button>
         </div>
       </div>
       <div id="prompt-q" class="chat-q" hidden>
@@ -258,11 +247,12 @@
         <div class="record" id="new-summary"></div>
         <div id="new-fields" hidden>
         <div class="field-grid">
-          <div><label for="job-price" data-i18n="new.price">Agreed price (৳)</label><input id="job-price" type="number" min="0" inputmode="numeric" placeholder="18000"></div>
-          <div><label for="job-deadline" data-i18n="new.deadline">Deadline</label><input id="job-deadline" type="date"></div>
+          <div><label for="job-price" data-i18n="new.price">Agreed price (৳)</label><input id="job-price" type="number" min="0" inputmode="numeric" placeholder="18000"><p class="field-err" id="err-price" hidden></p></div>
+          <div><label for="job-deadline" data-i18n="new.deadline">Deadline</label><input id="job-deadline" type="date"><p class="field-err" id="err-deadline" hidden></p></div>
         </div>
         <label for="job-scope" data-i18n="new.scope">Scope — কাজের বিবরণ</label>
         <textarea id="job-scope" rows="3" placeholder="যেমন: পুরো ফ্ল্যাটের রিওয়্যারিং, ২৪ পয়েন্ট"></textarea>
+        <p class="field-err" id="err-scope" hidden></p>
         </div>
         <div class="btn-row"><button type="button" id="site-toggle" class="btn btn-dark-ghost btn-sm" aria-expanded="false" data-i18n="prompt.siteToggle">Add job site (optional)</button></div>
         <div id="site-block" hidden>
@@ -323,7 +313,6 @@
       <div id="success-check" class="success-check" hidden aria-hidden="true"></div>
       <div class="tabpanel" id="tab-s1">
         <div id="detail-profile"></div>
-        <div id="demo-checklist" hidden></div>
         <div class="record" id="detail-record" hidden></div>
         <div class="btn-row"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-listen" hidden>শুনুন / Listen</button></div>
         <details id="detail-protection-wrap" hidden><summary data-i18n="detail.protectionSummary">Price history</summary><div class="notice" id="detail-protection" hidden></div></details>
@@ -343,7 +332,6 @@
         <div id="detail-confirm" class="notice" hidden>
           <b data-i18n="detail.confirmTitle">Hirer confirmation needed</b>
           <p data-i18n="detail.confirmText">Worker নিশ্চিত করেছেন। আপনার OTP দিয়ে রেকর্ডটি চূড়ান্ত করুন।</p>
-          <div class="notice" id="confirm-note" hidden><b data-i18n="otp.code">Your code</b><br><span id="confirm-note-text"></span></div>
           <p class="free-otp" data-i18n="otp.free">Verification is free — no charge for this code.</p>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="confirm-otp" type="text" inputmode="numeric" placeholder="OTP" maxlength="6" autocomplete="one-time-code" style="max-width:180px"><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-confirm-send-otp" data-i18n="detail.sendOtp">Send confirm OTP</button><button class="btn btn-dark-ghost btn-sm" type="button" id="btn-confirm-resend" data-i18n="otp.resend">Resend code</button><button class="btn btn-dark btn-sm btn-3d" type="button" id="btn-hirer-confirm" data-i18n="detail.confirmBtn">Confirm with OTP</button></div>
         </div>
@@ -355,6 +343,10 @@
         <div class="btn-row"><button class="btn btn-orange btn-3d" type="button" data-next-tab="s3" data-i18n="detail.nextWay">Next: On the way →</button></div>
       </div>
       <div class="tabpanel" id="tab-s3" hidden>
+        <div id="loc-empty" class="notice" hidden>
+          <b>No live location yet</b>
+          <p>Nothing to show here yet. Once the worker starts sharing live location from their link, you will see them on the map here, with distance and arrival time.</p>
+        </div>
         <div id="loc-box" class="notice" hidden>
           <b data-i18n="loc.title">Live location — লাইভ লোকেশন</b>
           <p><span class="pill" id="loc-status-pill">—</span> <span id="loc-text">—</span></p>
@@ -370,8 +362,13 @@
       <div class="tabpanel" id="tab-s4" hidden>
         <h3 data-i18n="pay.title">Record a payment — PayProof</h3>
         <p data-i18n="pay.text">টাকা দিলে এখানে লিখুন। Worker “Received” বললে তবেই স্বীকৃত হয়।</p>
+        <div id="pay-locked" class="notice" hidden>
+          <b>Payments are not open yet</b>
+          <p>Available once both sides confirm.</p>
+        </div>
         <form id="form-pay">
           <label for="pay-amount" data-i18n="pay.amount">Amount (৳)</label><input id="pay-amount" type="number" min="1" inputmode="numeric" placeholder="5000" required>
+          <p class="field-err" id="err-pay-amount" hidden></p>
           <label data-i18n="pay.method">Method</label>
           <div class="opt-row pay-methods" id="pay-methods">
             <button type="button" data-method="Cash" aria-pressed="true" data-i18n="pay.mCash">Cash</button>
@@ -402,8 +399,24 @@
     </div>
     <div class="fab-bar">
       <a class="btn btn-dark btn-3d fab-primary" id="btn-call-detail" href="tel:" data-i18n="detail.call">📞 Call worker</a>
-      <button class="btn btn-dark-ghost btn-sm" type="button" id="btn-share-trip-fab" data-i18n="trip.share">Share trip ↗</button>
       <button class="btn btn-dark-ghost btn-sm" type="button" id="btn-more-job" data-i18n="app.more">More</button>
+    </div>
+  </div>
+
+  <!-- WHAT BIDDING IS — explanatory screen before the bid post form -->
+  <div class="app-card view" id="view-bid-info" hidden>
+    <div class="view-head">
+      <button class="btn btn-dark-ghost btn-sm" type="button" id="btn-bid-info-back" data-i18n="bid.back">← All jobs</button>
+      <h2 style="margin-top:0">Find a repairer — how bidding works</h2>
+    </div>
+    <div class="view-scroll">
+      <h3>What bidding is</h3>
+      <p>You describe the job once, and repairers nearby send you their price. You see the cheapest first, with how far away they are and what their WorkPassport shows — completed jobs and distinct hirers, no stars.</p>
+      <h3>How it works</h3>
+      <p>Post the job by prompt, with a photo if you have one. Workers bid a price, a note, and their earliest start. You pick one bid — or nobody, and close bidding.</p>
+      <h3>What happens next</h3>
+      <p>A bid alone is never an agreement. Picking a bid makes a normal DealCraft record, and only then do both sides confirm by OTP. The one ৳10 record fee is charged once, after both sides confirm — and only then is the record ACTIVE.</p>
+      <div class="btn-row"><button class="btn btn-orange btn-3d" type="button" id="btn-bid-info-continue">Continue — post the job →</button></div>
     </div>
   </div>
 
@@ -559,6 +572,7 @@
 <div class="sheet" id="sheet-more" hidden role="dialog" aria-modal="true" aria-label="More">
   <div class="sheet-card">
     <div class="sheet-head"><h2 data-i18n="more.title">More</h2><button class="sheet-close" type="button" data-close aria-label="Close">✕</button></div>
+    <div id="more-resolvepack" class="notice" style="margin-bottom:12px"></div>
     <div class="sheet-nav" role="tablist" aria-label="More sections" id="more-nav">
       <button type="button" data-panel="change" aria-selected="true" data-i18n="more.navChange">বদল</button>
       <button type="button" data-panel="dispute" aria-selected="false" data-i18n="more.navDispute">সমস্যা</button>
@@ -568,6 +582,10 @@
     <div class="tabpanel" id="tab-change" style="max-height:calc(100dvh - 72px);overflow-y:auto">
       <h3 data-i18n="change.title">Propose a change — ChangeLock</h3>
       <p data-i18n="change.text">দাম বা সময় বদলাতে হলে লিখিত প্রস্তাব দিন। Worker মানলে তবেই নতুন সংস্করণ (V2) হয়।</p>
+      <div id="change-locked" class="notice" hidden>
+        <b>Changes are not open yet</b>
+        <p>Available once both sides confirm.</p>
+      </div>
       <p id="change-now" class="mono"></p>
       <form id="form-change">
         <label for="ch-delta" data-i18n="change.delta">Price change (৳, e.g. +2000 or -1000)</label><input id="ch-delta" type="number" inputmode="numeric" placeholder="2000">
@@ -632,6 +650,12 @@
       <button class="btn btn-dark-ghost" type="button" id="btn-unsub" hidden data-i18n="bill.unsub">সাবস্ক্রিপশন বাতিল করুন</button></div>
       <div id="billing-box"></div>
       <p class="small"><a href="/metrics" target="_blank" rel="noopener" data-i18n="more.metrics">Usage metrics</a></p>
+    </div>
+    <!-- P0-3: Exit/Restart demo survive only as plain menu actions here
+         (shown only while in demo mode) — no banner, no card. -->
+    <div class="btn-row" id="more-demo-actions" hidden>
+      <button type="button" id="demo-restart" class="btn btn-dark-ghost btn-sm" data-i18n="demo.restart">Restart demo</button>
+      <button type="button" id="demo-exit" class="btn btn-dark-ghost btn-sm" data-i18n="demo.exit">Exit demo</button>
     </div>
   </div>
 </div>
