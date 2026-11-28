@@ -2,7 +2,7 @@
 // (route split; no behaviour change). Paths, middleware and responses
 // are identical to the monolith.
 const express = require('express');
-const { db, now, getAdapter, err, addEvent, getJob, getCurrentVersion, jobDetail, findWorkerToken, otpError, billingSatisfied, getLocationShare, clearLocation, locationView, validLatLng, sendAgreementSummarySms, requireAuth, upsertUser, randomToken, newId, expiryDate, expireBids, addBiddingEvent, passportData } = require('../src/shared');
+const { db, now, getAdapter, err, addEvent, getJob, getCurrentVersion, jobDetail, findWorkerToken, otpError, billingSatisfied, getLocationShare, clearLocation, locationView, validLatLng, sendAgreementSummarySms, requireAuth, upsertUser, randomToken, newId, expiryDate, expireBids, addBiddingEvent, passportData, TEST_MODE } = require('../src/shared');
 const router = express.Router();
 
 // Worker profile facts — one shared shape, verified data only. No phone
@@ -84,7 +84,7 @@ router.post('/api/worker/:token/request-otp', async (req, res) => {
   try {
     const result = await adapter.sendOtp(job.worker_phone, purpose || 'worker-confirm');
     const out = { ok: true, via: adapter.mode === 'sandbox' ? 'applink-otp-sandbox' : 'applink-otp-live' };
-    if (adapter.mode === 'sandbox') out.sandbox = { otp: result.code, note: 'SANDBOX — not a live AppLink call' };
+    if (adapter.mode === 'sandbox' && TEST_MODE) out.sandbox = { otp: result.code, note: 'SANDBOX — not a live AppLink call' };
     return res.json(out);
   } catch (e) {
     return err(res, 502, e.message);

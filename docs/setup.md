@@ -15,7 +15,7 @@ npm start          # http://localhost:3000
 ```
 
 ```bash
-npm test           # full regression: npm run regression (973 assertions; the count grows as coverage is added)
+npm test           # full regression: npm run regression (980 assertions; the count grows as coverage is added)
 npm run dev        # watch mode
 ```
 
@@ -45,7 +45,9 @@ Copy `.env.example` to `.env` and fill in the real values. Never commit
 1. Open http://localhost:3000 and tap **Load demo job** — or
    `POST /api/demo/seed`. Demo phones: hirer `01700000001` (Rahim Uddin),
    worker `01800000002` (Karim Mistri). In sandbox mode the OTP codes are
-   shown on screen, labelled **SANDBOX — not a live AppLink call**.
+   sent by SMS; they never appear in an API response body. Only the
+   automated regression suite runs with `TEST_MODE=true`, which returns
+   the codes in responses so the suite can drive the demo end-to-end.
 2. **FairScope** — the ৳18,000 apartment electrical rewiring. Wall repair
    was "Not decided" in the first draft; creation is refused while any term
    is unresolved — it must be answered or explicitly skipped, one term at a

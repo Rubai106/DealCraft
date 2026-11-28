@@ -2,7 +2,7 @@
 // (route split; no behaviour change). Paths, middleware and responses
 // are identical to the monolith.
 const express = require('express');
-const { db, now, newId, getAdapter, getMode, err, getJob, requireAuth, feeStateForJob } = require('../src/shared');
+const { db, now, newId, getAdapter, getMode, err, getJob, requireAuth, feeStateForJob, TEST_MODE } = require('../src/shared');
 const router = express.Router();
 
 
@@ -40,7 +40,7 @@ router.post('/api/billing/caas', requireAuth, async (req, res) => {
   db.prepare("INSERT INTO Billing (id, job_id, kind, amount, status, created_at, user_phone) VALUES (?, ?, 'caas', 10, 'PENDING', ?, ?)")
     .run(result.chargeId, jobId, now(), req.user.phone);
   const out = { chargeId: result.chargeId, status: 'PENDING' };
-  if (adapter.mode === 'sandbox' && result.otp) out.sandboxOtp = result.otp;
+  if (adapter.mode === 'sandbox' && result.otp && TEST_MODE) out.sandboxOtp = result.otp;
   res.json(out);
 });
 

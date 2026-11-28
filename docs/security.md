@@ -1,6 +1,6 @@
 # Security & privacy
 
-All items below are covered by the regression suite (`npm test`, 973
+All items below are covered by the regression suite (`npm test`, 980
 assertions, PASS — the count grows as coverage is added).
 
 ## Billing
@@ -37,6 +37,16 @@ assertions, PASS — the count grows as coverage is added).
   after a successful verification.
 - **Live OTP transactions survive restarts.** `otpTransactionId` is
   persisted in SQLite (`OtpTransaction`), not an in-memory Map.
+- **No OTP value in any response body — except in test mode.** In every
+  user-reachable build (demo, shared, production) no API response ever
+  carries an OTP value: `POST /api/auth/request-otp` and
+  `POST /api/worker/:token/request-otp` return `{ ok, via }` only,
+  `POST /api/billing/caas` returns `{ chargeId, status }` only, and
+  `POST /api/demo/seed` carries no `sandboxOtps` key. The codes are
+  returned only when the server runs with `TEST_MODE=true` (exact
+  match, default off), a test-only flag the regression suite sets so it
+  can drive the demo end-to-end. Never enable it on a shared, demo or
+  production server. Live mode never returns a code either way.
 
 ## AppLink log
 

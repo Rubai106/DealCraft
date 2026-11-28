@@ -19,9 +19,12 @@ sheet with account values lives in the gitignored
 ## Sandbox (the default)
 
 `APPLINK_MODE=sandbox`. It generates real 6-digit OTPs (valid 5 minutes,
-like the real ones), logs every call to
-`server/data/applink-log.jsonl`, and shows codes on screen only ever
-labelled `SANDBOX — not a live AppLink call`. CaaS returns `PENDING`
+like the real ones) and logs every call to
+`server/data/applink-log.jsonl`. Codes are delivered by the sandbox SMS
+path only and never appear in an API response body — except when the
+server runs with `TEST_MODE=true`, a test-only flag the regression suite
+sets so it can read the codes it needs (see [security.md](security.md)).
+CaaS returns `PENDING`
 until the OTP is verified — money has not moved until verification, so
 the server verifies before marking a record paid. See the log any time:
 `GET /api/applink/log` (scoped to the caller; see

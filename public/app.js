@@ -1284,8 +1284,8 @@ function initAuth(){
   try{var r=await api('/api/auth/request-otp',{method:'POST',body:JSON.stringify({phone:loginPhone,name:name||undefined})});
    $('form-login').hidden=true; $('form-otp').hidden=false;
    /* P0-3: the code is never rendered in the UI — it arrives by SMS.
-      (Sandbox responses still carry it for the test harness; the live
-      adapter never returns a code.) */
+      (Responses carry it only when the server runs with TEST_MODE=true
+      for the test harness; the live adapter never returns a code.) */
    $('otp-code').focus();
   }catch(e){
    var oe0=otpErrText(e);

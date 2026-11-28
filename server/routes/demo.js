@@ -4,7 +4,7 @@
 const express = require('express');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
-const { db, now, fingerprint, randomToken, newId, expiryDate, getAdapter, resetRateLimits, LOG_PATH, baseUrl, addEvent, getJob, createWorkerToken, demoAllowed, upsertUser, createEventTriggers } = require('../src/shared');
+const { db, now, fingerprint, randomToken, newId, expiryDate, getAdapter, resetRateLimits, LOG_PATH, baseUrl, addEvent, getJob, createWorkerToken, demoAllowed, upsertUser, createEventTriggers, TEST_MODE } = require('../src/shared');
 // P2-8: one demo, one dataset — the seed values live in
 // server/src/demo-seed.js and nowhere else.
 const { DEMO_SEED } = require('../src/demo-seed');
@@ -12,16 +12,16 @@ const router = express.Router();
 
 // ---------------------------------------------------------------- demo
 const DEMO_SCRIPT = [
-  { step: 1, title: 'Hirer signs in with phone + OTP', detail: 'POST /api/auth/request-otp with 01700000001, then verify the sandbox code.' },
+  { step: 1, title: 'Hirer signs in with phone + OTP', detail: 'POST /api/auth/request-otp with 01700000001, then verify the code sent by SMS (in test mode the code is returned in the response for automation).' },
   { step: 2, title: 'Hirer creates the job', detail: 'POST /api/jobs — electrician rewiring, BDT 18,000, deadline 7 days after seeding, milestones Advance 5,000 / First stage 7,000 / Completion 6,000.' },
   { step: 3, title: 'FairScope check', detail: 'Wall repair was "Not decided" — the job shows it as a missing term until it is resolved to "Worker includes wall repair".' },
   { step: 4, title: 'Worker gets an SMS with the review link', detail: 'Sandbox SMS is logged; the worker opens /worker.html?token=... and confirms with their own OTP.' },
-  { step: 5, title: 'Record fee, then both sides confirm', detail: 'Hirer pays the ৳10 record fee via CaaS (or subscribes ৳70/month) — a job cannot become ACTIVE until the fee is settled. Then hirer confirms with the hirer-confirm OTP, worker confirms with the worker-confirm OTP — status becomes ACTIVE.' },
-  { step: 6, title: 'Change: +BDT 2,000', detail: 'Hirer proposes a change (ChangeLock, +2,000 → BDT 20,000). Worker approves with the change-approve OTP; a new version is created with a new fingerprint.' },
-  { step: 7, title: 'Payment acknowledged', detail: 'Hirer records the BDT 5,000 advance; the worker acknowledges receipt with the payment-ack OTP.' },
+  { step: 5, title: 'Record fee, then both sides confirm', detail: 'Hirer pays the ৳10 record fee via CaaS (or subscribes ৳70/month) — a job cannot become ACTIVE until the fee is settled. Then hirer confirms with the hirer-confirm code, worker confirms with the worker-confirm code — status becomes ACTIVE.' },
+  { step: 6, title: 'Change: +BDT 2,000', detail: 'Hirer proposes a change (ChangeLock, +2,000 → BDT 20,000). Worker approves with the change-approve code; a new version is created with a new fingerprint.' },
+  { step: 7, title: 'Payment acknowledged', detail: 'Hirer records the BDT 5,000 advance; the worker acknowledges receipt with the payment-ack code.' },
   { step: 8, title: 'Milestones, photos, close', detail: 'Worker completes milestones and adds photos; hirer approves them; the job closes.' },
   { step: 9, title: 'ResolvePack + Passport', detail: 'Download the ResolvePack PDF — the full chronological record — and add the closed job to the worker passport.' },
-  { step: 10, title: 'Billing (CaaS)', detail: 'BDT 10 per job via AppLink CaaS — PENDING until the sandbox OTP verifies it; or BDT 70/month subscription. DealCraft holds no money.' },
+  { step: 10, title: 'Billing (CaaS)', detail: 'BDT 10 per job via AppLink CaaS — PENDING until the code verifies it; or BDT 70/month subscription. DealCraft holds no money.' },
 ];
 
 
@@ -216,9 +216,10 @@ router.post('/api/demo/seed', async (req, res) => {
   const workerLink = '/worker.html?lang=bn&token=' + workerToken;
   // Guided demo, one click: the seed also mints a real 7-day hirer
   // session, so "See the demo" lands the evaluator inside the seeded job
-  // with no OTP copying and no manual login. Demo endpoints stay gated
-  // (DEMO_MODE + demo token), and the sandbox OTP display on the normal
-  // login flow is untouched — this token exists only in the seed response.
+  // with no code copying and no manual login. Demo endpoints stay gated
+  // (DEMO_MODE + demo token), and no OTP value is ever returned in a
+  // response body unless TEST_MODE is on — this token exists only in the
+  // seed response.
   const hirerToken = randomToken();
   db.prepare('INSERT INTO Session (id, token, phone, created_at, expires_at) VALUES (?, ?, ?, ?, ?)')
     .run(newId(), hirerToken, hirerPhone, now(), expiryDate(7));
@@ -244,7 +245,9 @@ router.post('/api/demo/seed', async (req, res) => {
     workerPhone,
     hirerToken,
     hirer: { phone: hirerPhone, name: DEMO_SEED.hirerName },
-    sandboxOtps: { hirerConfirm: hirerOtp, workerConfirm: workerOtp },
+    // OTP values are returned only in test mode (TEST_MODE=true, the
+    // regression suite); in every user-reachable build the key is absent.
+    ...(TEST_MODE ? { sandboxOtps: { hirerConfirm: hirerOtp, workerConfirm: workerOtp } } : {}),
     // P2-8: the seed carries its own dataset, so a client (or a test)
     // can check the seeded record against the single source without a
     // second fetch. Phones stay per-visitor (derived), never fixed.

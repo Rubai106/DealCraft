@@ -2,7 +2,7 @@
 // (route split; no behaviour change). Paths, middleware and responses
 // are identical to the monolith.
 const express = require('express');
-const { db, now, setPendingProfile, takePendingProfile, randomToken, newId, expiryDate, getAdapter, err, authedUser, otpError, normalizeBdPhone, upsertUser } = require('../src/shared');
+const { db, now, setPendingProfile, takePendingProfile, randomToken, newId, expiryDate, getAdapter, err, authedUser, otpError, normalizeBdPhone, upsertUser, TEST_MODE } = require('../src/shared');
 const router = express.Router();
 
 // Name/role supplied at OTP request time are held in the pending_profiles
@@ -21,7 +21,7 @@ router.post('/api/auth/request-otp', async (req, res) => {
   try {
     const result = await adapter.sendOtp(normalized, purpose || 'login');
     const out = { ok: true, via: adapter.mode === 'sandbox' ? 'applink-otp-sandbox' : 'applink-otp-live' };
-    if (adapter.mode === 'sandbox') {
+    if (adapter.mode === 'sandbox' && TEST_MODE) {
       out.sandbox = { otp: result.code, note: 'SANDBOX — not a live AppLink call' };
     }
     return res.json(out);

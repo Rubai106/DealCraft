@@ -24,6 +24,14 @@ const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
 // its API routes do not exist (404) and the client removes every trace
 // of it. The code stays in the repo, only gated — nothing is deleted.
 const BIDDING_ENABLED = process.env.FEATURE_BIDDING === 'true';
+
+// Test-only flag: when TEST_MODE is exactly 'true', sandbox OTP values
+// are included in API response bodies (the regression suite reads them
+// to drive the demo end-to-end). Default OFF: in every user-reachable
+// build — demo, shared, production — no OTP value ever appears in a
+// response body. NEVER enable on a shared/demo/production server. Live
+// mode is unaffected (it never returns a code either way).
+const TEST_MODE = process.env.TEST_MODE === 'true';
 function requireBidding(req, res, next) {
   if (!BIDDING_ENABLED) return err(res, 404, 'not found');
   next();
@@ -970,6 +978,7 @@ module.exports = {
   readLog,
   LOG_PATH,
   BIDDING_ENABLED,
+  TEST_MODE,
   requireBidding,
   UPLOADS_DIR,
   PUBLIC_DIR,

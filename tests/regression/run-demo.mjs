@@ -15,7 +15,7 @@ const WORKER = '01800000002';
 
 const server = spawn(process.execPath, ['server/server.js'], {
   cwd: path.resolve(import.meta.dirname, '..', '..'),
-  env: { ...process.env, PORT: String(PORT), APPLINK_MODE: 'sandbox', DEALCRAFT_DEMO_TOKEN: 'test-demo-token', DEMO_MODE: 'true', FEATURE_BIDDING: 'true' },
+  env: { ...process.env, PORT: String(PORT), APPLINK_MODE: 'sandbox', DEALCRAFT_DEMO_TOKEN: 'test-demo-token', DEMO_MODE: 'true', FEATURE_BIDDING: 'true', TEST_MODE: 'true' },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
 server.stdout.on('data', (d) => process.stdout.write('[server] ' + d));
@@ -120,7 +120,7 @@ try {
   const BASE2 = `http://127.0.0.1:${PORT2}`;
   const server2 = spawn(process.execPath, ['server/server.js'], {
     cwd: path.resolve(import.meta.dirname, '..', '..'),
-    env: { ...process.env, PORT: String(PORT2), APPLINK_MODE: 'sandbox', DEALCRAFT_DEMO_TOKEN: 'test-demo-token' },
+    env: { ...process.env, PORT: String(PORT2), APPLINK_MODE: 'sandbox', DEALCRAFT_DEMO_TOKEN: 'test-demo-token', TEST_MODE: 'true' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   try {
@@ -168,6 +168,53 @@ try {
     server2.kill('SIGTERM');
   }
 
+  // Default mode: no OTP value in any response body. A fifth server on
+  // a scratch port with TEST_MODE unset (the user-reachable shape):
+  // demo seed, CaaS charge, login OTP and worker OTP must all work and
+  // return no code. The seed/charge here live in the shared DB, but the
+  // main flow's reset below wipes the legacy namespace, same as the
+  // PORT2 block above.
+  console.log('== default mode: no OTP value in any response body ==');
+  const PORT5 = 3459;
+  const BASE5 = `http://127.0.0.1:${PORT5}`;
+  const env5 = { ...process.env, PORT: String(PORT5), APPLINK_MODE: 'sandbox',
+    DEALCRAFT_DEMO_TOKEN: 'test-demo-token', DEMO_MODE: 'true', FEATURE_BIDDING: 'true' };
+  delete env5.TEST_MODE; // explicit strip: ...process.env would inherit a developer-shell export
+  const server5 = spawn(process.execPath, ['server/server.js'],
+    { cwd: path.resolve(import.meta.dirname, '..', '..'), env: env5, stdio: ['ignore', 'pipe', 'pipe'] });
+  const req5 = async (p, opts = {}) => {
+    const res = await fetch(BASE5 + p, opts);
+    const text = await res.text();
+    let body = null;
+    try { body = JSON.parse(text); } catch { /* non-JSON */ }
+    return { status: res.status, body, text, headers: res.headers };
+  };
+  const j5 = (obj) => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(obj) });
+  const dj5 = (obj) => ({ method: 'POST', headers: { 'Content-Type': 'application/json', 'x-demo-token': 'test-demo-token' }, body: JSON.stringify(obj) });
+  const aj5 = (token, obj) => ({ method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify(obj) });
+  try {
+    let up5 = false;
+    for (let i = 0; i < 40; i++) {
+      try { const r = await fetch(BASE5 + '/api/health'); if (r.status === 200) { up5 = true; break; } } catch { /* not up yet */ }
+      await sleep(250);
+    }
+    check(up5, 'default-mode server boots (TEST_MODE unset)');
+    const seed5 = await req5('/api/demo/seed', dj5({}));
+    check(seed5.status === 200, 'default mode: demo seed works without TEST_MODE');
+    check(!('sandboxOtps' in (seed5.body || {})) && !/otp/i.test(JSON.stringify(seed5.body || {})),
+      'default mode: demo seed response contains no OTP fields');
+    const charge5 = await req5('/api/billing/caas', aj5(seed5.body.hirerToken, { jobId: seed5.body.job.id }));
+    check(charge5.status === 200 && charge5.body?.status === 'PENDING', 'default mode: CaaS charge is PENDING');
+    check(!('sandboxOtp' in (charge5.body || {})) && !/otp/i.test(JSON.stringify(charge5.body || {})),
+      'default mode: CaaS charge response contains no OTP fields');
+    const otp5 = await req5('/api/auth/request-otp', j5({ phone: '01700000077', name: 'Default Mode', role: 'hirer' }));
+    check(otp5.status === 200 && !('sandbox' in (otp5.body || {})),
+      'default mode: login OTP request returns no code');
+    const wotp5 = await req5(`/api/worker/${seed5.body.workerLink.split('token=')[1]}/request-otp`, j5({ purpose: 'worker-confirm' }));
+    check(wotp5.status === 200 && !('sandbox' in (wotp5.body || {})),
+      'default mode: worker OTP request returns no code');
+  } finally { server5.kill('SIGTERM'); }
+
   console.log('== reset + seed demo job (BDT 18,000 rewiring) ==');
   const resetNoToken = await req('/api/demo/reset', j({}));
   check(resetNoToken.status === 403, 'demo reset without the demo token is rejected (403)');
@@ -179,13 +226,13 @@ try {
   let workerToken = seed.body.workerLink.split('token=')[1];
   check(job?.price === undefined && job?.status === 'DRAFT', 'seeded job is DRAFT');
   check(job?.trade === 'ELECTRICIAN' && job?.worker_phone === WORKER, 'seeded job is the electrician demo');
-  check(typeof seed.body.sandboxOtps?.hirerConfirm === 'string', 'seed returns sandbox hirer OTP');
-  check(typeof seed.body.sandboxOtps?.workerConfirm === 'string', 'seed returns sandbox worker OTP');
+  check(typeof seed.body.sandboxOtps?.hirerConfirm === 'string', 'seed returns sandbox hirer OTP (test mode)');
+  check(typeof seed.body.sandboxOtps?.workerConfirm === 'string', 'seed returns sandbox worker OTP (test mode)');
   // Seeding twice in a row must still return confirm codes: the demo reset
   // clears the in-memory OTP send counters, or a repeated demo run inside
   // 15 minutes would exhaust the 5-send cap and the codes would be null.
   const seed2 = await req('/api/demo/seed', dj({}));
-  check(seed2.status === 200 && typeof seed2.body.sandboxOtps?.hirerConfirm === 'string' && typeof seed2.body.sandboxOtps?.workerConfirm === 'string', 'second seed in a row still returns sandbox confirm OTPs (rate-limit counters reset)');
+  check(seed2.status === 200 && typeof seed2.body.sandboxOtps?.hirerConfirm === 'string' && typeof seed2.body.sandboxOtps?.workerConfirm === 'string', 'second seed in a row still returns sandbox confirm OTPs in test mode (rate-limit counters reset)');
   // The second seed wiped the first job, so the rest of the suite uses it.
   job = seed2.body.job;
   workerToken = seed2.body.workerLink.split('token=')[1];
@@ -193,8 +240,8 @@ try {
 
   console.log('== hirer login (phone + OTP) ==');
   const otpReq = await req('/api/auth/request-otp', j({ phone: HIRER, name: 'Rahim Uddin', role: 'hirer' }));
-  check(otpReq.status === 200 && otpReq.body?.sandbox?.otp, 'login OTP requested (sandbox code returned, labelled)');
-  check(otpReq.body?.sandbox?.note?.includes('SANDBOX'), 'sandbox OTP is labelled SANDBOX');
+  check(otpReq.status === 200 && otpReq.body?.sandbox?.otp, 'login OTP requested (test mode: sandbox code returned, labelled)');
+  check(otpReq.body?.sandbox?.note?.includes('SANDBOX'), 'test-mode OTP is labelled SANDBOX');
   const login = await req('/api/auth/verify-otp', j({ phone: HIRER, code: otpReq.body.sandbox.otp }));
   check(login.status === 200 && login.body?.token, 'hirer logged in with OTP');
   const token = login.body.token;
@@ -297,7 +344,7 @@ try {
   check(wcUnpaid.status === 402, 'worker confirm with unpaid record fee is refused (402)');
   console.log('== CaaS: BDT 10 charge PENDING -> VERIFIED ==');
   const charge = await req('/api/billing/caas', aj(token, { jobId: job.id }));
-  check(charge.status === 200 && charge.body?.status === 'PENDING' && charge.body?.sandboxOtp, 'CaaS charge is PENDING with sandbox OTP (money has not moved)');
+  check(charge.status === 200 && charge.body?.status === 'PENDING' && charge.body?.sandboxOtp, 'CaaS charge is PENDING with sandbox OTP in test mode (money has not moved)');
   const verify = await req(`/api/billing/caas/${charge.body.chargeId}/verify`, aj(token, { otpCode: charge.body.sandboxOtp }));
   check(verify.status === 200 && verify.body?.status === 'VERIFIED', 'CaaS charge VERIFIED after OTP');
   const chargeAgain = await req('/api/billing/caas', aj(token, { jobId: job.id }));
@@ -868,7 +915,7 @@ try {
   const accHc = await req(`/api/jobs/${acceptedJobId}/hirer-confirm`, aj(bidHirer, { otpCode: accHirerOtp.body.sandbox.otp }));
   check(accHc.status === 200 && accHc.body?.job?.status === 'PENDING', 'hirer confirmed the bid-created job (PENDING)');
   const accCharge = await req('/api/billing/caas', aj(bidHirer, { jobId: acceptedJobId }));
-  check(accCharge.status === 200 && accCharge.body?.sandboxOtp, 'CaaS fee charged for the bid-created job');
+  check(accCharge.status === 200 && accCharge.body?.sandboxOtp, 'CaaS fee charged for the bid-created job (test mode: code returned)');
   const accVerify = await req(`/api/billing/caas/${accCharge.body.chargeId}/verify`, aj(bidHirer, { otpCode: accCharge.body.sandboxOtp }));
   check(accVerify.status === 200 && accVerify.body?.status === 'VERIFIED', 'CaaS fee verified for the bid-created job');
   const accVerifyOther = await req(`/api/billing/caas/${accCharge.body.chargeId}/verify`, aj(otherLogin.body.token, { otpCode: '000000' }));
@@ -1450,14 +1497,14 @@ check(p2AppJs.includes('speakRecord') && p2AppJs.includes('btn-listen'), 'read-a
 
 // --- item 18: CaaS retry (boundary ৳100 job, hirer = main token) ---
 const abCharge1 = await req('/api/billing/caas', aj(token, { jobId: abJob100.id }));
-check(abCharge1.status === 200 && abCharge1.body?.status === 'PENDING' && abCharge1.body?.sandboxOtp, 'CaaS retry: first charge is PENDING with a sandbox code');
+check(abCharge1.status === 200 && abCharge1.body?.status === 'PENDING' && abCharge1.body?.sandboxOtp, 'CaaS retry: first charge is PENDING with a sandbox code (test mode)');
 const abVerifyWrong = await req(`/api/billing/caas/${abCharge1.body.chargeId}/verify`, aj(token, { otpCode: '000000' }));
 check(abVerifyWrong.status === 400 && (abVerifyWrong.body?.error || '').includes('incorrect code'), 'CaaS retry: a wrong code is an explicit 400 error (not a silent PENDING)');
 const abVerifyDead = await req(`/api/billing/caas/${abCharge1.body.chargeId}/verify`, aj(token, { otpCode: abCharge1.body.sandboxOtp }));
 check(abVerifyDead.status === 400 && (abVerifyDead.body?.error || '').includes('cancelled'), 'CaaS retry: the failed charge is CANCELLED — verifying it again is 400');
 const abCharge2 = await req('/api/billing/caas', aj(token, { jobId: abJob100.id }));
 check(abCharge2.status === 200 && abCharge2.body?.chargeId !== abCharge1.body.chargeId && abCharge2.body?.status === 'PENDING', 'CaaS retry: the next charge is a NEW chargeId, still PENDING');
-check(typeof abCharge2.body?.sandboxOtp === 'string' && abCharge2.body.sandboxOtp !== abCharge1.body.sandboxOtp, 'CaaS retry: the new charge carries a NEW code');
+check(typeof abCharge2.body?.sandboxOtp === 'string' && abCharge2.body.sandboxOtp !== abCharge1.body.sandboxOtp, 'CaaS retry: the new charge carries a NEW code (test mode)');
 const abVerify2 = await req(`/api/billing/caas/${abCharge2.body.chargeId}/verify`, aj(token, { otpCode: abCharge2.body.sandboxOtp }));
 check(abVerify2.status === 200 && abVerify2.body?.status === 'VERIFIED', 'CaaS retry: the new charge verifies with its own code');
 const abVerify2Again = await req(`/api/billing/caas/${abCharge2.body.chargeId}/verify`, aj(token, { otpCode: abCharge2.body.sandboxOtp }));
@@ -1581,7 +1628,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
   function spawnScratch(port) {
     return spawn(process.execPath, ['server/server.js'], {
       cwd: path.resolve(import.meta.dirname, '..', '..'),
-      env: { ...process.env, PORT: String(port), APPLINK_MODE: 'sandbox', DEALCRAFT_DEMO_TOKEN: 'test-demo-token', DEMO_MODE: 'true', FEATURE_BIDDING: 'true' },
+      env: { ...process.env, PORT: String(port), APPLINK_MODE: 'sandbox', DEALCRAFT_DEMO_TOKEN: 'test-demo-token', DEMO_MODE: 'true', FEATURE_BIDDING: 'true', TEST_MODE: 'true' },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
   }
@@ -1941,7 +1988,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     // 612 after the dotenv fix); this check runs
     // mid-suite (live count here was 526 before it), so it pins only
     // that the README states the final total, not the live count.
-    const EXPECTED_COUNT = 973; // final measured total, FIX BRIEF 2026-11-28 (871 before the brief: 855 improvement pass; 783 after the map fix; 782 after trim verification; 612 pre-trim)
+    const EXPECTED_COUNT = 980; // final measured total, CORRECTION BRIEF 2026-11-28 (973 before the brief: 871 FIX BRIEF 2026-11-28; 855 improvement pass; 783 after the map fix; 782 after trim verification; 612 pre-trim)
     const p1Readme = fs.readFileSync(path.resolve(ROOT_P1, 'README.md'), 'utf8');
     check(p1Readme.includes(EXPECTED_COUNT + ' assertions'), 'part 1: README shows the true assertion count (live count at this point: ' + passed + ', final suite total: ' + EXPECTED_COUNT + ')');
   }
@@ -2713,7 +2760,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       const tvHc = await req(`/api/jobs/${tvJobId}/hirer-confirm`, aj(token, { otpCode: tvHcOtp.body.sandbox.otp }));
       check(tvHc.status === 200 && tvHc.body?.job?.status === 'PENDING', 'worker accounts: retention fixture hirer-confirmed (PENDING)', 'status ' + tvHc.status + ' ' + JSON.stringify(tvHc.body));
       const tvFee = await req('/api/billing/caas', aj(token, { jobId: tvJobId }));
-      check(tvFee.status === 200 && tvFee.body?.status === 'PENDING' && tvFee.body?.sandboxOtp, 'worker accounts: retention fixture ৳10 fee is PENDING with a code', 'status ' + tvFee.status + ' ' + JSON.stringify(tvFee.body));
+      check(tvFee.status === 200 && tvFee.body?.status === 'PENDING' && tvFee.body?.sandboxOtp, 'worker accounts: retention fixture ৳10 fee is PENDING with a code (test mode)', 'status ' + tvFee.status + ' ' + JSON.stringify(tvFee.body));
       const tvFeeV = await req(`/api/billing/caas/${tvFee.body.chargeId}/verify`, aj(token, { otpCode: tvFee.body.sandboxOtp }));
       check(tvFeeV.status === 200 && tvFeeV.body?.status === 'VERIFIED', 'worker accounts: retention fixture fee VERIFIED');
       const tvWcOtp = await req(`/api/worker/${tvTok}/request-otp`, j({ purpose: 'worker-confirm' }));
@@ -2831,7 +2878,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     // without it once the worker has confirmed), then hirer-confirm,
     // then a mutual close with the worker's close-confirm code.
     const tvR6charge = await req('/api/billing/caas', aj(token, { jobId: tvW2jobId }));
-    check(tvR6charge.status === 200 && tvR6charge.body?.sandboxOtp, 'profile: record fee charged for the W2 job', 'status ' + tvR6charge.status + ' ' + JSON.stringify(tvR6charge.body));
+    check(tvR6charge.status === 200 && tvR6charge.body?.sandboxOtp, 'profile: record fee charged for the W2 job (test mode: code returned)', 'status ' + tvR6charge.status + ' ' + JSON.stringify(tvR6charge.body));
     const tvR6verify = await req(`/api/billing/caas/${tvR6charge.body.chargeId}/verify`, aj(token, { otpCode: tvR6charge.body.sandboxOtp }));
     check(tvR6verify.status === 200 && tvR6verify.body?.status === 'VERIFIED', 'profile: record fee verified for the W2 job', 'status ' + tvR6verify.status + ' ' + JSON.stringify(tvR6verify.body));
     const tvR6hOtp = await req('/api/auth/request-otp', j({ phone: HIRER, purpose: 'hirer-confirm' }));
@@ -2955,7 +3002,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       // pick screen, sticky bar) need it ON, so this server opts in
       // explicitly. The OFF rendering is covered by the separate
       // tvServerOffUI scratch server below (flag unset).
-      env: { ...process.env, PORT: String(tvPortUI), NODE_ENV: 'production', DEMO_MODE: 'true', APPLINK_MODE: 'sandbox', PUBLIC_BASE_URL: 'https://dealcraft.example.test', TRUST_PROXY: 'true', FEATURE_BIDDING: 'true' },
+      env: { ...process.env, PORT: String(tvPortUI), NODE_ENV: 'production', DEMO_MODE: 'true', APPLINK_MODE: 'sandbox', PUBLIC_BASE_URL: 'https://dealcraft.example.test', TRUST_PROXY: 'true', FEATURE_BIDDING: 'true', TEST_MODE: 'true' },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let tvChromeUI = null;
