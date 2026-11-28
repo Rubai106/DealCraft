@@ -15,7 +15,7 @@ npm start          # http://localhost:3000
 ```
 
 ```bash
-npm test           # full regression: npm run regression (983 assertions; the count grows as coverage is added)
+npm test           # full regression: npm run regression (984 assertions; the count grows as coverage is added)
 npm run dev        # watch mode
 ```
 

@@ -2006,7 +2006,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     // 612 after the dotenv fix); this check runs
     // mid-suite (live count here was 526 before it), so it pins only
     // that the README states the final total, not the live count.
-    const EXPECTED_COUNT = 983; // final measured total, WORKER 401 FIX 2026-11-28 (980 before the fix; 973 CORRECTION BRIEF 2026-11-28; 871 FIX BRIEF 2026-11-28; 855 improvement pass; 783 after the map fix; 782 after trim verification; 612 pre-trim)
+    const EXPECTED_COUNT = 984; // final measured total, LABEL FIX 2026-11-28 (983 before the fix; 980 WORKER 401 FIX 2026-11-28; 973 CORRECTION BRIEF 2026-11-28; 871 FIX BRIEF 2026-11-28; 855 improvement pass; 783 after the map fix; 782 after trim verification; 612 pre-trim)
     const p1Readme = fs.readFileSync(path.resolve(ROOT_P1, 'README.md'), 'utf8');
     check(p1Readme.includes(EXPECTED_COUNT + ' assertions'), 'part 1: README shows the true assertion count (live count at this point: ' + passed + ', final suite total: ' + EXPECTED_COUNT + ')');
   }
@@ -4069,6 +4069,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     const impWorkerHtml = fs.readFileSync(path.resolve(ROOT_I, 'public', 'worker.html'), 'utf8');
     check(impWorkerHtml.includes('w-step-banner') && impWorkerHtml.includes('w.bannerConfirmed'), 'improve: worker page has a step banner (step 2 / confirmed / active)', '');
     check(impWorkerHtml.includes('acc>100') && impWorkerHtml.includes('wLocSchematic'), 'improve: worker location has the ≤100m accuracy gate and the schematic fallback', '');
+    check(impWorkerHtml.includes('text-anchor="middle"') && impWorkerHtml.includes('(sy+34)') && !impWorkerHtml.includes('(sx+14)'), 'label-fix 2026-11-28: worker schematic site label is centred below the square (text-anchor middle, y=sy+34) — the old right-side label (sx+14) ran ~15 units past the 360-wide viewBox and rendered as "কাজের জা"', '');
     check(impWorkerHtml.includes('w-photo-preview') && impWorkerHtml.includes('wDownscale') && impWorkerHtml.includes('1280'), 'improve: worker photo has a preview and a 1280px downscale before upload', '');
     check(impWorkerHtml.includes('w-otp-resend') && !impWorkerHtml.includes('w.demoCode') && !impWorkerHtml.includes('w-otp-note') && impWorkerHtml.includes("w-confirm').hidden=true"), 'P0-3: worker OTP has a resend button, shows NO code on the page (no demo-code label, no #w-otp-note), and the confirm button hides once confirmed', '');
     // P0-3 (file-level): no OTP is rendered by the app or worker page,

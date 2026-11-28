@@ -635,7 +635,11 @@ function wLocSchematic(){
  if(locLatest){wx=40+((Math.abs(locLatest.lat*100)%1)*280);wy=40+((Math.abs(locLatest.lng*100)%1)*110);}
  svg+='<line x1="'+wx.toFixed(0)+'" y1="'+wy.toFixed(0)+'" x2="'+sx+'" y2="'+sy+'" stroke="#FF5A1F" stroke-width="2" stroke-dasharray="6 6"/>';
  svg+='<rect x="'+(sx-8)+'" y="'+(sy-8)+'" width="16" height="16" fill="#111111"/>';
- svg+='<text x="'+(sx+14)+'" y="'+(sy+4)+'" font-size="11" font-family="monospace" fill="#111111">'+(wLang==='bn'?'কাজের জায়গা':'JOB SITE')+'</text>';
+ /* Site label sits BELOW the square, centred on it: to its right it ran
+    ~15 units past the 360-wide viewBox, so it rendered as "কাজের জা".
+    Centred below, the widest label (Bangla, ~70) spans 257–327 — inside
+    on both sides, clear of the dashed route, both languages. */
+ svg+='<text x="'+sx+'" y="'+(sy+34)+'" text-anchor="middle" font-size="11" font-family="monospace" fill="#111111">'+(wLang==='bn'?'কাজের জায়গা':'JOB SITE')+'</text>';
  if(locLatest){
   svg+='<circle cx="'+wx.toFixed(0)+'" cy="'+wy.toFixed(0)+'" r="8" fill="#FF5A1F"/>';
   svg+='<circle cx="'+wx.toFixed(0)+'" cy="'+wy.toFixed(0)+'" r="13" fill="none" stroke="#FF5A1F" stroke-width="1.5"/>';
