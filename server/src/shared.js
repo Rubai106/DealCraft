@@ -15,8 +15,11 @@ const { getAdapter, getMode } = require('./applink');
 const { resetRateLimits } = require('./applink/otp-rate-limit');
 const { readLog, LOG_PATH } = require('./applink/log');
 
-const UPLOADS_DIR = path.join(__dirname, '..', '..', 'uploads');
+const UPLOADS_DIR = process.env.DEALCRAFT_UPLOADS_DIR
+  ? path.resolve(process.env.DEALCRAFT_UPLOADS_DIR)
+  : path.join(__dirname, '..', '..', 'uploads');
 const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 // Feature flag: the bidding marketplace ("Find a repairer") is OPT-IN.
 // It is OFF unless FEATURE_BIDDING is exactly 'true' (the submission

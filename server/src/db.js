@@ -6,7 +6,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+// Test isolation (correction brief 2026-11-28): DEALCRAFT_DATA_DIR
+// overrides the data directory (SQLite file + WAL + applink log).
+// The regression suite sets it to a fresh temp dir per run so a second
+// `npm test` on the same checkout sees a clean database instead of the
+// previous run's rows. Unset = the historical default server/data,
+// byte-identical behaviour; production is unaffected.
+const DATA_DIR = process.env.DEALCRAFT_DATA_DIR
+  ? path.resolve(process.env.DEALCRAFT_DATA_DIR)
+  : path.join(__dirname, '..', 'data');
 const DB_PATH = path.join(DATA_DIR, 'dealcraft.db');
 
 fs.mkdirSync(DATA_DIR, { recursive: true });

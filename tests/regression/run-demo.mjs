@@ -8,6 +8,24 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+// Test isolation (correction brief 2026-11-28): every server this suite
+// spawns — and every direct DatabaseSync / log / uploads read in this
+// file — shares ONE fresh temp data dir created per run, so a second
+// `npm test` on the same checkout sees a clean database instead of the
+// previous run's rows. Previously all runs shared server/data/dealcraft.db
+// and run 2 failed at the bid-jobs count (run-demo.mjs:841). The overrides
+// are set on process.env here, before the first spawn: every spawn below
+// inherits them via `...process.env`, and in-process imports of server
+// modules (shared.js, otp-transactions.js) read them from the same env.
+// Both temp dirs are removed in the outer finally, on pass and on abort.
+// Production behaviour is untouched: with the vars unset the server uses
+// server/data + uploads/ exactly as before.
+const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'dc-regression-data-'));
+const TEST_UPLOADS_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'dc-regression-uploads-'));
+process.env.DEALCRAFT_DATA_DIR = TEST_DATA_DIR;
+process.env.DEALCRAFT_UPLOADS_DIR = TEST_UPLOADS_DIR;
+const TEST_DB_PATH = path.join(TEST_DATA_DIR, 'dealcraft.db');
+
 const PORT = 3456;
 const BASE = `http://127.0.0.1:${PORT}`;
 const HIRER = '01700000001';
@@ -265,7 +283,7 @@ try {
     tx.saveOtpTransaction('01700000001', 'login', 'tx-test-123');
     check(tx.getOtpTransaction('01700000001', 'login')?.otpTransactionId === 'tx-test-123', 'OTP transaction saved and read back');
     const { DatabaseSync } = await import('node:sqlite');
-    const dbPath = path.resolve(import.meta.dirname, '..', '..', 'server', 'data', 'dealcraft.db');
+    const dbPath = TEST_DB_PATH;
     const db2 = new DatabaseSync(dbPath);
     const row = db2.prepare('SELECT otp_transaction_id FROM OtpTransaction WHERE phone = ? AND purpose = ?').get('01700000001', 'login');
     check(row?.otp_transaction_id === 'tx-test-123', 'OTP transaction is on disk in SQLite (survives a restart)');
@@ -301,7 +319,7 @@ try {
   check(sixthSend.status === 429, '6th OTP send to the same number+purpose in 15 minutes is refused (429)');
   {
     const { DatabaseSync } = await import('node:sqlite');
-    const dbPath = path.resolve(import.meta.dirname, '..', '..', 'server', 'data', 'dealcraft.db');
+    const dbPath = TEST_DB_PATH;
     const db = new DatabaseSync(dbPath);
     db.prepare("INSERT INTO Session (id, token, phone, created_at, expires_at) VALUES ('test-expired', 'expired-token-xyz', ?, ?, ?)")
       .run(HIRER, new Date(Date.now() - 86400000).toISOString(), new Date(Date.now() - 1000).toISOString());
@@ -663,7 +681,7 @@ try {
   // at this point, so it cannot be the nudge subject.)
   {
     const { DatabaseSync } = await import('node:sqlite');
-    const dbPath = path.resolve(import.meta.dirname, '..', '..', 'server', 'data', 'dealcraft.db');
+    const dbPath = TEST_DB_PATH;
     const db = new DatabaseSync(dbPath);
     const pv = db.prepare('SELECT id FROM JobVersion WHERE job_id = ? ORDER BY version_no DESC LIMIT 1').get(job.id);
     db.prepare('UPDATE JobVersion SET deadline = ? WHERE id = ?').run(new Date(Date.now() - 86400000).toISOString().slice(0, 10), pv.id);
@@ -880,7 +898,7 @@ try {
   // Bid expiry: backdate one extra worker's bid, then it must show EXPIRED and refuse acceptance.
   {
     const { DatabaseSync } = await import('node:sqlite');
-    const dbPath = path.resolve(import.meta.dirname, '..', '..', 'server', 'data', 'dealcraft.db');
+    const dbPath = TEST_DB_PATH;
     const db = new DatabaseSync(dbPath);
     const victim = db.prepare("SELECT id FROM Bid WHERE bid_job_id = ? AND worker_phone = ?").get(bidJobId, '01900000012');
     db.prepare("UPDATE Bid SET expires_at = ? WHERE id = ?").run(new Date(Date.now() - 1000).toISOString(), victim.id);
@@ -1075,7 +1093,7 @@ function abDhakaShift(days) {
 }
 async function abSetDeadline(jobId, deadline) {
   const { DatabaseSync } = await import('node:sqlite');
-  const dbPath = path.resolve(import.meta.dirname, '..', '..', 'server', 'data', 'dealcraft.db');
+  const dbPath = TEST_DB_PATH;
   const dbx = new DatabaseSync(dbPath);
   const v = dbx.prepare('SELECT id FROM JobVersion WHERE job_id = ? ORDER BY version_no DESC LIMIT 1').get(jobId);
   dbx.prepare('UPDATE JobVersion SET deadline = ? WHERE id = ?').run(deadline, v.id);
@@ -1478,7 +1496,7 @@ check(p2AppJs.includes('speakRecord') && p2AppJs.includes('btn-listen'), 'read-a
 // --- item 3: append-only DB (direct db, suite's existing direct-db pattern) ---
 {
   const { DatabaseSync } = await import('node:sqlite');
-  const abDbPath = path.resolve(import.meta.dirname, '..', '..', 'server', 'data', 'dealcraft.db');
+  const abDbPath = TEST_DB_PATH;
   const abDb = new DatabaseSync(abDbPath);
   const abTriggers = abDb.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND name IN ('event_no_update', 'event_no_delete') ORDER BY name").all().map((r) => r.name);
   check(JSON.stringify(abTriggers) === JSON.stringify(['event_no_delete', 'event_no_update']), 'append-only DB: event_no_update + event_no_delete triggers exist');
@@ -1914,7 +1932,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     // necessity — pin the three facts that force the STOP.
     {
       const { DatabaseSync: P1DatabaseSync } = await import('node:sqlite');
-      const p1Db = new P1DatabaseSync(path.resolve(import.meta.dirname, '..', '..', 'server', 'data', 'dealcraft.db'));
+      const p1Db = new P1DatabaseSync(TEST_DB_PATH);
       const p1Triggers = p1Db.prepare("SELECT name, tbl_name FROM sqlite_master WHERE type = 'trigger' ORDER BY name").all();
       check(JSON.stringify(p1Triggers.map((t) => t.name)) === JSON.stringify(['event_no_delete', 'event_no_update']), 'part 1: only the two Event triggers exist (no JobVersion trigger — STOP, see block header)');
       check(p1Triggers.every((t) => t.tbl_name === 'Event'), 'part 1: both triggers guard the Event table only');
@@ -2047,7 +2065,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     // SmsLog: one row per recipient message actually sent, segments logged.
     {
       const { DatabaseSync: P3DatabaseSync } = await import('node:sqlite');
-      const p3Db = new P3DatabaseSync(path.resolve(ROOT_P3, 'server', 'data', 'dealcraft.db'));
+      const p3Db = new P3DatabaseSync(TEST_DB_PATH);
       const p3Rows = p3Db.prepare(
         "SELECT segments, COUNT(*) AS n FROM SmsLog WHERE job_id = ? AND kind = 'summary' GROUP BY segments"
       ).all(job.id);
@@ -2528,8 +2546,8 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
   // are fresh jobs/phones; the main demo flow above is untouched.
   // =====================================================================
   {
-    const tvDbPath = path.resolve(import.meta.dirname, '..', '..', 'server', 'data', 'dealcraft.db');
-    const tvUploads = path.resolve(import.meta.dirname, '..', '..', 'uploads');
+    const tvDbPath = TEST_DB_PATH;
+    const tvUploads = TEST_UPLOADS_DIR;
     const tvSha256 = (s) => createHash('sha256').update(s, 'utf8').digest('hex');
 
     console.log('== trim verification: prompt parser ==');
@@ -4016,7 +4034,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     // --- BidJob deadline column + list rows carry price/deadline/worker_name ---
     {
       const { DatabaseSync } = await import('node:sqlite');
-      const impDb = new DatabaseSync(path.resolve(ROOT_I, 'server', 'data', 'dealcraft.db'));
+      const impDb = new DatabaseSync(TEST_DB_PATH);
       const impCols = impDb.prepare('PRAGMA table_info(BidJob)').all().map((r) => r.name);
       check(impCols.includes('deadline'), 'improve: BidJob has a deadline column (ALTER TABLE, not a table rebuild)', impCols.join(','));
       impDb.close();
@@ -4127,7 +4145,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       const d = await req(`/api/jobs/${p2JobId}`, { headers: auth(p2HirerToken) });
       const w = await req(`/api/worker/${p2WorkerToken}`);
       const { DatabaseSync } = await import('node:sqlite');
-      const db = new DatabaseSync(path.resolve(ROOT_P2, 'server', 'data', 'dealcraft.db'));
+      const db = new DatabaseSync(TEST_DB_PATH);
       const row = db.prepare('SELECT profile_id FROM PassportProfile WHERE worker_phone = ?').get(p2WorkerPhone);
       db.close();
       if (!row) throw new Error('P2-8: no PassportProfile row for the seeded worker');
@@ -4228,5 +4246,9 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
 } finally {
   server.kill('SIGTERM');
   await sleep(300);
+  // Per-run temp dirs are removed on every exit path — PASS, FAIL, or a
+  // check() abort mid-suite — so no run's database or photos survive it.
+  try { fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true }); } catch { /* temp cleanup only */ }
+  try { fs.rmSync(TEST_UPLOADS_DIR, { recursive: true, force: true }); } catch { /* temp cleanup only */ }
   process.exit(code);
 }

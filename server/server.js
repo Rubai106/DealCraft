@@ -36,7 +36,9 @@ if (process.env.TRUST_PROXY) {
   app.set('trust proxy', tp === 'true' ? true : (/^\d+$/.test(tp) ? Number(tp) : tp));
 }
 const PORT = process.env.PORT || 3000;
-const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
+const UPLOADS_DIR = process.env.DEALCRAFT_UPLOADS_DIR
+  ? path.resolve(process.env.DEALCRAFT_UPLOADS_DIR)
+  : path.join(__dirname, '..', 'uploads');
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 

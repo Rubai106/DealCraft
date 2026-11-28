@@ -8,7 +8,9 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const UPLOADS_DIR = path.join(__dirname, '..', '..', 'uploads');
+const UPLOADS_DIR = process.env.DEALCRAFT_UPLOADS_DIR
+  ? path.resolve(process.env.DEALCRAFT_UPLOADS_DIR)
+  : path.join(__dirname, '..', '..', 'uploads');
 const RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 
 function runRetention(db, now) {

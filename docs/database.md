@@ -15,6 +15,12 @@
 - **After deployment:** back the file up on a schedule (daily copy is
   enough at this scale); uploads live on local disk in `uploads/`, so
   back that folder up with the database or the photos will dangle.
+- **Test isolation:** `DEALCRAFT_DATA_DIR` overrides the data directory
+  (database + AppLink log) and `DEALCRAFT_UPLOADS_DIR` overrides the
+  photo directory. The regression suite sets both to fresh temp dirs
+  per run, so repeated `npm test` runs never see each other's rows or
+  photos; with both unset the server uses `server/data` + `uploads/`
+  exactly as before. Never set these on a deployed server.
 
 ## Later: hosted Postgres + object storage
 
