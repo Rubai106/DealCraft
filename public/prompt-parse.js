@@ -109,8 +109,11 @@ function deadlineCandidates(low, norm, todayIso, todayNum) {
 
   // Weekdays: "Friday", "by Friday", "শুক্রবার" — the next occurrence
   // from today (today itself when the prompt names today's weekday).
+  // A trailing "ের মধ্যে" / "এর মধ্যে" / "র মধ্যে" ("by Friday",
+  // "within Friday") is part of the deadline span: leaving it behind
+  // garbled the scope ("শুক্রবারের মধ্যে" left "ের মধ্যে" in it).
   const wdAlt = WEEKDAYS.flatMap((w) => w.names).map(escapeRe).join('|');
-  m = wordRe('(?:by\\s+)?(' + wdAlt + ')').exec(low);
+  m = wordRe('(?:by\\s+)?(' + wdAlt + ')(?:\\s*(?:ের|এর|র)?\\s*মধ্যে)?').exec(low);
   if (m) {
     const wd = WEEKDAYS.find((w) => w.names.some((n) => n.toLowerCase() === m[1].toLowerCase()));
     if (wd) push(m.index, m.index + m[0].length, addDaysIso(todayIso, (wd.num - todayNum + 7) % 7));
@@ -143,7 +146,7 @@ function deadlineCandidates(low, norm, todayIso, todayNum) {
 // default to ELECTRICIAN — trade stays null and the chat asks "Which
 // trade?" (server/src/prompt-parse.js mirrors this rule).
 const TRADE_KEYWORDS = [
-  { trade: 'ELECTRICIAN', words: ['ইলেকট্রিশিয়ান', 'ইলেকট্রিক মিস্ত্রি', 'ইলেকট্রিক মিস্ত্রী', 'electric mistri', 'electrician', 'electrical', 'rewiring', 'rewire', 'wiring', 'switch', 'socket', 'ফ্যান', 'fan', 'সুইচ', 'light', 'bulb', 'লাইট'] },
+  { trade: 'ELECTRICIAN', words: ['ইলেকট্রিশিয়ান', 'ইলেকট্রিক মিস্ত্রি', 'ইলেকট্রিক মিস্ত্রী', 'electric mistri', 'electrician', 'electrical', 'rewiring', 'rewire', 'wiring', 'রিওয়্যারিং', 'ওয়্যারিং', 'switch', 'socket', 'ফ্যান', 'fan', 'সুইচ', 'light', 'bulb', 'লাইট'] },
   { trade: 'PAINTER', words: ['পেইন্টার', 'পেইন্ট', 'রং', 'রঙ', 'painter', 'painting', 'paint'] },
   { trade: 'PLUMBER', words: ['প্লাম্বার', 'প্লাম্বিং', 'plumber', 'plumbing', 'পাইপ', 'pipe', 'ট্যাপ', 'tap', 'লিক', 'leak', 'drain', 'faucet'] },
 ];
@@ -154,12 +157,26 @@ function tradeMatch(low) {
     for (const w of t.words) {
       const hit = wordRe(escapeRe(w)).exec(low);
       if (hit && (best == null || hit.index < best.start)) {
-        best = { trade: t.trade, start: hit.index, end: hit.index + hit[0].length };
+        best = { trade: t.trade, start: hit.index, end: hit.index + hit[0].length, word: w };
       }
     }
   }
   if (best) return best;
   return null;
+}
+
+// Every occurrence of the matched trade word, not just the first: the
+// description used to keep a second "rewiring" behind ("2 bedroom flat,
+// rewiring again"), which read as a garbled scope.
+function tradeOccurrences(low, word) {
+  if (!word) return [];
+  const re = new RegExp('(?<!' + NOT_WORD + ')(?:' + escapeRe(word) + ')(?!' + NOT_WORD + ')', 'igu');
+  const out = [];
+  let hit;
+  while ((hit = re.exec(low)) !== null) {
+    out.push({ start: hit.index, end: hit.index + hit[0].length });
+  }
+  return out;
 }
 
 // --- Price -----------------------------------------------------------------
@@ -234,12 +251,22 @@ function parsePrompt(text) {
   if (!price) missing.push('price');
   if (!deadline) missing.push('deadline');
 
+  // description is the historical field and stays byte-for-byte what it
+  // was (existing assertions pin "2 bedroom flat" for the canonical
+  // line): trade keyword (every occurrence), price and deadline masked
+  // out. scope is the same line minus only the recognised price and
+  // deadline — the brief's scope ("2 bedroom flat rewiring") — and is
+  // what the chips and the job-scope field show.
+  const description = cleanDescription(norm, [...tradeOccurrences(low, trade ? trade.word : null), price, deadline]);
+  const scope = cleanDescription(norm, [price, deadline]);
+
   return {
     trade: trade ? trade.trade : null,
     price: price ? price.value : null,
     deadline: deadline ? deadline.iso : null,
     deadlineText: deadline ? deadline.text : null,
-    description: cleanDescription(norm, [trade, price, deadline]),
+    description,
+    scope,
     missing,
   };
 }

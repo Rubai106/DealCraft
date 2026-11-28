@@ -78,6 +78,6 @@ It is not presented as blockchain or legal proof.
   `otp-transactions.js` (persisted OTP transaction ids).
 - `public/` — PWA frontend (`index.html`, `app.js`, `worker.html`,
   `passport.html`, `style.css`, `fonts.css`, `sw.js`, `manifest.json`).
-- `tests/regression/run-demo.mjs` — the full regression suite (871
+- `tests/regression/run-demo.mjs` — the full regression suite (973
   assertions, run by `npm test` and by CI; the count grows as coverage
   is added).

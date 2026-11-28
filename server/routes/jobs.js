@@ -8,6 +8,7 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 const PDFDocument = require('pdfkit');
 const QRCode = require('qrcode');
+const puppeteer = require('puppeteer');
 const { db, now, fingerprint, newId, questionsFor, computeMissingTerms, validateSkippedTerms, getAdapter, UPLOADS_DIR, err, baseUrl, escapeHtml, addEvent, getJob, getCurrentVersion, milestonesOf, milestoneStatus, jobDetail, createWorkerToken, workerTokenForJob, authedUser, otpError, normalizeBdPhone, billingSatisfied, requireAuth, requireJobAccess, actorOf, clearLocation, jobSite, locationView, validLatLng, upsertUser, sendAgreementSummarySms, checkDeadlines, isRealImage, imageMime, MAX_PHOTOS_PER_JOB, upload, resolvePackData, TRADE_BN, validateScope, validatePrice, validateDeadline, validateMilestones, vmsg, passportData } = require('../src/shared');
 const { parsePrompt } = require('../src/prompt-parse');
 const router = express.Router();
@@ -386,27 +387,46 @@ router.get('/api/jobs/:id/resolvepack.json', requireJobAccess, (req, res) => {
 // pdftotext reads "ইেলকিট্রিশয়ান" for "ইলেকট্রিশিয়ান", and the rendered
 // page shows the same breakage). So the pack is rendered through headless
 // Chromium print-to-PDF, which shapes Bengali correctly (verified:
-// pdftotext reads the exact Bangla strings back, conjuncts intact). No
-// font binary is shipped in the repo, and the pack deliberately does NOT
-// embed the repo's public/fonts Noto Sans Bengali woff2 files: those are
-// unicode-range subsets whose shaping is broken (verified: detached
-// conjuncts such as "অগ্রি ম" for "অগ্রিম", plus "Bad bounding box in
-// Type 3 glyph" warnings). Instead the HTML asks for 'Noto Sans Bengali'
-// and relies on a full system font — present in this sandbox. A
-// production machine without a Bengali system font will render Bangla
-// wrong; the deploy must install a full Noto Sans Bengali (see report).
-// If no Chromium binary is found on the machine, or printing fails, the
-// route falls back to the PDFKit pack below (same content, Helvetica —
+// pdftotext reads the exact Bangla strings back, conjuncts intact).
+//
+// Deployment-proofing (P0-1, 2026-11-28): the pack must NOT depend on
+// anything installed on the machine it runs on.
+//   1. Chromium comes from the puppeteer npm package, which downloads
+//      its own Chromium at `npm ci` time — no system Chrome, no
+//      CHROME_PATH, no workflow change. The binary path resolves from
+//      the installed package (puppeteer.executablePath()).
+//   2. The Bengali font is embedded in the pack HTML itself (see
+//      bengaliFontDataUri below): a full Noto Sans Bengali Regular TTF,
+//      shipped in the repo as base64 text so it travels in a plain diff.
+//      The repo's public/fonts woff2 files are unicode-range subsets
+//      whose shaping is broken (verified: detached conjuncts such as
+//      "অগ্রি ম" for "অগ্রিম", plus "Bad bounding box in Type 3 glyph"
+//      warnings), so they are NOT used here. A machine with no Bengali
+//      system font still renders the pack correctly.
+// If puppeteer cannot launch (and no CLI Chromium candidate works either),
+// the route falls back to the PDFKit pack below (same content, Helvetica —
 // Bangla mojibake there is the pre-existing behaviour, not a regression).
-// DIAGNOSIS (2026-11-27): that fallback used to be SILENT — a machine
-// with no working Chromium served the broken PDFKit pack and nothing
-// logged it, which is exactly how a conjunct failure presents. Candidate
-// status in this sandbox, verified by hand: Playwright chromium-1248
-// works, chrome-no-sandbox.sh (same binary) works, headless_shell-1248
-// works; chromium-1179's binary does not exist (only its headless-shell
-// dir) and /opt/meta-chromium/chrome exits 13 ("Hatch WebGL domain
-// policy is required"). Both failure points now log to stderr, so a
-// fallback is diagnosable instead of silent.
+// That fallback is LOUD: both failure points log to stderr, so a fallback
+// is diagnosable instead of silent.
+
+// Full Noto Sans Bengali Regular (Google Fonts, OFL) shipped in the repo
+// as base64 text (server/assets/NotoSansBengali-Regular.ttf.b64) — a
+// binary TTF cannot travel in a plain-text patch, so the text form is
+// the file of record. Read once, cached; if it cannot be read the pack
+// still renders, falling back to any Bengali system font.
+let _bengaliFontDataUri = null;
+function bengaliFontDataUri() {
+  if (_bengaliFontDataUri !== null) return _bengaliFontDataUri;
+  try {
+    const b64 = fs.readFileSync(path.join(__dirname, '..', 'assets', 'NotoSansBengali-Regular.ttf.b64'), 'utf8').replace(/\s+/g, '');
+    _bengaliFontDataUri = 'data:font/ttf;base64,' + b64;
+  } catch (_e) {
+    console.error('[resolvepack] embedded Bengali font unreadable — falling back to system font');
+    _bengaliFontDataUri = '';
+  }
+  return _bengaliFontDataUri;
+}
+
 function findChromiumCandidates() {
   const candidates = [];
   if (process.env.CHROME_PATH) candidates.push(process.env.CHROME_PATH);
@@ -465,8 +485,12 @@ function resolvePackHtml(d, job, current, verifyUrl, qrPng, generatedAt) {
   const qrImg = qrPng
     ? '<img src="data:image/png;base64,' + qrPng.toString('base64') + '" style="width:140px">'
     : '';
+  const fontFace = bengaliFontDataUri()
+    ? "@font-face{font-family:'Noto Sans Bengali';src:url(" + bengaliFontDataUri() + ") format('truetype');font-weight:400}"
+    : '';
   return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><style>'
     + '@page{size:A4;margin:50px}'
+    + fontFace
     + 'body{font-family:"Noto Sans Bengali",Arial,Helvetica,sans-serif;color:#111;margin:0;font-size:11pt;line-height:1.45}'
     + 'h1{font-size:18pt;margin:0 0 8px}h2{font-size:13pt;margin:18px 0 4px}p{margin:4px 0}.ind{margin-left:16px;color:#333}.small{font-size:10pt}.foot{text-align:center;color:#666;font-size:8pt;margin-top:24px}'
     + '</style></head><body>'
@@ -492,12 +516,38 @@ function resolvePackHtml(d, job, current, verifyUrl, qrPng, generatedAt) {
     + '</body></html>';
 }
 
-// Print the pack HTML to PDF with headless Chromium. Tries each Chromium
-// candidate in turn (one binary may refuse to start in a given sandbox —
-// e.g. the Meta Chromium build requires a domain policy — so a single
-// failure must not lose the whole route). Returns the PDF Buffer, or null
-// when no Chromium works (the caller then falls back to the PDFKit pack).
+// Print the pack HTML to PDF with headless Chromium. Primary path is
+// puppeteer: its Chromium is installed by `npm ci`, so the binary path
+// resolves from the installed package and works on any machine (CI
+// runner, deploy host) with no system Chrome and no CHROME_PATH. If the
+// puppeteer launch fails, the old CLI candidates (CHROME_PATH, Playwright
+// cache, Meta Chromium) are tried with --print-to-pdf. Returns the PDF
+// Buffer, or null when no Chromium works (the caller then falls back to
+// the PDFKit pack).
 async function printPackWithChromium(html) {
+  // --- Puppeteer (bundled Chromium) ---
+  try {
+    const browser = await puppeteer.launch({
+      executablePath: await puppeteer.executablePath(),
+      headless: true,
+      args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+    });
+    try {
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'load' });
+      // preferCSSPageSize keeps the HTML's own @page (A4, 50px margins)
+      // — the same page geometry the old --print-to-pdf path produced.
+      const pdf = await page.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true });
+      const buf = Buffer.from(pdf);
+      if (buf.length >= 1000 && buf.subarray(0, 4).toString('latin1') === '%PDF') return buf;
+      console.error('[resolvepack] puppeteer produced no usable PDF');
+    } finally {
+      await browser.close().catch(() => {});
+    }
+  } catch (e) {
+    console.error('[resolvepack] puppeteer launch/print failed: ' + (e && e.message));
+  }
+  // --- CLI Chromium candidates (CHROME_PATH, Playwright cache, ...) ---
   const candidates = findChromiumCandidates();
   if (!candidates.length) {
     console.error('[resolvepack] no Chromium candidate found — PDFKit fallback will render Bangla incorrectly');

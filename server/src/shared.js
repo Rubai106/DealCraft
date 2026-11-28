@@ -18,12 +18,12 @@ const { readLog, LOG_PATH } = require('./applink/log');
 const UPLOADS_DIR = path.join(__dirname, '..', '..', 'uploads');
 const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
 
-// Feature flag: the bidding marketplace ("Find a repairer") is ON by
-// default. When off (FEATURE_BIDDING=false), its API routes do not exist
-// (404) and the client hides every trace of it. The code stays in the
-// repo, only gated — nothing is deleted. Set FEATURE_BIDDING=false to
-// turn it off.
-const BIDDING_ENABLED = process.env.FEATURE_BIDDING !== 'false';
+// Feature flag: the bidding marketplace ("Find a repairer") is OPT-IN.
+// It is OFF unless FEATURE_BIDDING is exactly 'true' (the submission
+// default: env unset, 'false', or anything else all mean off). When off,
+// its API routes do not exist (404) and the client removes every trace
+// of it. The code stays in the repo, only gated — nothing is deleted.
+const BIDDING_ENABLED = process.env.FEATURE_BIDDING === 'true';
 function requireBidding(req, res, next) {
   if (!BIDDING_ENABLED) return err(res, 404, 'not found');
   next();
@@ -117,6 +117,11 @@ function milestoneStatus(jobId, milestones) {
   return milestones.map((m, i) => ({
     index: i,
     title: m.title,
+    /* Title key for localisation (P1-4): 'advance' / 'first-stage' /
+       'completion' when the hirer app stored one; null for custom
+       titles and for older records. The fingerprint still uses only
+       title + amount (fingerprint.js), so this changes no hash. */
+    key: m.key || null,
     amount: m.amount,
     completed: completed.has(i),
     approved: approved.has(i),

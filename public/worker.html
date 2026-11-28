@@ -9,6 +9,7 @@
 
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="style.css">
+
 <style>
 /* Worker motion system — same tokens as the rest of DealCraft (style.css :root):
    --ease-out for entrances, --ease-spring for success only, --ease-inout for
@@ -29,7 +30,7 @@
 body.worker-page{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
 body.worker-page .topbar{flex:none;flex-wrap:nowrap;padding:10px 16px}
 body.worker-page main{flex:1;min-height:0;height:auto;display:flex;flex-direction:column;padding:10px 16px 12px;overflow:hidden}
-body.worker-page #w-title,body.worker-page #w-err,body.worker-page #w-check,body.worker-page #w-otp-note{flex:none}
+body.worker-page #w-title,body.worker-page #w-err,body.worker-page #w-check{flex:none}
 .w-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:8px}
 /* Compact so the common states fit with as little internal scroll as
    possible: smaller title/buttons/inputs, tighter rows and notices. */
@@ -76,6 +77,7 @@ input[type=checkbox]{min-height:0}
  .success-check circle,.success-check path{stroke-dashoffset:0}
 }
 </style>
+<link rel="stylesheet" href="ux-overhaul.css">
 </head>
 <body class="light-page worker-page">
 <header class="topbar"><span style="font-family:'Oswald',sans-serif;font-size:20px">DEALCRAFT<span style="color:#FF5A1F">.</span></span><div class="lang-toggle" role="group" aria-label="Language / ভাষা"><button type="button" id="lang-bn" aria-pressed="false">বাংলা</button><button type="button" id="lang-en" aria-pressed="true">EN</button></div><span class="mono" style="color:#bbb" data-i18n="w.roleTag">WORKER</span></header>
@@ -85,7 +87,6 @@ input[type=checkbox]{min-height:0}
   <div id="w-err" class="error" hidden></div>
   <!-- P4: success checkmark only — no card stacks, tilt or heavy shadows here. -->
   <div id="w-check" class="success-check" hidden aria-hidden="true"></div>
-  <div class="notice" id="w-otp-note" hidden><b data-i18n="w.otpCode">Your code</b><br><span id="w-otp-note-text"></span></div>
 
   <!-- All sections live inside the one internal-scroll region (see the
        one-viewport rules in <style> above): the document never scrolls. -->
@@ -259,7 +260,6 @@ var WI18N={
  'w.closeText':{bn:'কাজ শেষ হলে নিচের বোতাম চাপুন — একটি OTP কোড আসবে। কোডটি হায়ারারকে জানান, হায়ারার ওই কোড দিয়ে কাজটি বন্ধ করবেন।',en:'When the work is done, tap below — a code arrives. Give it to the hirer; they close the job with it.'},
  'w.closeBtn':{bn:'কাজ শেষ',en:'Confirm close'},
  'w.closeNote':{bn:'কোড পাঠানো হয়েছে — হায়ারারকে কোডটি জানান।',en:'Code sent — give it to the hirer.'},
- 'w.otpCode':{bn:'আপনার কোড',en:'Your code'},
  'w.otpLabel':{bn:'OTP কোড',en:'OTP code'},
  'w.photoLabel':{bn:'ছবি',en:'Photo'},
  'w.stmtLabel':{bn:'বক্তব্য',en:'Statement'},
@@ -285,7 +285,6 @@ var WI18N={
  'w.bannerActive':{bn:'কাজের দিন — নিচে "লাইভ লোকেশন শেয়ার করুন" চাপুন',en:"Work day — tap 'Share live location' below"},
  'w.resend':{bn:'কোড আবার পাঠান',en:'Resend code'},
  'w.resendIn':{bn:'আবার পাঠানো যাবে {s} সেকেন্ডে',en:'Resend in {s}s'},
- 'w.demoCode':{bn:'ডেমো কোড (শুধু পরীক্ষার জন্য) — আসল ব্যবহারে কোডটি SMS-এ আসবে',en:'Demo code (test only) — in real use the code arrives by SMS'},
  'w.otpWrong':{bn:'ভুল কোড — SMS দেখে আবার চেষ্টা করুন।',en:'Wrong code — check the SMS and try again.'},
  'w.otpExpired':{bn:'কোডের মেয়াদ শেষ — Resend চাপুন।',en:'Code expired — tap Resend.'},
  'w.locWeak':{bn:'সংকেত দুর্বল (±{m}m) — বাইরে গিয়ে অপেক্ষা করুন, এখনো কিছু পাঠানো হয়নি।',en:'Signal weak (±{m}m) — step outside and wait, nothing sent yet.'},
@@ -313,13 +312,31 @@ function wApplyLang(){document.documentElement.lang=wLang;
     and localise placeholders, which are not data-i18n text. */
  locSet(locState);
  [['w-otp','6 অঙ্কের কোড','6-digit code'],['w-ch-otp','6 অঙ্কের কোড','6-digit code'],['w-pay-otp','6 অঙ্কের কোড','6-digit code']].forEach(function(p){var el=$(p[0]);if(el)el.setAttribute('placeholder',wLang==='bn'?p[1]:p[2]);});
- var st=$('w-stmt'); if(st)st.setAttribute('placeholder',wLang==='bn'?'সংক্ষেপে লিখুন':'Write briefly');}
+ var st=$('w-stmt'); if(st)st.setAttribute('placeholder',wLang==='bn'?'সংক্ষেপে লিখুন':'Write briefly');
+ /* Re-render the record bits in the new language (titles, dates). */
+ if(wLastSummary)wRenderSummary(wLastSummary);
+ if(wLastMiles)wRenderMiles(wLastMiles.miles,wLastMiles.canComplete);
+ if(wLastPay)wRenderPay(wLastPay);
+ if(wLastChange)wRenderChange(wLastChange.proposed,wLastChange.price);}
 var W_TRADE={ELECTRICIAN:{bn:'ইলেকট্রিশিয়ান',en:'ELECTRICIAN'},PAINTER:{bn:'পেইন্টার',en:'PAINTER'},PLUMBER:{bn:'প্লাম্বার',en:'PLUMBER'}};
 function wTradeLabel(tr){if(!tr)return '';var d=W_TRADE[String(tr).toUpperCase()];return d?(d[wLang]||d.en):tr;}
 var W_FS_Q={'Who buys wires/materials?':'কে তার/মালামাল কিনবে?','Wire brand and specification':'তারের ব্র্যান্ড ও স্পেসিফিকেশন','Number of points':'পয়েন্টের সংখ্যা','Circuit breakers included?':'সার্কিট ব্রেকার কি অন্তর্ভুক্ত?','Wall cutting and wall repair — included?':'দেয়াল কাটা ও মেরামত কি অন্তর্ভুক্ত?','Final testing included?':'চূড়ান্ত টেস্টিং কি অন্তর্ভুক্ত?','Transport cost':'পরিবহন খরচ','Waste removal':'বর্জ্য অপসারণ','Area / rooms':'এলাকা / রুম','Number of coats':'কোটের সংখ্যা','Primer included?':'প্রাইমার কি অন্তর্ভুক্ত?','Paint brand':'রঙের ব্র্যান্ড','Surface preparation':'সারফেস প্রস্তুতি','Furniture moving':'আসবাব সরানো','Cleanup':'পরিষ্কার','Pipe material':'পাইপের উপাদান','Fixtures included or supplied by hirer':'ফিটিংস — হায়ারার দেবে নাকি ওয়ার্কার?','Wall breaking and restoration':'দেয়াল ভাঙা ও মেরামত','Leak testing':'লিক টেস্টিং','Materials responsibility':'মালামালের দায়িত্ব'};
 function wFsLabel(qEn){return wLang==='bn'?(W_FS_Q[qEn]||qEn):qEn;}
 var W_MS={'APPROVED':{bn:'অনুমোদিত',en:'Approved'},'COMPLETE':{bn:'সম্পূর্ণ',en:'Complete'},'PENDING':{bn:'অপেক্ষায়',en:'Pending'}};
 function wMsLabel(st){var d=W_MS[st];return d?(d[wLang]||d.en):st;}
+/* Milestone titles (P1-4): same title key as the hirer app — the stored
+   key wins, else the normalised title ('ADVANCE' / 'Advance' / 'advance'
+   all match), else the raw custom title renders as-is. */
+var W_MS_TITLE={'advance':{bn:'অগ্রিম',en:'Advance'},'first-stage':{bn:'প্রথম ধাপ',en:'First stage'},'completion':{bn:'সমাপ্তি',en:'Completion'}};
+function wMsKeyForTitle(title){var k=String(title||'').trim().toLowerCase();if(k==='advance')return 'advance';if(k==='first stage')return 'first-stage';if(k==='completion')return 'completion';return null;}
+function wMsTitle(m){var t0=(m&&(m.title!=null?m.title:''))||'';var key=(m&&m.key)||wMsKeyForTitle(t0);var d=key?W_MS_TITLE[key]:null;return d?(d[wLang]||d.en):t0;}
+/* Human dates, same shape as the hirer side ('4 Dec 2026' / Bangla
+   equivalent) — never a raw ISO date. */
+function wFmtDate(d){if(!d)return '—';var dt=new Date(d);if(isNaN(dt.getTime()))return String(d);try{return dt.toLocaleDateString(wLang==='bn'?'bn-BD':'en-GB',{day:'numeric',month:'short',year:'numeric'});}catch(e){return String(d);}}
+/* Last rendered record bits, so a language toggle re-renders them in the
+   new language (titles, dates, pay/change text) instead of leaving the
+   old language on screen. */
+var wLastSummary=null,wLastMiles=null,wLastPay=null,wLastChange=null;
 var payDecision='received', payId=q.get('paymentId')||null, changeId=null, changeDecision=null;
 var wLastProfile=null;
 /* The worker phone of the record now open — fetchWorkerJobs only ever
@@ -379,7 +396,7 @@ var wOtpSentAt=0;
 async function requestOtp(purpose){
  var r=await api('/api/worker/'+encodeURIComponent(token)+'/request-otp',{method:'POST',body:JSON.stringify({purpose:purpose})});
  wOtpSentAt=Date.now();
- if(r&&r.sandbox&&r.sandbox.otp){$('w-otp-note').hidden=false;$('w-otp-note-text').textContent=((WI18N['w.demoCode']||{bn:'',en:''})[wLang]||'')+': '+(r.sandbox.otp||'—');}
+ /* P0-3: the code is never rendered in the UI — it arrives by SMS. */
  return r;}
 /* The server returns one "invalid or expired code" for both cases — the
    5-minute OTP TTL (server/src/applink/otp.js) tells them apart here. */
@@ -465,6 +482,39 @@ async function fetchWorkerJobs(){
   });});
  }catch(e){/* worker jobs list is best-effort — the record itself still loads */}
 }
+/* Record bits extracted so wApplyLang can re-render them on a language
+   toggle (titles localised, dates human) without refetching. */
+function wRenderSummary(s){
+ var job=s.job,ver=s.ver,scope=s.scope,price=s.price,deadline=s.deadline;
+ $('w-summary').innerHTML='<h3>'+esc(wTradeLabel(job.trade)+' — '+(job.worker_name||job.workerName||''))+'</h3><table>'+
+  '<tr><th>'+(wLang==='bn'?'দাম':'Price')+'</th><td>'+taka(price)+'</td></tr>'+
+  '<tr><th>'+(wLang==='bn'?'শেষ তারিখ':'Deadline')+'</th><td>'+esc(deadline?wFmtDate(deadline):'—')+'</td></tr>'+
+  '<tr><th>'+(wLang==='bn'?'সংস্করণ':'Version')+'</th><td>V'+esc(job.current_version||ver.version_no||1)+'</td></tr>'+
+  '<tr><th>'+(wLang==='bn'?'বিবরণ':'Scope')+'</th><td>'+esc(scope.scope||job.scope||'—')+'</td></tr></table>'+
+  '<p class="small">'+(wLang==='bn'?'হায়ারার: ':'Hirer: ')+esc(job.hirerName||job.hirerPhone||'—')+'</p>';
+}
+function wRenderChange(proposed,price){
+ $('w-change-text').innerHTML='<b>'+esc(proposed.reason||'Change')+'</b><br>'+(wLang==='bn'?'দামের পরিবর্তন: ':'Price change: ')+taka(proposed.priceDelta||0)+' · '+(wLang==='bn'?'নতুন দাম: ':'New price: ')+taka((price||0)+(proposed.priceDelta||0))+(proposed.deadline?'<br>'+(wLang==='bn'?'নতুন শেষ তারিখ: ':'New deadline: ')+esc(wFmtDate(proposed.deadline)):'');
+}
+function wRenderPay(pay){
+ $('w-pay-text').textContent=(wLang==='bn'?'টাকা: ':'Amount: ')+taka(pay.amount)+' · '+(pay.method==='Cash'?(wLang==='bn'?'নগদ':'Cash'):(pay.method||''))+' · '+(pay.date?wFmtDate(pay.date):'');
+}
+function wRenderMiles(miles,canComplete){
+ if(!miles.length)return;
+ $('w-mile-list').innerHTML=miles.map(function(m,i){return '<div class="job-row"><div><div class="t">'+esc(m.title?wMsTitle(m):((wLang==='bn'?'ধাপ ':'Step ')+(i+1)))+'</div><div class="m">'+taka(m.amount)+' · '+esc(wMsLabel(m.approved?'APPROVED':m.completed?'COMPLETE':'PENDING'))+'</div></div>'+(canComplete?'<button class="big-btn" style="max-width:220px" data-mile="'+i+'" '+(m.completed?'disabled':'')+'>'+(wLang==='bn'?'সম্পূর্ণ করুন':'Mark complete')+'</button>':'')+'</div>';}).join('');
+ $('w-mile-list').querySelectorAll('[data-mile]').forEach(function(b){b.addEventListener('click',async function(){try{await api('/api/jobs/'+encodeURIComponent(jobId)+'/milestones/'+b.getAttribute('data-mile')+'/complete'+wt(),{method:'POST',body:'{}'});wShowCheck();
+  /* After a milestone completes the button becomes a grey pill —
+     the hirer still has to approve it, so it never reads "Complete". */
+  var pill=document.createElement('span');
+  pill.className='pill'; pill.style.cssText='background:#E3DED4;color:#555555;padding:10px 14px';
+  pill.textContent=(WI18N['w.mileDone']||{bn:'',en:''})[wLang]||'Done — waiting for hirer approval';
+  b.replaceWith(pill);
+  /* Keep the stored list in step so a later language toggle does not
+     resurrect the button. */
+  var mi=+b.getAttribute('data-mile'); if(wLastMiles&&wLastMiles.miles[mi])wLastMiles.miles[mi].completed=true;
+ }catch(e){err(e.message);}});});
+ show('w-mile');
+}
 async function load(){
  if(!token){err(wLang==='bn'?'কোনো লিংক নেই। হায়ারারকে আবার লিংক পাঠাতে বলুন।':'No worker link token. Ask the hirer to send your link again.');return;}
  try{var r=await api('/api/worker/'+encodeURIComponent(token));
@@ -486,12 +536,8 @@ function renderWorker(r){
   var ver=r.version||{};
   var scope={}; try{scope=typeof ver.scope_json==='string'?JSON.parse(ver.scope_json||'{}'):(ver.scope||{});}catch(e){}
   var price=ver.price, deadline=ver.deadline;
-  $('w-summary').innerHTML='<h3>'+esc(wTradeLabel(job.trade)+' — '+(job.worker_name||job.workerName||''))+'</h3><table>'+
-   '<tr><th>'+(wLang==='bn'?'দাম':'Price')+'</th><td>'+taka(price)+'</td></tr>'+
-   '<tr><th>'+(wLang==='bn'?'শেষ তারিখ':'Deadline')+'</th><td>'+esc(deadline||'—')+'</td></tr>'+
-   '<tr><th>'+(wLang==='bn'?'সংস্করণ':'Version')+'</th><td>V'+esc(job.current_version||ver.version_no||1)+'</td></tr>'+
-   '<tr><th>'+(wLang==='bn'?'বিবরণ':'Scope')+'</th><td>'+esc(scope.scope||job.scope||'—')+'</td></tr></table>'+
-   '<p class="small">'+(wLang==='bn'?'হায়ারার: ':'Hirer: ')+esc(job.hirerName||job.hirerPhone||'—')+'</p>';
+  wLastSummary={job:job,ver:ver,scope:scope,price:price,deadline:deadline};
+  wRenderSummary(wLastSummary);
   /* One-tap call: a real tel: link to the hirer, from the record. */
   var wCall=$('w-call'); var hirerPh=job.hirerPhone||job.hirer_phone||'';
   if(wCall){if(hirerPh){wCall.href='tel:'+String(hirerPh).replace(/[^0-9+]/g,'');wCall.hidden=false;}else wCall.hidden=true;}
@@ -520,25 +566,19 @@ function renderWorker(r){
   var proposed=null;
   events.forEach(function(ev){if(ev.type==='CHANGE_PROPOSED'){var p=parsePayload(ev);if(p.changeId&&!decided[p.changeId])proposed=p;}});
   if(proposed){changeId=proposed.changeId;
-   $('w-change-text').innerHTML='<b>'+esc(proposed.reason||'Change')+'</b><br>'+(wLang==='bn'?'দামের পরিবর্তন: ':'Price change: ')+taka(proposed.priceDelta||0)+' · '+(wLang==='bn'?'নতুন দাম: ':'New price: ')+taka((price||0)+(proposed.priceDelta||0))+(proposed.deadline?'<br>'+(wLang==='bn'?'নতুন শেষ তারিখ: ':'New deadline: ')+esc(proposed.deadline):'');
+   wLastChange={proposed:proposed,price:price};
+   wRenderChange(proposed,price);
    show('w-change');}
   /* Pending payment: ack_status AWAITING. ?paymentId= selects one explicitly. */
   var pays=r.payments||job.payments||[];
   var pay=payId?pays.filter(function(p){return String(p.id)===String(payId);})[0]:pays.filter(function(p){return p.ack_status==='AWAITING';})[0];
-  if(pay){payId=pay.id;$('w-pay-text').textContent=(wLang==='bn'?'টাকা: ':'Amount: ')+taka(pay.amount)+' · '+(pay.method==='Cash'?(wLang==='bn'?'নগদ':'Cash'):(pay.method||''))+' · '+(pay.date||'');show('w-pay');}
+  if(pay){payId=pay.id;wLastPay=pay;wRenderPay(pay);show('w-pay');}
   var miles=r.milestones||job.milestones||[];
   /* Draft discipline: no "Complete" button on a job the worker has not
      confirmed yet — milestones can only be completed on an ACTIVE job. */
   var canComplete=job.status==='ACTIVE';
-  if(miles.length){$('w-mile-list').innerHTML=miles.map(function(m,i){return '<div class="job-row"><div><div class="t">'+esc(m.title||((wLang==='bn'?'ধাপ ':'Step ')+(i+1)))+'</div><div class="m">'+taka(m.amount)+' · '+esc(wMsLabel(m.approved?'APPROVED':m.completed?'COMPLETE':'PENDING'))+'</div></div>'+(canComplete?'<button class="big-btn" style="max-width:220px" data-mile="'+i+'" '+(m.completed?'disabled':'')+'>'+(wLang==='bn'?'সম্পূর্ণ করুন':'Mark complete')+'</button>':'')+'</div>';}).join('');
-   $('w-mile-list').querySelectorAll('[data-mile]').forEach(function(b){b.addEventListener('click',async function(){try{await api('/api/jobs/'+encodeURIComponent(jobId)+'/milestones/'+b.getAttribute('data-mile')+'/complete'+wt(),{method:'POST',body:'{}'});wShowCheck();
-    /* After a milestone completes the button becomes a grey pill —
-       the hirer still has to approve it, so it never reads "Complete". */
-    var pill=document.createElement('span');
-    pill.className='pill'; pill.style.cssText='background:#E3DED4;color:#555555;padding:10px 14px';
-    pill.textContent=(WI18N['w.mileDone']||{bn:'',en:''})[wLang]||'Done — waiting for hirer approval';
-    b.replaceWith(pill);}catch(e){err(e.message);}});});
-   show('w-mile');}
+  wLastMiles={miles:miles,canComplete:canComplete};
+  wRenderMiles(miles,canComplete);
   events.forEach(function(ev){if(ev.type==='DISPUTE_OPENED'){var p=parsePayload(ev);if(p.disputeId)disputeId=p.disputeId;}});
   if(disputeId)show('w-say');
   /* Pending resolution: proposed, with no later accept/reject. The worker

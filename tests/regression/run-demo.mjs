@@ -137,32 +137,33 @@ try {
     check(resetOff.status === 404, 'demo reset is 404 when DEMO_MODE is off (flag beats the token)');
     const seedOff = await fetch(BASE2 + '/api/demo/seed', djOff);
     check(seedOff.status === 404, 'demo seed is 404 when DEMO_MODE is off (flag beats the token)');
-    // Bidding flag DEFAULT (2026-11-27 trim, DELIBERATE change): the
-    // marketplace is ON unless FEATURE_BIDDING=false. With the flag
-    // unset, /api/config reports biddingEnabled=true and the bidding
-    // routes are live (an unauthenticated call is 401 from the auth
-    // gate, not 404; an authenticated call lists open jobs). The
-    // explicit-OFF pin lives in the trim-verification worker-accounts
-    // block (FEATURE_BIDDING=false still 404s).
+    // Bidding flag DEFAULT is OFF (P0-2 fix brief, REVERSING the
+    // 2026-11-27 trim decision): the marketplace is OPT-IN — enabled
+    // only when FEATURE_BIDDING is exactly 'true'. With the flag
+    // unset, /api/config reports biddingEnabled=false and the bidding
+    // routes do not exist (404, even authenticated). The explicit-ON
+    // behaviour is covered by the main server (FEATURE_BIDDING=true),
+    // and the explicit-OFF pin lives in the trim-verification
+    // worker-accounts block (FEATURE_BIDDING=false still 404s).
     const cfgOff = await fetch(BASE2 + '/api/config');
     const cfgOffBody = await cfgOff.json();
-    check(cfgOff.status === 200 && cfgOffBody?.biddingEnabled === true, 'config reports biddingEnabled=true when FEATURE_BIDDING is unset (default ON)');
+    check(cfgOff.status === 200 && cfgOffBody?.biddingEnabled === false, 'config reports biddingEnabled=false when FEATURE_BIDDING is unset (default OFF, opt-in only)');
     const bidOpenOff = await fetch(BASE2 + '/api/bid-jobs/open');
-    check(bidOpenOff.status === 401, 'bidding default ON: GET /api/bid-jobs/open without auth is 401 (route exists), not 404');
+    check(bidOpenOff.status === 404, 'bidding default OFF: GET /api/bid-jobs/open without auth is 404 (route does not exist)');
     const bidPostOff = await fetch(BASE2 + '/api/bid-jobs', djOff);
-    check(bidPostOff.status === 401, 'bidding default ON: POST /api/bid-jobs without auth is 401 (route exists), not 404');
+    check(bidPostOff.status === 404, 'bidding default OFF: POST /api/bid-jobs without auth is 404 (route does not exist)');
     const bidOneOff = await fetch(BASE2 + '/api/bid-jobs/some-id');
-    check(bidOneOff.status === 401, 'bidding default ON: GET /api/bid-jobs/:id without auth is 401 (route exists), not 404');
-    // Authenticated proof the routes are live on the default-ON server.
-    const cfgOffOtp = await fetch(BASE2 + '/api/auth/request-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: '01700000044', name: 'Default On', role: 'hirer' }) });
+    check(bidOneOff.status === 404, 'bidding default OFF: GET /api/bid-jobs/:id without auth is 404 (route does not exist)');
+    // Auth still works on the flag-unset server — only bidding is off.
+    const cfgOffOtp = await fetch(BASE2 + '/api/auth/request-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: '01700000044', name: 'Default Off', role: 'hirer' }) });
     const cfgOffOtpBody = await cfgOffOtp.json();
-    check(cfgOffOtp.status === 200 && cfgOffOtpBody?.sandbox?.otp, 'bidding default ON: OTP issued on the flag-unset server');
+    check(cfgOffOtp.status === 200 && cfgOffOtpBody?.sandbox?.otp, 'bidding default OFF: OTP issued on the flag-unset server (auth unaffected)');
     const cfgOffLogin = await fetch(BASE2 + '/api/auth/verify-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: '01700000044', code: cfgOffOtpBody.sandbox.otp }) });
     const cfgOffLoginBody = await cfgOffLogin.json();
-    check(cfgOffLogin.status === 200 && cfgOffLoginBody?.token, 'bidding default ON: login works on the flag-unset server');
+    check(cfgOffLogin.status === 200 && cfgOffLoginBody?.token, 'bidding default OFF: login works on the flag-unset server (auth unaffected)');
     const bidOpenAuthed = await fetch(BASE2 + '/api/bid-jobs/open', { headers: { Authorization: 'Bearer ' + cfgOffLoginBody.token } });
     const bidOpenAuthedBody = await bidOpenAuthed.json();
-    check(bidOpenAuthed.status === 200 && Array.isArray(bidOpenAuthedBody.bidJobs), 'bidding default ON: authenticated GET /api/bid-jobs/open is 200 (routes live)');
+    check(bidOpenAuthed.status === 404, 'bidding default OFF: authenticated GET /api/bid-jobs/open is 404 (routes do not exist even authed)');
   } finally {
     server2.kill('SIGTERM');
   }
@@ -1940,7 +1941,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     // 612 after the dotenv fix); this check runs
     // mid-suite (live count here was 526 before it), so it pins only
     // that the README states the final total, not the live count.
-    const EXPECTED_COUNT = 871; // final measured total, open-items fixes 2026-11-27 (855 improvement pass; 783 after the map fix; 782 after trim verification; 612 pre-trim)
+    const EXPECTED_COUNT = 973; // final measured total, FIX BRIEF 2026-11-28 (871 before the brief: 855 improvement pass; 783 after the map fix; 782 after trim verification; 612 pre-trim)
     const p1Readme = fs.readFileSync(path.resolve(ROOT_P1, 'README.md'), 'utf8');
     check(p1Readme.includes(EXPECTED_COUNT + ' assertions'), 'part 1: README shows the true assertion count (live count at this point: ' + passed + ', final suite total: ' + EXPECTED_COUNT + ')');
   }
@@ -2547,7 +2548,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     check(tvP15a.status === 400 && (tvP15a.body?.error || '').includes('trade'), 'parser: POST /api/bid-jobs prompt naming no trade -> 400 naming trade', 'status ' + tvP15a.status + ' ' + JSON.stringify(tvP15a.body));
     const tvP15b = await req('/api/bid-jobs', aj(token, { trade: 'PLUMBER', description: 'Direct bid-job post, no prompt' }));
     check(tvP15b.status === 201 && tvP15b.body?.bidJob?.trade === 'PLUMBER', 'parser: direct bid-job posting without prompt still 201', 'status ' + tvP15b.status + ' ' + JSON.stringify(tvP15b.body));
-    // No new dependency, no banned words, adapter byte-identical to remote HEAD.
+    // No new dependency except puppeteer (user-approved 2026-11-28, FIX BRIEF P0-1 Chromium PDF), no banned words, adapter byte-identical to remote HEAD.
     // (The checked words are built from parts so this file itself stays
     // clean for the repo-wide banned-word grep.)
     const tvBanned = ['US' + 'SD', 'legal' + 'ly binding', 'e-sign' + 'ature', 'enforce' + 'able'];
@@ -2557,7 +2558,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     // rate-limited for this shared egress IP, so SHAs are compared as
     // sha256 of the raw file bytes instead of git blob SHAs).
     const tvRemoteBase = 'https://raw.githubusercontent.com/Rubai106/DealCraft/e4f1b62f/';
-    const tvRemoteFiles = ['package.json', ...['caas.js', 'index.js', 'live.js', 'log.js', 'otp-rate-limit.js', 'otp-transactions.js', 'otp.js', 'sms.js', 'subscription.js'].map((f) => 'server/src/applink/' + f)];
+    const tvRemoteFiles = ['caas.js', 'index.js', 'live.js', 'log.js', 'otp-rate-limit.js', 'otp-transactions.js', 'otp.js', 'sms.js', 'subscription.js'].map((f) => 'server/src/applink/' + f);
     const tvRemoteDiffs = [];
     for (const tvF of tvRemoteFiles) {
       const tvR = await fetch(tvRemoteBase + tvF);
@@ -2566,9 +2567,9 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       const tvLocalText = fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', tvF), 'utf8');
       if (tvSha256(tvRemoteText) !== tvSha256(tvLocalText)) tvRemoteDiffs.push(tvF);
     }
-    check(tvRemoteDiffs.length === 0, 'parser: server/src/applink/* + package.json byte-identical to remote HEAD e4f1b62f (sha256 vs raw.githubusercontent)', 'differs: ' + tvRemoteDiffs.join(', '));
+    check(tvRemoteDiffs.length === 0, 'parser: server/src/applink/* byte-identical to remote HEAD e4f1b62f (sha256 vs raw.githubusercontent)', 'differs: ' + tvRemoteDiffs.join(', '));
     const tvPkg = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, '..', '..', 'package.json'), 'utf8'));
-    check(JSON.stringify(Object.keys(tvPkg.dependencies || {}).sort()) === JSON.stringify(['dotenv', 'express', 'multer', 'pdfkit', 'qrcode']), 'parser: package.json has no new dependency vs remote HEAD (dotenv, express, multer, pdfkit, qrcode only)', JSON.stringify(tvPkg.dependencies));
+    check(JSON.stringify(Object.keys(tvPkg.dependencies || {}).sort()) === JSON.stringify(['dotenv', 'express', 'multer', 'pdfkit', 'puppeteer', 'qrcode']), 'parser: package.json dependencies are the 5 pinned ones + puppeteer only (puppeteer allowed by user approval 2026-11-28, FIX BRIEF P0-1 Chromium PDF)', JSON.stringify(tvPkg.dependencies));
 
     console.log('== trim verification: worker accounts ==');
     // W1 — GET /api/worker/jobs (worker B already owns the accepted job;
@@ -2755,7 +2756,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       check(tvOldPhotoUrl ? fs.existsSync(path.join(tvUploads, path.basename(tvOldPhotoUrl))) : false, 'worker accounts: retention precondition — old-closed photo file exists on disk', tvOldPhotoUrl);
     }
     {
-      const tvPortRet = 3468;
+      const tvPortRet = 4168;
       const tvBaseRet = `http://127.0.0.1:${tvPortRet}`;
       let tvRetOut = '';
       const tvServerRet = spawn(process.execPath, ['server/server.js'], {
@@ -2950,7 +2951,11 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     }
     let tvServerUI = spawn(process.execPath, ['server/server.js'], {
       cwd: tvRootUI,
-      env: { ...process.env, PORT: String(tvPortUI), NODE_ENV: 'production', DEMO_MODE: 'true', APPLINK_MODE: 'sandbox', PUBLIC_BASE_URL: 'https://dealcraft.example.test', TRUST_PROXY: 'true' },
+      // P0-2: bidding is OPT-IN — the trim-browser fixtures (bid job,
+      // pick screen, sticky bar) need it ON, so this server opts in
+      // explicitly. The OFF rendering is covered by the separate
+      // tvServerOffUI scratch server below (flag unset).
+      env: { ...process.env, PORT: String(tvPortUI), NODE_ENV: 'production', DEMO_MODE: 'true', APPLINK_MODE: 'sandbox', PUBLIC_BASE_URL: 'https://dealcraft.example.test', TRUST_PROXY: 'true', FEATURE_BIDDING: 'true' },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let tvChromeUI = null;
@@ -3109,7 +3114,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       await tvEval(`(() => { const i = document.getElementById('prompt-input'); i.value = 'need a painter for 2 rooms by Sunday'; i.dispatchEvent(new Event('input', {bubbles: true})); })()`);
       await sleep(400);
       const tvChips = await tvEval(`document.getElementById('prompt-chips') ? document.getElementById('prompt-chips').textContent : ''`);
-      check(tvChips.includes('পেইন্টার'), 'UI: typing the painter prompt shows parsed chips including পেইন্টার (language default is bn now)', tvChips);
+      check(tvChips.includes('PAINTER'), 'UI: typing the painter prompt shows parsed chips including PAINTER (language default is en now)', tvChips);
       // Pause auto-play through the real play/pause button: its label
       // reads 'Pause' (bn: 'থামান') while the timer runs. (app.js is
       // IIFE-wrapped, so demoTimer/demoIdx/demoRender are NOT on
@@ -3121,8 +3126,8 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       await tvClickAt(`document.getElementById('demo-next')`);
       await tvClickAt(`document.getElementById('demo-next')`);
       let tvDemoStatus = await tvEval(`document.getElementById('demo-status').textContent`);
-      for (let tvDi = 0; tvDi < 2 && !tvDemoStatus.includes('পৌঁছেছে'); tvDi++) { await tvClickAt(`document.getElementById('demo-next')`); tvDemoStatus = await tvEval(`document.getElementById('demo-status').textContent`); }
-      check(tvDemoStatus.includes('পৌঁছেছে'), 'UI: clicking #demo-next twice (auto-play paused) shows পৌঁছেছে (Arrived) in #demo-status', tvDemoStatus);
+      for (let tvDi = 0; tvDi < 2 && !tvDemoStatus.includes('Arrived'); tvDi++) { await tvClickAt(`document.getElementById('demo-next')`); tvDemoStatus = await tvEval(`document.getElementById('demo-status').textContent`); }
+      check(tvDemoStatus.includes('Arrived'), 'UI: clicking #demo-next twice (auto-play paused) shows Arrived on site in #demo-status', tvDemoStatus);
       // --- Landing, 390x844 (still no login). ---
       await tvCdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
       await tvNav(tvBaseUI + '/');
@@ -3228,10 +3233,10 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       await tvEval(`localStorage.setItem('dc_token', ${JSON.stringify(workerB)});`);
       await tvNav(tvBaseUI + '/');
       await tvClickAt(`document.getElementById('jobs-tab-worker')`);
-      const tvWorkerListed = await tvWaitFor(`(() => { const l = document.getElementById('worker-jobs-list'); return l && l.textContent.includes('প্লাম্বার') && l.textContent.includes('BID WORKER B'); })()`);
+      const tvWorkerListed = await tvWaitFor(`(() => { const l = document.getElementById('worker-jobs-list'); return l && l.textContent.includes('PLUMBER') && l.textContent.includes('BID WORKER B'); })()`);
       const tvWorkerJobsCalled = tvRequestedUrls.slice(tvReqBefore).some((u) => u.includes('/api/worker/jobs'));
       const tvWorkerListText = await tvEval(`document.getElementById('worker-jobs-list') ? document.getElementById('worker-jobs-list').textContent : ''`);
-      check(tvWorkerListed && tvWorkerJobsCalled && tvWorkerListText.includes('৳'), 'UI: worker tab lists worker jobs via GET /api/worker/jobs — rows show price/deadline/worker name (bn trade label প্লাম্বার)', JSON.stringify({ listed: tvWorkerListed, apiCalled: tvWorkerJobsCalled, text: tvWorkerListText.slice(0, 160) }));
+      check(tvWorkerListed && tvWorkerJobsCalled && tvWorkerListText.includes('৳'), 'UI: worker tab lists worker jobs via GET /api/worker/jobs — rows show price/deadline/worker name (en trade label PLUMBER)', JSON.stringify({ listed: tvWorkerListed, apiCalled: tvWorkerJobsCalled, text: tvWorkerListText.slice(0, 160) }));
       // --- New-job prompt fills the price. ---
       await tvEval(`localStorage.setItem('dc_token', ${JSON.stringify(tvUIHirerToken)});`);
       await tvNav(tvBaseUI + '/');
@@ -3251,14 +3256,18 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       const tvWorkerEls = JSON.parse(await tvEval(`JSON.stringify({myjobs: !!document.getElementById('w-myjobs'), freeOtp: document.querySelectorAll('.free-otp').length, freeText: [...document.querySelectorAll('.free-otp')].every((e) => e.textContent.includes('Verification is free')), callHref: document.getElementById('w-call') ? document.getElementById('w-call').href : ''})`));
       check(tvWorkerEls.myjobs === true && tvWorkerEls.freeOtp === 3 && tvWorkerEls.freeText === true && tvWorkerEls.callHref.startsWith('tel:'), 'fix-ups: worker page shows #w-myjobs, three .free-otp elements with the free-verification text, and #w-call with a tel: href', JSON.stringify(tvWorkerEls));
       await tvClickAt(`document.getElementById('w-confirm')`);
-      // Improvement pass 2026-11-27 (DELIBERATE): the sandbox code is
-      // no longer bare 6 digits — it carries the "Demo code (test only)
-      // — in real use the code arrives by SMS:" prefix, so the check
-      // extracts the 6 digits instead of requiring length 6.
-      const tvOtpShown = await tvWaitFor(`(() => { const t = document.getElementById('w-otp-note-text'); return t && /[0-9]{6}/.test(t.textContent); })()`);
-      const tvOtpNote = await tvEval(`document.getElementById('w-otp-note-text').textContent`);
-      const tvOtpCode = (tvOtpNote.match(/[0-9]{6}/) || [])[0] || '';
-      check(tvOtpShown && tvOtpCode.length === 6 && tvOtpNote.includes('SMS'), 'fix-ups: worker-confirm OTP is shown on the worker page (sandbox code with the demo-code/SMS prefix)', 'code ' + tvOtpCode);
+      // P0-3 (fix brief): the sandbox code is NEVER rendered in the UI
+      // any more — no "Demo code (test only)" note on the worker page.
+      // The confirm flow still works: the test fetches the code the
+      // same way the page does (POST /api/worker/:token/request-otp)
+      // and types it into #w-otp. verifyOtp accepts any unused code
+      // for the phone+purpose, so the freshly fetched code is valid.
+      const tvOtpBoxShown = await tvWaitFor(`(() => { const b = document.getElementById('w-otp-box'); return b && !b.hidden; })()`);
+      const tvOtpNoteGone = await tvEval(`!document.getElementById('w-otp-note') && !document.getElementById('w-otp-note-text')`);
+      check(tvOtpBoxShown && tvOtpNoteGone, 'P0-3: worker-confirm OTP box opens with NO code rendered on the page (no #w-otp-note element)', JSON.stringify({ boxShown: tvOtpBoxShown, noteGone: tvOtpNoteGone }));
+      const tvOtpReq = await tvReqUI(`/api/worker/${tvF5Token}/request-otp`, tvJUI({ purpose: 'worker-confirm' }));
+      const tvOtpCode = tvOtpReq.body?.sandbox?.otp || '';
+      check(tvOtpReq.status === 200 && /^[0-9]{6}$/.test(tvOtpCode), 'P0-3: worker-confirm code fetched via the API (same endpoint the page calls), not from the page', 'status ' + tvOtpReq.status);
       await tvEval(`(() => { const i = document.getElementById('w-otp'); i.value = ${JSON.stringify(tvOtpCode)}; })()`);
       await tvClickAt(`document.getElementById('w-confirm-send')`);
       // Test-timing fix 2026-11-27: the old wait (token present +
@@ -3329,14 +3338,23 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       const tvPickedAnim = await tvEval(`(() => { const v = document.getElementById('view-detail'); const s = document.getElementById('success-check'); return JSON.stringify({viewAnim: v ? v.className : '', checkVisible: s ? !s.hidden : false}); })()`);
       check(tvPicked && (tvPickedAnim.includes('view-enter') || tvPickedAnim.includes('view-enter-fwd') || tvPickedAnim.includes('view-enter-back')) && JSON.parse(tvPickedAnim).checkVisible === true, '3D: picking a bid animates the new record into view (view-enter) with the success check', tvPickedAnim);
       // --- Improvement pass 2026-11-27: new browser coverage. ---
-      // Fresh profile defaults to Bangla (language default is 'bn').
+      // Fresh profile defaults to English (language default is 'en').
       await tvEval(`localStorage.clear();`);
       await tvCdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
       await tvNav(tvBaseUI + '/');
-      const tvBnCta = await tvEval(`document.getElementById('cta-start') ? document.getElementById('cta-start').textContent.trim() : ''`);
-      check(tvBnCta === 'রেকর্ড শুরু করুন', 'improve: fresh profile defaults to Bangla — the hero Start button reads রেকর্ড শুরু করুন', tvBnCta);
-      const tvBnTag = await tvEval(`document.querySelector('[data-i18n="demo.liveTag"]') ? document.querySelector('[data-i18n="demo.liveTag"]').textContent.trim() : ''`);
-      check(tvBnTag.includes('নমুনা'), 'improve: fresh profile defaults to Bangla — the demo tag reads নমুনা ডেমো · ঢাকা (SIMULATED in English)', tvBnTag);
+      const tvEnCta = await tvEval(`document.getElementById('cta-start') ? document.getElementById('cta-start').textContent.trim() : ''`);
+      check(tvEnCta === 'Start a record', 'improve: fresh profile defaults to English — the hero Start button reads Start a record', tvEnCta);
+      const tvEnTag = await tvEval(`document.querySelector('[data-i18n="demo.liveTag"]') ? document.querySelector('[data-i18n="demo.liveTag"]').textContent.trim() : ''`);
+      check(tvEnTag.includes('SIMULATED'), 'improve: fresh profile defaults to English — the demo tag reads SIMULATED DEMO · DHAKA (নমুনা in Bangla)', tvEnTag);
+      // P1-4: a stored preference always wins over the default.
+      await tvEval(`localStorage.setItem('dc_lang', 'bn');`);
+      await tvNav(tvBaseUI + '/');
+      const tvStoredBn = await tvEval(`document.getElementById('cta-start') ? document.getElementById('cta-start').textContent.trim() : ''`);
+      check(tvStoredBn === 'রেকর্ড শুরু করুন', 'P1-4: stored Bangla preference wins — the hero Start button reads রেকর্ড শুরু করুন with dc_lang=bn', tvStoredBn);
+      await tvEval(`localStorage.setItem('dc_lang', 'en');`);
+      await tvNav(tvBaseUI + '/');
+      const tvStoredEn = await tvEval(`document.getElementById('cta-start') ? document.getElementById('cta-start').textContent.trim() : ''`);
+      check(tvStoredEn === 'Start a record', 'P1-4: stored English preference wins — the hero Start button reads Start a record with dc_lang=en', tvStoredEn);
       // Prompt auto-grow: five lines grow the box past its rows=2 start, capped at 156px of content height.
       const tvAg0 = JSON.parse(await tvEval(`(() => { const i = document.getElementById('prompt-input'); return JSON.stringify({h: Math.round(i.getBoundingClientRect().height), sh: i.style.height}); })()`));
       await tvEval(`(() => { const i = document.getElementById('prompt-input'); i.value = ['line one', 'line two', 'line three', 'line four', 'line five'].join(String.fromCharCode(10)); i.dispatchEvent(new Event('input', {bubbles: true})); })()`);
@@ -3348,20 +3366,127 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       await sleep(400);
       const tvChipBtns = JSON.parse(await tvEval(`JSON.stringify([...document.querySelectorAll('#prompt-chips .chip')].map((c) => c.tagName))`));
       check(tvChipBtns.length > 0 && tvChipBtns.every((t) => t === 'BUTTON'), 'improve: prompt chips are tappable <button> elements (not spans)', JSON.stringify(tvChipBtns));
-      // Demo banner: tapping the demo seeds a demo and the banner shows with Restart/Exit.
+      // P0-3 (fix brief): requesting a login OTP never renders the
+      // code on the page — the form only ever shows the input. The
+      // code arrives by SMS (the sandbox response still carries it
+      // for the test harness; the live adapter never returns one).
+      await tvClickAt(`document.getElementById('cta-start')`);
+      const tvLoginShown = await tvWaitFor(`!document.getElementById('view-login').hidden`);
+      await tvEval(`(() => { const p = document.getElementById('login-phone'); p.value = ${JSON.stringify(tvUIHirerPhone)}; })()`);
+      await tvEval(`(() => { document.getElementById('form-login').requestSubmit(); })()`);
+      const tvOtpFormShown = await tvWaitFor(`!document.getElementById('form-otp').hidden`);
+      const tvLoginNoCode = JSON.parse(await tvEval(`(() => { const v = document.getElementById('view-login'); const txt = v ? v.innerText : ''; return JSON.stringify({noNote: !document.getElementById('otp-note'), noDemoCode: !txt.includes('Demo code') && !txt.includes('ডেমো কোড') && !txt.includes('test only'), noDigits: !/[0-9]{6}/.test(txt), resendThere: !!document.getElementById('otp-resend')}); })()`));
+      check(tvLoginShown && tvOtpFormShown && tvLoginNoCode.noNote && tvLoginNoCode.noDemoCode && tvLoginNoCode.noDigits && tvLoginNoCode.resendThere, 'P0-3: login OTP is requested but never rendered on the page (no code note, no 6 digits, resend still offered)', JSON.stringify(tvLoginNoCode));
+      await tvEval(`localStorage.clear();`);
+      await tvNav(tvBaseUI + '/');
+      // P0-3 (fix brief): tapping the demo seeds a demo and lands in
+      // the job — with NO demo banner, NO "Exit the demo" card, and NO
+      // demo-script panel on the job page. Exit/Restart survive only
+      // as plain actions in the MORE menu.
       await tvClickAt(`document.getElementById('cta-demo')`);
-      const tvDemoBanner = await tvWaitFor(`(() => { const b = document.getElementById('demo-banner'); return b && !b.hidden; })()`);
-      const tvDemoBannerText = await tvEval(`document.getElementById('demo-banner') ? document.getElementById('demo-banner').textContent : ''`);
-      check(tvDemoBanner && tvDemoBannerText.includes('ডেমো') && (await tvEval(`!!document.getElementById('demo-restart') && !!document.getElementById('demo-exit')`)), 'improve: demo mode shows the demo banner (ডেমো — not a real record) with Restart/Exit buttons', tvDemoBannerText.slice(0, 120));
+      const tvDemoLanded = await tvWaitFor(`!document.getElementById('view-detail').hidden`);
+      const tvNoBanner = await tvEval(`!document.getElementById('demo-banner')`);
+      const tvNoChecklist = await tvEval(`!document.getElementById('demo-checklist')`);
+      const tvJobText = await tvEval(`(() => { const t = document.getElementById('tab-s1'); return t ? t.innerText : ''; })()`);
+      const tvBanned = ['POST /api', 'Sandbox SMS', 'Demo code', 'test only', 'Try this', 'not a real record', 'আসল রেকর্ড নয়', 'এটা চেষ্টা করুন'].filter((s) => tvJobText.includes(s));
+      check(tvDemoLanded && tvNoBanner && tvNoChecklist && tvBanned.length === 0, 'P0-3: demo job opens with no banner, no demo-script panel, and none of the banned demo strings on step 1', JSON.stringify({ landed: tvDemoLanded, noBanner: tvNoBanner, noChecklist: tvNoChecklist, bannedFound: tvBanned }));
+      const tvNoticeText = await tvEval(`(() => { const n = document.getElementById('app-notice'); return n ? n.textContent : ''; })()`);
+      check(!tvNoticeText.includes('Exit the demo') && !tvNoticeText.includes('ডেমো থেকে বের'), 'P0-3: no "Exit the demo to start a real record" card after the guided demo signs in', tvNoticeText.slice(0, 120));
+      await tvClickAt(`document.getElementById('btn-more-job')`);
+      await sleep(500);
+      const tvMoreDemo = JSON.parse(await tvEval(`(() => { const s = document.getElementById('sheet-more'); const r = document.getElementById('demo-restart'); const e = document.getElementById('demo-exit'); const a = document.getElementById('more-demo-actions'); return JSON.stringify({sheetOpen: !!(s && !s.hidden), restartVisible: !!(r && r.offsetParent !== null), exitVisible: !!(e && e.offsetParent !== null), actionsInMore: !!(a && a.contains(r) && a.contains(e))}); })()`));
+      check(tvMoreDemo.sheetOpen && tvMoreDemo.restartVisible && tvMoreDemo.exitVisible && tvMoreDemo.actionsInMore, 'P0-3: MORE menu carries plain Restart/Exit demo actions (no banner, no card)', JSON.stringify(tvMoreDemo));
+      // Restart from the MORE menu works: it re-seeds and reopens the demo job.
+      await tvClickAt(`document.getElementById('demo-restart')`);
+      const tvRestarted = await tvWaitFor(`(() => { const t = document.getElementById('detail-title'); return t && t.textContent.includes('KARIM MISTRI'); })()`);
+      check(tvRestarted, 'P0-3: Restart demo from the MORE menu re-seeds and reopens the demo job', '');
       // Demo stops at Arrived: step to the end, wait past one auto-play
       // tick, the status must not move (no auto-play, no wrap-around).
       await tvEval(`localStorage.clear();`);
       await tvNav(tvBaseUI + '/');
       let tvStopStatus = await tvEval(`document.getElementById('demo-status').textContent`);
-      for (let tvSi = 0; tvSi < 4 && !tvStopStatus.includes('পৌঁছেছে'); tvSi++) { await tvClickAt(`document.getElementById('demo-next')`); tvStopStatus = await tvEval(`document.getElementById('demo-status').textContent`); }
+      for (let tvSi = 0; tvSi < 4 && !tvStopStatus.includes('Arrived'); tvSi++) { await tvClickAt(`document.getElementById('demo-next')`); tvStopStatus = await tvEval(`document.getElementById('demo-status').textContent`); }
       await sleep(3000);
       const tvStopStatus2 = await tvEval(`document.getElementById('demo-status').textContent`);
-      check(tvStopStatus.includes('পৌঁছেছে') && tvStopStatus2 === tvStopStatus, 'improve: demo stops at Arrived — no auto-play past the last state', JSON.stringify({ atEnd: tvStopStatus, after3s: tvStopStatus2 }));
+      check(tvStopStatus.includes('Arrived') && tvStopStatus2 === tvStopStatus, 'improve: demo stops at Arrived — no auto-play past the last state', JSON.stringify({ atEnd: tvStopStatus, after3s: tvStopStatus2 }));
+      // --- P1-4 + P1-6: language defaults/leaks, passport + verify empty states. ---
+      // A real fingerprint for the ACTIVE demo job (price ৳18,000).
+      const tvP14Pack = await tvReqUI(`/api/jobs/${tvUIJobId}/resolvepack.json`, { headers: { Authorization: 'Bearer ' + tvUIHirerToken } });
+      if (tvP14Pack.status !== 200 || !tvP14Pack.body?.versions?.length) throw new Error('P1-4: resolvepack fixture failed: ' + tvP14Pack.status);
+      const tvP14Fp = tvP14Pack.body.versions[tvP14Pack.body.versions.length - 1].fingerprint;
+      const tvP14Ver = await tvReqUI(`/api/verify?fp=${tvP14Fp}`);
+      if (tvP14Ver.status !== 200 || !tvP14Ver.body?.match) throw new Error('P1-4: verify fixture failed: ' + tvP14Ver.status);
+      if (typeof tvP14Ver.body.price !== 'number' || !/^\d{4}-\d{2}-\d{2}$/.test(tvP14Ver.body.deadline || '')) throw new Error('P1-4: verify fixture has no usable price/deadline: ' + JSON.stringify({ price: tvP14Ver.body.price, deadline: tvP14Ver.body.deadline }));
+      const tvP14Price = '৳' + Number(tvP14Ver.body.price).toLocaleString('en-IN');
+      const tvP14DeadlineIso = tvP14Ver.body.deadline;
+      // Verify, fresh English default: labels in English, money grouped,
+      // deadline human (never raw ISO).
+      await tvEval(`localStorage.setItem('dc_lang', 'en');`);
+      await tvNav(tvBaseUI + '/verify?fp=' + tvP14Fp);
+      await tvWaitFor(`!document.getElementById('verify-rows').hidden`);
+      const tvVerEn = JSON.parse(await tvEval(`JSON.stringify({rows: document.getElementById('verify-rows').textContent, ph: document.getElementById('verify-fp').placeholder})`));
+      check(tvVerEn.rows.includes('Trade') && tvVerEn.rows.includes('Price of this version') && tvVerEn.rows.includes('Deadline'), 'P1-4: verify result row labels are English in EN mode (Trade / Price of this version / Deadline)', tvVerEn.rows.slice(0, 200));
+      check(tvVerEn.ph === 'Paste a fingerprint (SHA-256)', 'P1-4: verify input placeholder is English in EN mode', tvVerEn.ph);
+      check(tvVerEn.rows.includes(tvP14Price), 'P1-4: verify money has thousand separators (' + tvP14Price + ')', tvVerEn.rows.slice(0, 200));
+      check(!tvVerEn.rows.includes(tvP14DeadlineIso), 'P1-4: verify deadline is not raw ISO (' + tvP14DeadlineIso + ')', tvVerEn.rows.slice(0, 200));
+      const tvVerEnDate = await tvEval(`(() => { const iso = ${JSON.stringify(tvP14DeadlineIso)}; return new Date(iso).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}); })()`);
+      check(tvVerEn.rows.includes(tvVerEnDate), 'P1-4: verify deadline renders human in EN mode (' + tvVerEnDate + ')', tvVerEn.rows.slice(0, 200));
+      // Verify, stored Bangla preference: placeholder + row labels in Bangla.
+      await tvEval(`localStorage.setItem('dc_lang', 'bn');`);
+      await tvNav(tvBaseUI + '/verify?fp=' + tvP14Fp);
+      await tvWaitFor(`!document.getElementById('verify-rows').hidden`);
+      const tvVerBn = JSON.parse(await tvEval(`JSON.stringify({rows: document.getElementById('verify-rows').textContent, ph: document.getElementById('verify-fp').placeholder})`));
+      check(tvVerBn.ph === 'ফিঙ্গারপ্রিন্ট পেস্ট করুন (SHA-256)', 'P1-4: verify input placeholder is Bangla in BN mode', tvVerBn.ph);
+      check(tvVerBn.rows.includes('কাজের ধরন') && tvVerBn.rows.includes('শেষ তারিখ') && !tvVerBn.rows.includes('Trade'), 'P1-4: verify result row labels are Bangla in BN mode (কাজের ধরন / শেষ তারিখ)', tvVerBn.rows.slice(0, 200));
+      // Verify with a submitted fingerprint that matches nothing: the
+      // error state survives (red card) — P1-6 reserves it for this.
+      await tvEval(`localStorage.setItem('dc_lang', 'en');`);
+      await tvNav(tvBaseUI + '/verify?fp=' + '0'.repeat(64));
+      await tvWaitFor(`document.getElementById('verify-result').textContent.includes('No record matches')`);
+      const tvVerBad = JSON.parse(await tvEval(`JSON.stringify({card: document.getElementById('verify-card').className, res: document.getElementById('verify-result').className})`));
+      check(tvVerBad.card.includes('mismatch') && tvVerBad.res.includes('bad'), 'P1-6: a submitted non-matching fingerprint still shows the error state', JSON.stringify(tvVerBad));
+      // Verify with no fingerprint: neutral guidance, no error styling.
+      await tvNav(tvBaseUI + '/verify');
+      await tvWaitFor(`document.getElementById('verify-result').textContent.length > 0`);
+      const tvVerEmpty = JSON.parse(await tvEval(`JSON.stringify({card: document.getElementById('verify-card').className, res: document.getElementById('verify-result').className, detail: document.getElementById('verify-detail').textContent})`));
+      check(tvVerEmpty.card.includes('guide') && !tvVerEmpty.card.includes('mismatch') && tvVerEmpty.res.includes('guide') && !tvVerEmpty.res.includes('bad'), 'P1-6: verify with no fingerprint is neutral guidance (guide class, no mismatch/bad)', JSON.stringify(tvVerEmpty));
+      check(tvVerEmpty.detail.includes('Paste a fingerprint below'), 'P1-6: verify no-fingerprint state guides the user to paste or scan', tvVerEmpty.detail);
+      // Passport with no id, and with an invalid id: neutral designed
+      // empty state — no red error, no QR <img>, no dash-as-data.
+      await tvNav(tvBaseUI + '/passport.html');
+      await tvWaitFor(`!document.getElementById('p-noid').hidden`);
+      const tvPpEmpty = JSON.parse(await tvEval(`JSON.stringify({noid: !document.getElementById('p-noid').hidden, p1hidden: document.getElementById('pp-panel-1').hidden, errVisible: !document.getElementById('p-err').hidden, imgs: document.querySelectorAll('#p-noid img').length, qrVisible: (() => { const q = document.getElementById('p-qr'); return q ? q.offsetParent !== null : false; })(), nameVisible: (() => { const n = document.getElementById('p-name'); return n ? n.offsetParent !== null : false; })(), text: document.getElementById('p-noid').textContent})`));
+      check(tvPpEmpty.noid && tvPpEmpty.p1hidden && !tvPpEmpty.errVisible && tvPpEmpty.imgs === 0 && !tvPpEmpty.qrVisible && !tvPpEmpty.nameVisible, 'P1-6: passport with no id shows the neutral empty state (no red error, no QR img, no dash-as-data)', JSON.stringify(tvPpEmpty));
+      check(tvPpEmpty.text.includes('No WorkPassport here'), 'P1-6: passport empty state is a designed message, not a blank page', tvPpEmpty.text.slice(0, 120));
+      await tvNav(tvBaseUI + '/passport.html?id=pp_doesnotexist123');
+      await tvWaitFor(`!document.getElementById('p-noid').hidden`);
+      check(await tvEval(`!document.getElementById('p-noid').hidden && document.getElementById('p-err').hidden`), 'P1-6: passport with an invalid id shows the same neutral empty state', '');
+      // Worker page, fresh default (Bangla): milestone titles localised,
+      // deadline human — and a stored English preference flips them.
+      await tvEval(`localStorage.removeItem('dc_lang');`);
+      await tvNav(tvBaseUI + '/worker.html?token=' + tvUIWorkerToken);
+      await tvWaitFor(`!!document.querySelector('#w-mile-list .job-row')`);
+      const tvWkBn = JSON.parse(await tvEval(`JSON.stringify({miles: document.getElementById('w-mile-list').textContent, summary: document.getElementById('w-summary').textContent})`));
+      check(tvWkBn.miles.includes('অগ্রিম') && tvWkBn.miles.includes('প্রথম ধাপ') && tvWkBn.miles.includes('সমাপ্তি'), 'P1-4: worker milestones localise known titles in BN mode (অগ্রিম / প্রথম ধাপ / সমাপ্তি)', tvWkBn.miles.slice(0, 160));
+      check(!tvWkBn.miles.includes('Advance') && !tvWkBn.miles.includes('First stage') && !tvWkBn.miles.includes('Completion'), 'P1-4: worker milestones show no English titles in BN mode', tvWkBn.miles.slice(0, 160));
+      check(!/\d{4}-\d{2}-\d{2}/.test(tvWkBn.summary), 'P1-4: worker deadline is not raw ISO in BN mode', tvWkBn.summary.slice(0, 160));
+      await tvClickAt(`document.getElementById('lang-en')`);
+      await sleep(400);
+      const tvWkEn = JSON.parse(await tvEval(`JSON.stringify({miles: document.getElementById('w-mile-list').textContent, summary: document.getElementById('w-summary').textContent})`));
+      check(tvWkEn.miles.includes('Advance') && tvWkEn.miles.includes('First stage') && tvWkEn.miles.includes('Completion'), 'P1-4: worker milestones show the English titles after switching to EN', tvWkEn.miles.slice(0, 160));
+      // Landing demo player follows a language toggle: badge + distance
+      // line switch with it (they used to stay Bangla in EN mode).
+      await tvEval(`localStorage.setItem('dc_lang', 'bn');`);
+      await tvNav(tvBaseUI + '/');
+      await sleep(400);
+      await tvClickAt(`document.getElementById('lang-en')`);
+      await sleep(400);
+      const tvDemoEn = JSON.parse(await tvEval(`JSON.stringify({status: document.getElementById('demo-status').textContent, dist: document.getElementById('demo-dist').textContent})`));
+      check(tvDemoEn.status === 'En route' && tvDemoEn.dist === '2.4 km away · ETA ~7 min', 'P1-4: demo badge + simulated-trip line switch to English on toggle (En route / 2.4 km away)', JSON.stringify(tvDemoEn));
+      // P1-4: the fresh-profile default is English now — the Bangla
+      // rendering below is exercised with an explicit stored preference,
+      // which always wins over the default.
+      await tvEval(`localStorage.setItem('dc_lang', 'bn');`);
       // Passport tabs swap panels, exactly one visible, no scroll.
       await tvCdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
       await tvNav(tvBaseUI + '/passport/' + demoProfileId);
@@ -3477,6 +3602,281 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
       await tvWaitFor(`!!document.querySelector('.profile-card')`);
       const tvWBanner = JSON.parse(await tvEval(`JSON.stringify({banner: (document.getElementById('w-step-banner') || {}).textContent || '', confirmHidden: document.getElementById('w-confirm') ? document.getElementById('w-confirm').hidden : null})`));
       check(tvWBanner.confirmHidden === true && tvWBanner.banner.includes('Confirmed'), 'improve: after confirming, the worker confirm button is hidden and the step banner reads Confirmed', JSON.stringify(tvWBanner));
+      // --- P0-2: bidding OFF renders no entry point anywhere. ---
+      // A scratch server with FEATURE_BIDDING unset (the submission
+      // default) — same Chrome session, different origin. The landing
+      // must render with no bidding entry points and no user-facing
+      // bids/repairer mention, in Bangla and in English; the API must
+      // 404 bidding routes and report biddingEnabled=false.
+      const tvPortOffUI = 3469;
+      const tvBaseOffUI = `http://127.0.0.1:${tvPortOffUI}`;
+      const tvServerOffUI = spawn(process.execPath, ['server/server.js'], {
+        cwd: tvRootUI,
+        env: { ...process.env, PORT: String(tvPortOffUI), NODE_ENV: 'production', DEMO_MODE: 'true', APPLINK_MODE: 'sandbox', PUBLIC_BASE_URL: 'https://dealcraft.example.test', TRUST_PROXY: 'true' },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      // P0-2 (fix brief): the session snapshot lives in this outer scope
+      // so the P1-5 prologue can restore it after the try/finally below.
+      let tvLsSnap = null;
+      try {
+        let tvOffUp = false;
+        for (let i = 0; i < 40; i++) { try { const r = await fetch(tvBaseOffUI + '/api/health'); if (r.status === 200) { tvOffUp = true; break; } } catch { /* not up yet */ } await sleep(250); }
+        check(tvOffUp, 'P0-2: bidding-OFF scratch server boots (flag unset)');
+        const tvOffCfg = await fetch(tvBaseOffUI + '/api/config');
+        const tvOffCfgBody = await tvOffCfg.json();
+        check(tvOffCfg.status === 200 && tvOffCfgBody?.biddingEnabled === false, 'P0-2: bidding-OFF server reports biddingEnabled=false', JSON.stringify(tvOffCfgBody));
+        const tvOffBid = await fetch(tvBaseOffUI + '/api/bid-jobs/open');
+        check(tvOffBid.status === 404, 'P0-2: bidding-OFF server 404s GET /api/bid-jobs/open');
+        // Positive control first: on the ON server the landing hero
+        // carries the Get-bids card.
+        // P0-2 (fix brief): snapshot the session before the clear below —
+        // the P1-5 prologue restores it on this origin so tvOpenJob can
+        // still find the hirer's jobs.
+        tvLsSnap = await tvEval(`JSON.stringify(Object.entries(localStorage))`);
+        await tvEval(`localStorage.clear();`);
+        await tvNav(tvBaseUI + '/');
+        const tvBidsOn = await tvEval(`(() => { const e = document.getElementById('hire-bids'); return e ? e.getBoundingClientRect().width > 0 : false; })()`);
+        check(tvBidsOn === true, 'P0-2: bidding ON (FEATURE_BIDDING=true) — the landing hero shows the Get-bids card', '');
+        // Now the OFF server: the card, the app buttons and the nav
+        // entry are gone from the rendered DOM, in both languages.
+        await tvNav(tvBaseOffUI + '/');
+        const tvOffGone = await tvWaitFor(`!document.getElementById('hire-bids') && !document.getElementById('btn-bid-post') && !document.getElementById('btn-find-work')`);
+        const tvOffText = await tvEval(`document.body.innerText || ''`);
+        const tvOffBnClean = !/bid|repairer/i.test(tvOffText);
+        check(tvOffGone && tvOffBnClean, 'P0-2: bidding OFF — rendered landing has no bids/repairer entry point and no user-facing mention (Bangla)', JSON.stringify({ gone: tvOffGone, textHasBid: !tvOffBnClean, text: tvOffText.slice(0, 200) }));
+        await tvClickAt(`document.getElementById('lang-en')`);
+        await sleep(600);
+        const tvOffTextEn = await tvEval(`document.body.innerText || ''`);
+        check(!/bid|repairer/i.test(tvOffTextEn), 'P0-2: bidding OFF — rendered landing has no bids/repairer mention in English either', tvOffTextEn.slice(0, 200));
+      } finally {
+        tvServerOffUI.kill('SIGTERM');
+        await sleep(300);
+      }
+      // --- P1-5 layout breakage (2026-11-28) — FAQ, step panels, MORE
+      // modal, landing scroll, 390px button row, app header, passport
+      // stats. Diagnosed live before fixing: (b1) step switching never
+      // reset #detail-scroll.scrollTop, so a panel opened scrolled-down
+      // hid its heading and first field above the scroller's top edge
+      // ("under the stepper"); (b3) the demo-mode topbar (no flex-wrap
+      // + banner flex:1 1 100%) squeezed the title to zero width and
+      // starved the scroller to 21px at 1366x768, half-cutting
+      // milestone 3 at its bottom edge; (d) the jobs ghost buttons kept
+      // white-space:nowrap while flex shrank them below their text.
+      // (c) Landing at 1366x768: the page scrolls and the demo player
+      // is reachable by scrolling (before: document height == viewport
+      // height, scrollY stuck at 0, player bottom 800 > 768).
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 1366, height: 768, deviceScaleFactor: 1, mobile: false });
+      await tvNav(tvBaseUI + '/');
+      // P0-2 localStorage wipe (fix brief): restore the hirer's session
+      // snapshot on this origin, before any later check needs it.
+      await tvEval(`JSON.parse(${JSON.stringify(tvLsSnap)}).forEach(([k, v]) => localStorage.setItem(k, v));`);
+      await tvEval(`document.body.classList.remove('show-app')`);
+      const p15Land768 = JSON.parse(await tvEval(`(() => { const de = document.scrollingElement; const dp = document.getElementById('demo-player'); const r = dp.getBoundingClientRect(); return JSON.stringify({ sh: de.scrollHeight, ih: window.innerHeight, demoBottom: Math.round(r.bottom) }); })()`));
+      check(p15Land768.sh > p15Land768.ih + 2, 'p15: landing at 1366x768 scrolls (document taller than viewport)', JSON.stringify(p15Land768));
+      await tvEval(`window.scrollTo(0, document.body.scrollHeight)`);
+      await sleep(500);
+      const p15Land768b = JSON.parse(await tvEval(`(() => { const dp = document.getElementById('demo-player'); const r = dp.getBoundingClientRect(); return JSON.stringify({ scrollY: Math.round(window.scrollY), demoTop: Math.round(r.top), demoBottom: Math.round(r.bottom), ih: window.innerHeight }); })()`));
+      check(p15Land768b.scrollY > 0 && p15Land768b.demoTop >= 0 && p15Land768b.demoBottom <= p15Land768b.ih + 2, 'p15: landing at 1366x768 — demo player reachable by scrolling (fully inside viewport after scroll)', JSON.stringify(p15Land768b));
+      // (c) The unlock must not break the one-screen feel where the
+      // content fits: 1440x900 and 390x844 still fit one viewport.
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+      await tvNav(tvBaseUI + '/');
+      await tvEval(`document.body.classList.remove('show-app')`);
+      tvNoScroll(JSON.parse(await tvMeasure()), 'p15: landing 1440x900 still fits one viewport (no page scroll)');
+      // (a) FAQ modal at 1440x1000: single column, every question fully
+      // readable, no horizontal overflow, sheet cap 90dvh.
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
+      await tvNav(tvBaseUI + '/');
+      await tvEval(`document.body.classList.remove('show-app')`);
+      await tvClickAt(`document.querySelector('[data-sheet="sheet-faq"]')`);
+      await sleep(400);
+      const p15Faq = JSON.parse(await tvEval(`(() => { const g = document.getElementById('faq-list'); const card = document.querySelector('#sheet-faq .sheet-card'); const cr = card.getBoundingClientRect(); const qs = [...document.querySelectorAll('#faq-list .faq-q-text')].map((t) => { const r = t.getBoundingClientRect(); return { text: t.textContent.trim().slice(0, 24), right: Math.round(r.right), clipped: r.right > cr.right + 1 }; }); return JSON.stringify({ cols: getComputedStyle(g).gridTemplateColumns, cardSw: card.scrollWidth, cardCw: card.clientWidth, cardMaxH: getComputedStyle(card).maxHeight, qs }); })()`));
+      check(p15Faq.cols.trim().split(/\s+/).length === 1 && p15Faq.qs.length === 8 && p15Faq.qs.every((q) => !q.clipped) && p15Faq.cardSw <= p15Faq.cardCw + 1, 'p15: FAQ modal is single-column with all 8 questions fully readable (no clipped text, no horizontal overflow)', JSON.stringify(p15Faq));
+      check(p15Faq.cardMaxH === '900px', 'p15: sheet cap is 90dvh (900px at 1000px viewport height, no 900px hard cap fighting it)', p15Faq.cardMaxH);
+      await tvEval(`(() => { const b = document.querySelector('#sheet-faq [data-close]'); if (b) b.click(); })()`);
+      await sleep(400);
+      // (b1)+(b3)+(e)+(f) Job detail at 1440x1000, with the demo banner
+      // visible — the diagnosed header collision only happens with it.
+      // A real #cta-demo click would re-seed and wipe tvUIJobId (the
+      // demo seed wipes the visitor's previous demo job), so the banner
+      // is shown directly instead: it is the only demo-mode UI that
+      // affects this layout.
+      await tvEval(`document.body.classList.add('show-app')`);
+      await tvOpenJob(tvUIJobId);
+      await tvEval(`(() => { const b = document.getElementById('demo-banner'); if (b) b.hidden = false; document.body.classList.add('demo-mode'); })()`);
+      await sleep(400);
+      const p15Head = JSON.parse(await tvEval(`(() => { const h = document.getElementById('app-page-title'); const home = document.getElementById('btn-home'); const more = document.getElementById('btn-more-global'); const r = h.getBoundingClientRect(), hr = home.getBoundingClientRect(), mr = more.getBoundingClientRect(); const ov = (a, b) => a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1; return JSON.stringify({ title: h.textContent.trim(), fs: getComputedStyle(h).fontSize, h: Math.round(r.height), w: Math.round(r.width), ovHome: ov(r, hr), ovMore: ov(r, mr) }); })()`));
+      check(p15Head.title.includes('KARIM MISTRI') && p15Head.fs === '13px' && p15Head.h <= 24 && p15Head.w > 100 && !p15Head.ovHome && !p15Head.ovMore, 'p15: app header is a compact per-view page title (13px, one line, job title, no collision with HOME/MORE pills)', JSON.stringify(p15Head));
+      // (f) Passport stats on the job-page profile card: 3-column grid,
+      // each number above its label on the same left edge.
+      const p15Pc = JSON.parse(await tvEval(`(() => { const f = document.querySelector('#detail-profile .pc-facts'); if (!f) return JSON.stringify({ missing: true }); const cs = getComputedStyle(f); const facts = [...f.querySelectorAll('.pc-fact')].map((el) => { const b = el.querySelector('b'), s = el.querySelector('span'); const br = b ? b.getBoundingClientRect() : null, sr = s ? s.getBoundingClientRect() : null; return { leftDiff: (br && sr) ? Math.abs(Math.round(br.left) - Math.round(sr.left)) : 0, above: (br && sr) ? br.bottom <= sr.top + 1 : true }; }); return JSON.stringify({ display: cs.display, cols: cs.gridTemplateColumns, n: facts.length, facts }); })()`));
+      check(p15Pc.missing !== true && p15Pc.display === 'grid' && p15Pc.cols.trim().split(/\s+/).length === 3 && p15Pc.facts.length >= 2 && p15Pc.facts.every((x) => x.leftDiff <= 1 && x.above), 'p15: passport stats are a 3-column grid with each number above its label on the same left edge', JSON.stringify(p15Pc));
+      // (b1) Stale-scroll reproduction: scroll step 1 to the bottom,
+      // switch to step 4 — the panel must open at its top (scrollTop 0,
+      // heading fully visible), not with its top hidden above the
+      // scroller edge ("under the stepper"). Then back to step 1: the
+      // profile card must be whole.
+      await tvEval(`(() => { const s = document.getElementById('detail-scroll'); s.scrollTop = s.scrollHeight; })()`);
+      await sleep(300);
+      await tvClickAt(`document.querySelector('#view-detail .tabs button[data-tab="s4"]')`);
+      const p15B1s4 = JSON.parse(await tvEval(`(() => { const s = document.getElementById('detail-scroll'); const sr = s.getBoundingClientRect(); const h = document.querySelector('#tab-s4 h3').getBoundingClientRect(); return JSON.stringify({ scrollTop: s.scrollTop, scTop: Math.round(sr.top), scBot: Math.round(sr.bottom), h3Top: Math.round(h.top), h3Bot: Math.round(h.bottom) }); })()`));
+      check(p15B1s4.scrollTop === 0 && p15B1s4.h3Top >= p15B1s4.scTop - 1 && p15B1s4.h3Bot <= p15B1s4.scBot + 1, 'p15: step 4 opens at its top after step 1 was scrolled to the bottom (heading fully visible, scrollTop reset)', JSON.stringify(p15B1s4));
+      // The first payment field sits below the receipt card on jobs with
+      // a payment (renderDetail deliberately moves the receipt above the
+      // form), so it is below the fold — it must scroll fully into view,
+      // never half-hidden under the stepper.
+      await tvEval(`(() => { const f = document.getElementById('pay-amount'); if (f) f.scrollIntoView({ block: 'center' }); })()`);
+      await sleep(200);
+      const p15B1s4f = JSON.parse(await tvEval(`(() => { const s = document.getElementById('detail-scroll'); const sr = s.getBoundingClientRect(); const f = document.getElementById('pay-amount').getBoundingClientRect(); return JSON.stringify({ fieldTop: Math.round(f.top), fieldBot: Math.round(f.bottom), scTop: Math.round(sr.top), scBot: Math.round(sr.bottom) }); })()`));
+      check(p15B1s4f.fieldTop >= p15B1s4f.scTop - 1 && p15B1s4f.fieldBot <= p15B1s4f.scBot + 1, 'p15: step 4 first payment field scrolls fully into view (never half-hidden)', JSON.stringify(p15B1s4f));
+      await tvEval(`(() => { const s = document.getElementById('detail-scroll'); s.scrollTop = s.scrollHeight; })()`);
+      await sleep(300);
+      await tvClickAt(`document.querySelector('#view-detail .tabs button[data-tab="s1"]')`);
+      const p15B1s1 = JSON.parse(await tvEval(`(() => { const s = document.getElementById('detail-scroll'); const sr = s.getBoundingClientRect(); const p = document.querySelector('#tab-s1 .profile-card').getBoundingClientRect(); return JSON.stringify({ scrollTop: s.scrollTop, scTop: Math.round(sr.top), profTop: Math.round(p.top), profBot: Math.round(p.bottom), scBot: Math.round(sr.bottom) }); })()`));
+      check(p15B1s1.scrollTop === 0 && p15B1s1.profTop >= p15B1s1.scTop - 1, 'p15: step 1 re-opens at its top after scrolling (profile card starts below the stepper, not half-covered)', JSON.stringify(p15B1s1));
+      // (b3) Step 5 at 1440x1000: scroll each milestone row into view —
+      // every row must fit whole inside the scroller, above the CALL
+      // WORKER bar (before: the 3rd row half-cut at the scroller's
+      // bottom edge, reading as the bar covering it).
+      await tvClickAt(`document.querySelector('#view-detail .tabs button[data-tab="s5"]')`);
+      const p15B3rows = [];
+      for (let p15Ri = 0; p15Ri < 3; p15Ri++) {
+        await tvEval(`(() => { const row = document.querySelectorAll('#miles-list .job-row')[${p15Ri}]; if (row) row.scrollIntoView({ block: 'center' }); })()`);
+        await sleep(200);
+        p15B3rows.push(JSON.parse(await tvEval(`(() => { const s = document.getElementById('detail-scroll'); const sr = s.getBoundingClientRect(); const bar = document.querySelector('#view-detail .fab-bar').getBoundingClientRect(); const row = document.querySelectorAll('#miles-list .job-row')[${p15Ri}]; const r = row.getBoundingClientRect(); return JSON.stringify({ top: Math.round(r.top), bottom: Math.round(r.bottom), scTop: Math.round(sr.top), scBot: Math.round(sr.bottom), barTop: Math.round(bar.top) }); })()`)));
+      }
+      check(p15B3rows.length === 3 && p15B3rows.every((x) => x.top >= x.scTop - 1 && x.bottom <= x.scBot + 1 && x.bottom <= x.barTop + 1), 'p15: step 5 at 1440x1000 — each milestone row scrolls fully into view above the CALL WORKER bar (none half-covered)', JSON.stringify(p15B3rows));
+      // (b2) MORE modal, ChangeLock panel: scroll the card to the
+      // bottom — the last version-history row is fully visible, not
+      // clipped mid-row.
+      await tvClickAt(`document.getElementById('btn-more-job')`);
+      await sleep(500);
+      await tvClickAt(`document.querySelector('#more-nav button[data-panel="change"]')`);
+      await sleep(400);
+      await tvEval(`(() => { const card = document.querySelector('#sheet-more .sheet-card'); card.scrollTop = card.scrollHeight; })()`);
+      await sleep(400);
+      const p15B2 = JSON.parse(await tvEval(`(() => { const card = document.querySelector('#sheet-more .sheet-card'); const cr = card.getBoundingClientRect(); const rows = [...document.querySelectorAll('#change-list .notice')]; const last = rows[rows.length - 1]; const r = last ? last.getBoundingClientRect() : null; return JSON.stringify({ n: rows.length, scrollTop: card.scrollTop, maxScroll: card.scrollHeight - card.clientHeight, lastTop: r ? Math.round(r.top) : null, lastBottom: r ? Math.round(r.bottom) : null, cardBottom: Math.round(cr.bottom) }); })()`));
+      check(p15B2.n >= 1 && p15B2.lastBottom <= p15B2.cardBottom + 1 && p15B2.lastTop >= 0, 'p15: MORE ChangeLock version-history list — last row fully visible inside the modal after scrolling to the bottom (not clipped mid-row)', JSON.stringify(p15B2));
+      await tvEval(`(() => { const b = document.querySelector('#sheet-more [data-close]'); if (b) b.click(); })()`);
+      await sleep(400);
+      // (b3) at 1366x768: the scroller fits a whole milestone row (>=90px,
+      // was 21px — no row could ever show whole) and each row scrolls
+      // fully into view.
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 1366, height: 768, deviceScaleFactor: 1, mobile: false });
+      await sleep(500);
+      await tvClickAt(`document.querySelector('#view-detail .tabs button[data-tab="s5"]')`);
+      const p15B3sH = JSON.parse(await tvEval(`(() => { const s = document.getElementById('detail-scroll'); return JSON.stringify({ scH: Math.round(s.getBoundingClientRect().height), n: document.querySelectorAll('#miles-list .job-row').length }); })()`));
+      const p15B3sRows = [];
+      for (let p15Ri = 0; p15Ri < 3; p15Ri++) {
+        await tvEval(`(() => { const row = document.querySelectorAll('#miles-list .job-row')[${p15Ri}]; if (row) row.scrollIntoView({ block: 'center' }); })()`);
+        await sleep(200);
+        p15B3sRows.push(JSON.parse(await tvEval(`(() => { const s = document.getElementById('detail-scroll'); const sr = s.getBoundingClientRect(); const bar = document.querySelector('#view-detail .fab-bar').getBoundingClientRect(); const row = document.querySelectorAll('#miles-list .job-row')[${p15Ri}]; const r = row.getBoundingClientRect(); return JSON.stringify({ top: Math.round(r.top), bottom: Math.round(r.bottom), scTop: Math.round(sr.top), scBot: Math.round(sr.bottom), barTop: Math.round(bar.top) }); })()`)));
+      }
+      check(p15B3sH.scH >= 90 && p15B3sH.n === 3 && p15B3sRows.every((x) => x.top >= x.scTop - 1 && x.bottom <= x.scBot + 1 && x.bottom <= x.barTop + 1), 'p15: step 5 at 1366x768 — scroller fits a whole milestone row (>=90px, was 21px) and each row scrolls fully into view above the CALL WORKER bar', JSON.stringify({ scH: p15B3sH.scH, rows: p15B3sRows }));
+      // (d)+(e) at 390x844: jobs list — no document horizontal overflow
+      // and no fab-bar button label clipped (scrollWidth <= clientWidth).
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+      await tvNav(tvBaseUI + '/');
+      await tvEval(`document.body.classList.remove('show-app')`);
+      // (d) Landing at 390px: no HORIZONTAL overflow. Vertical scroll is
+      // allowed here — the landing is a normally scrolling page (the
+      // 390px hero is ~20px taller than the viewport, so the page
+      // scrolls slightly by design); tvNoScroll would wrongly demand
+      // it fit one viewport.
+      const p15Land390 = JSON.parse(await tvMeasure());
+      check(p15Land390.sw <= p15Land390.iw + 2, 'p15: landing 390x844 has no horizontal overflow', JSON.stringify(p15Land390));
+      await tvEval(`document.body.classList.add('show-app')`);
+      await tvOpenJob(tvUIJobId);
+      await tvEval(`(() => { const b = document.getElementById('btn-back-jobs'); if (b) b.click(); })()`);
+      await tvWaitFor(`!document.getElementById('view-jobs').hidden`);
+      await sleep(600);
+      const p15Jobs390 = JSON.parse(await tvEval(`(() => { const de = document.scrollingElement; const btns = [...document.querySelectorAll('#view-jobs .fab-bar .btn')].map((b) => ({ text: b.textContent.trim().slice(0, 28), sw: b.scrollWidth, cw: b.clientWidth })); return JSON.stringify({ docSw: de.scrollWidth, iw: window.innerWidth, btns }); })()`));
+      check(p15Jobs390.docSw <= p15Jobs390.iw + 1 && p15Jobs390.btns.length >= 2 && p15Jobs390.btns.every((b) => b.sw <= b.cw + 1), 'p15: My Jobs at 390px — no page horizontal overflow and no fab-bar button label clipped mid-word', JSON.stringify(p15Jobs390));
+      // (e) at 390px: the compact title does not collide with the pills.
+      const p15Head390 = JSON.parse(await tvEval(`(() => { const h = document.getElementById('app-page-title'); const home = document.getElementById('btn-home'); const more = document.getElementById('btn-more-global'); const r = h.getBoundingClientRect(), hr = home.getBoundingClientRect(), mr = more.getBoundingClientRect(); const ov = (a, b) => a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1; return JSON.stringify({ title: h.textContent.trim(), w: Math.round(r.width), ovHome: ov(r, hr), ovMore: ov(r, mr) }); })()`));
+      check(p15Head390.w > 50 && !p15Head390.ovHome && !p15Head390.ovMore, 'p15: app header at 390px — compact title has real width and does not collide with HOME/MORE pills', JSON.stringify(p15Head390));
+      // (d) Job detail at 390px: no page horizontal overflow.
+      await tvOpenJob(tvUIJobId);
+      const p15Det390 = JSON.parse(await tvEval(`(() => { const de = document.scrollingElement; return JSON.stringify({ docSw: de.scrollWidth, iw: window.innerWidth }); })()`));
+      check(p15Det390.docSw <= p15Det390.iw + 1, 'p15: job detail at 390px — no page horizontal overflow', JSON.stringify(p15Det390));
+      // (d)+(f) Worker page at 390px: no page horizontal overflow and
+      // the passport stats grid is aligned there too.
+      await tvNav(tvBaseUI + '/worker.html?lang=en&token=' + tvF5Token);
+      await tvWaitFor(`!!document.querySelector('.profile-card')`);
+      const p15W390 = JSON.parse(await tvEval(`(() => { const de = document.scrollingElement; const f = document.querySelector('.profile-card .pc-facts'); const cs = f ? getComputedStyle(f) : null; const facts = f ? [...f.querySelectorAll('.pc-fact')].map((el) => { const b = el.querySelector('b'), s = el.querySelector('span'); const br = b ? b.getBoundingClientRect() : null, sr = s ? s.getBoundingClientRect() : null; return { leftDiff: (br && sr) ? Math.abs(Math.round(br.left) - Math.round(sr.left)) : 0, above: (br && sr) ? br.bottom <= sr.top + 1 : true }; }) : []; return JSON.stringify({ docSw: de.scrollWidth, iw: window.innerWidth, display: cs ? cs.display : null, cols: cs ? cs.gridTemplateColumns : null, facts }); })()`));
+      check(p15W390.docSw <= p15W390.iw + 1, 'p15: worker page at 390px — no page horizontal overflow', JSON.stringify({ docSw: p15W390.docSw, iw: p15W390.iw }));
+      check(p15W390.display === 'grid' && p15W390.cols.trim().split(/\s+/).length === 3 && p15W390.facts.length >= 2 && p15W390.facts.every((x) => x.leftDiff <= 1 && x.above), 'p15: worker-page passport stats are a 3-column grid with each number above its label', JSON.stringify(p15W390));
+      // --- P2 browser: P2-7 draft-state UX, P2-9 wizard + bid-info, P2-10 ResolvePack row. ---
+      // (13 checks: P2-7: 7, P2-9: 3, P2-10: 3. A logged-in reload lands
+      // on the jobs view, so the wizard / bid-info checks click #btn-home
+      // first. tvWaitFor's 2nd arg is a try-count, not a label.)
+      await tvCdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+      await tvNav(tvBaseUI + '/');
+      // P2-7: the DRAFT fixture job (tvJEJobId) — location + payments locked.
+      await tvOpenJob(tvJEJobId);
+      const p2bDraft = JSON.parse(await tvEval(`JSON.stringify({locEmpty: (() => { const e = document.getElementById('loc-empty'); return e ? {hidden: e.hidden, text: e.textContent} : {missing: true}; })(), payLocked: (() => { const e = document.getElementById('pay-locked'); return e ? {hidden: e.hidden, text: e.textContent} : {missing: true}; })(), formPayHidden: document.getElementById('form-pay') ? document.getElementById('form-pay').hidden : null, shareTripHidden: document.getElementById('btn-share-trip') ? document.getElementById('btn-share-trip').hidden : null, fabGone: !document.getElementById('btn-share-trip-fab'), payListHidden: document.getElementById('pay-list') ? document.getElementById('pay-list').hidden : null})`));
+      check(p2bDraft.locEmpty.hidden === false && p2bDraft.locEmpty.text.includes('No live location yet'), 'P2-7: DRAFT job shows #loc-empty ("No live location yet" + what will appear + the worker starts it)', JSON.stringify(p2bDraft.locEmpty));
+      check(p2bDraft.payLocked.hidden === false && p2bDraft.payLocked.text.includes('Payments are not open yet') && p2bDraft.payLocked.text.includes('Available once both sides confirm'), 'P2-7: DRAFT job shows #pay-locked ("Payments are not open yet — Available once both sides confirm.")', JSON.stringify(p2bDraft.payLocked));
+      check(p2bDraft.formPayHidden === true, 'P2-7: DRAFT job hides the payment form', JSON.stringify({ formPayHidden: p2bDraft.formPayHidden }));
+      check(p2bDraft.shareTripHidden === true, 'P2-7: DRAFT job hides the share-trip button (the worker starts it from their link)', JSON.stringify({ shareTripHidden: p2bDraft.shareTripHidden }));
+      check(p2bDraft.fabGone === true, 'P2-7: duplicate #btn-share-trip-fab is gone — exactly one location action per screen', JSON.stringify({ fabGone: p2bDraft.fabGone }));
+      check(p2bDraft.payListHidden === false, 'P2-7: DRAFT job keeps payment history / receipt visible', JSON.stringify({ payListHidden: p2bDraft.payListHidden }));
+      // P2-7 (ChangeLock) + P2-10 (DRAFT row): the MORE modal on the DRAFT job.
+      await tvClickAt(`document.getElementById('btn-more-job')`);
+      await sleep(500);
+      const p2bMoreDraft = JSON.parse(await tvEval(`JSON.stringify({changeLockedHidden: document.getElementById('change-locked') ? document.getElementById('change-locked').hidden : null, deltaDisabled: document.getElementById('ch-delta') ? document.getElementById('ch-delta').disabled : null, reasonDisabled: document.getElementById('ch-reason') ? document.getElementById('ch-reason').disabled : null, changeSubmitDisabled: (() => { const f = document.getElementById('form-change'); const b = f ? f.querySelector('button[type="submit"]') : null; return b ? b.disabled : null; })(), rpText: document.getElementById('more-resolvepack') ? document.getElementById('more-resolvepack').textContent : '', rpPdfDisabled: document.getElementById('btn-more-rp-pdf') ? document.getElementById('btn-more-rp-pdf').disabled : null, rpJsonDisabled: document.getElementById('btn-more-rp-json') ? document.getElementById('btn-more-rp-json').disabled : null, rpCopyDisabled: document.getElementById('btn-more-rp-copy') ? document.getElementById('btn-more-rp-copy').disabled : null})`));
+      check(p2bMoreDraft.changeLockedHidden === false && p2bMoreDraft.deltaDisabled === true && p2bMoreDraft.reasonDisabled === true && p2bMoreDraft.changeSubmitDisabled === true, 'P2-7: DRAFT job locks ChangeLock (inputs + submit disabled, #change-locked shown)', JSON.stringify(p2bMoreDraft));
+      check(p2bMoreDraft.rpPdfDisabled === true && p2bMoreDraft.rpJsonDisabled === true && p2bMoreDraft.rpCopyDisabled === true && p2bMoreDraft.rpText.includes('Not available yet'), 'P2-10: DRAFT job MORE row shows the ResolvePack row disabled with the reason', JSON.stringify(p2bMoreDraft));
+      await tvEval(`(() => { const b = document.querySelector('#sheet-more [data-close]'); if (b) b.click(); })()`);
+      await sleep(400);
+      // P2-10: the ACTIVE fixture job — the MORE row offers all three actions.
+      await tvOpenJob(tvUIJobId);
+      await tvClickAt(`document.getElementById('btn-more-job')`);
+      await sleep(500);
+      const p2bMoreActive = JSON.parse(await tvEval(`JSON.stringify({rpText: document.getElementById('more-resolvepack') ? document.getElementById('more-resolvepack').textContent : '', rpPdfDisabled: document.getElementById('btn-more-rp-pdf') ? document.getElementById('btn-more-rp-pdf').disabled : null, rpJsonDisabled: document.getElementById('btn-more-rp-json') ? document.getElementById('btn-more-rp-json').disabled : null, rpCopyDisabled: document.getElementById('btn-more-rp-copy') ? document.getElementById('btn-more-rp-copy').disabled : null, verifyUrl: document.getElementById('btn-more-rp-copy') ? (document.getElementById('btn-more-rp-copy').getAttribute('data-verify-url') || '') : ''})`));
+      check(p2bMoreActive.rpPdfDisabled === false && p2bMoreActive.rpJsonDisabled === false && p2bMoreActive.rpCopyDisabled === false && p2bMoreActive.rpText.includes('Download PDF') && p2bMoreActive.rpText.includes('Download JSON') && p2bMoreActive.rpText.includes('Copy verify link'), 'P2-10: ACTIVE job MORE row offers Download PDF / Download JSON / Copy verify link', JSON.stringify(p2bMoreActive));
+      check(p2bMoreActive.verifyUrl.includes('/verify?fp='), 'P2-10: the copy-verify-link button carries the /api/verify link for this job', JSON.stringify({ verifyUrl: p2bMoreActive.verifyUrl }));
+      await tvEval(`(() => { const b = document.querySelector('#sheet-more [data-close]'); if (b) b.click(); })()`);
+      await sleep(400);
+      // P2-10: the CLOSED job — close the JE fixture (mutual, worker OTP),
+      // reopen it, and the row is enabled again.
+      const p2bCloseOtp = await tvReqUI(`/api/worker/${tvJEToken}/request-otp`, tvJUI({ purpose: 'close-confirm' }));
+      if (p2bCloseOtp.status !== 200 || !p2bCloseOtp.body?.sandbox?.otp) throw new Error('P2-10: close-confirm OTP failed for the JE fixture: ' + p2bCloseOtp.status);
+      const p2bClose = await tvReqUI(`/api/jobs/${tvJEJobId}/close`, tvAjUI(tvUIHirerToken, { confirmCompletion: true, force: true, workerOtpCode: p2bCloseOtp.body.sandbox.otp }));
+      if (p2bClose.status !== 200 || p2bClose.body?.job?.status !== 'CLOSED') throw new Error('P2-10: closing the JE fixture failed: ' + p2bClose.status + ' ' + JSON.stringify(p2bClose.body));
+      await tvNav(tvBaseUI + '/');
+      await tvOpenJob(tvJEJobId);
+      await tvClickAt(`document.getElementById('btn-more-job')`);
+      await sleep(500);
+      const p2bMoreClosed = JSON.parse(await tvEval(`JSON.stringify({rpPdfDisabled: document.getElementById('btn-more-rp-pdf') ? document.getElementById('btn-more-rp-pdf').disabled : null, rpJsonDisabled: document.getElementById('btn-more-rp-json') ? document.getElementById('btn-more-rp-json').disabled : null, rpCopyDisabled: document.getElementById('btn-more-rp-copy') ? document.getElementById('btn-more-rp-copy').disabled : null})`));
+      check(p2bMoreClosed.rpPdfDisabled === false && p2bMoreClosed.rpJsonDisabled === false && p2bMoreClosed.rpCopyDisabled === false, 'P2-10: CLOSED job MORE row offers the three ResolvePack actions', JSON.stringify(p2bMoreClosed));
+      await tvEval(`(() => { const b = document.querySelector('#sheet-more [data-close]'); if (b) b.click(); })()`);
+      await sleep(400);
+      // P2-9: create wizard — the canonical line parses, chips show the
+      // scope, and Review surfaces the worker-phone field error.
+      await tvEval(`(() => { const b = document.getElementById('btn-home'); if (b) b.click(); })()`);
+      await sleep(400);
+      await tvClickAt(`document.getElementById('hire-direct')`);
+      await sleep(500);
+      if (!await tvWaitFor(`!document.getElementById('view-new').hidden`)) throw new Error('P2-9: view-new did not open');
+      await tvEval(`(() => { const i = document.getElementById('prompt-input-app'); i.value = '2 bedroom flat rewiring, 18000, by Friday'; i.dispatchEvent(new Event('input', {bubbles: true})); })()`);
+      await sleep(400);
+      const p2bWizard = JSON.parse(await tvEval(`JSON.stringify({chips: document.getElementById('prompt-chips-app') ? document.getElementById('prompt-chips-app').textContent : '', scopeVal: document.getElementById('job-scope') ? document.getElementById('job-scope').value : '', tradePickerGone: !document.getElementById('trade-picker')})`));
+      check(p2bWizard.chips.includes('2 bedroom flat rewiring') && p2bWizard.scopeVal === '2 bedroom flat rewiring' && p2bWizard.tradePickerGone === true, 'P2-9: wizard parses the canonical line — chips + job-scope show "2 bedroom flat rewiring", no #trade-picker', JSON.stringify(p2bWizard));
+      await tvClickAt(`document.getElementById('btn-review')`);
+      await sleep(500);
+      const p2bFieldErr = JSON.parse(await tvEval(`JSON.stringify({errHidden: document.getElementById('err-worker-phone') ? document.getElementById('err-worker-phone').hidden : null, errText: document.getElementById('err-worker-phone') ? document.getElementById('err-worker-phone').textContent : ''})`));
+      check(p2bFieldErr.errHidden === false && p2bFieldErr.errText.length > 0, 'P2-9: Review with the canonical line shows the inline worker-phone field error (the first error a real user hits here)', JSON.stringify(p2bFieldErr));
+      // P2-9(d): #hire-bids routes to the explanatory screen first.
+      await tvEval(`(() => { const b = document.getElementById('btn-home'); if (b) b.click(); })()`);
+      await sleep(400);
+      await tvClickAt(`document.getElementById('hire-bids')`);
+      await sleep(500);
+      const p2bBidInfo = JSON.parse(await tvEval(`JSON.stringify({infoHidden: document.getElementById('view-bid-info') ? document.getElementById('view-bid-info').hidden : null, infoText: document.getElementById('view-bid-info') ? document.getElementById('view-bid-info').textContent : ''})`));
+      await tvClickAt(`document.getElementById('btn-bid-info-continue')`);
+      await sleep(500);
+      const p2bBidPost = await tvEval(`!document.getElementById('view-bid-post').hidden`);
+      check(p2bBidInfo.infoHidden === false && p2bBidInfo.infoText.includes('A bid alone is never an agreement') && p2bBidPost === true, 'P2-9: #hire-bids opens #view-bid-info ("A bid alone is never an agreement") and Continue opens the bid-post form', JSON.stringify({ infoHidden: p2bBidInfo.infoHidden, bidPostVisible: p2bBidPost }));
       // --- No uncaught page errors anywhere in the flow. ---
       check(tvPageErrors.length === 0, 'UI: no uncaught page errors anywhere in the flow', tvPageErrors.join(' | ').slice(0, 1000));
     } finally {
@@ -3582,7 +3982,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     check(impWJobs.status === 200 && impWJobs.body?.everWorker === true, 'improve: GET /api/worker/jobs carries the everWorker boolean', 'everWorker ' + impWJobs.body?.everWorker);
     // --- login / OTP / drafts (file-level) ---
     const impAppJs = fs.readFileSync(path.resolve(ROOT_I, 'public', 'app.js'), 'utf8');
-    check(impAppJs.includes("localStorage.getItem('dc_lang')||'bn'"), 'improve: language default is bn (was en)', '');
+    check(impAppJs.includes("localStorage.getItem('dc_lang')||'en'"), 'improve: language default is en (was bn)', '');
     check(impAppJs.includes('otp-resend') && impAppJs.includes('otp.resendIn'), 'improve: login OTP has a resend button with a countdown', '');
     check(impAppJs.includes('৫ মিনিট') && impAppJs.includes('login.tooMany'), 'improve: login rate-limit message states the 5-minute wait', '');
     check(impAppJs.includes('auto-submit the code form at 6 digits'), 'improve: login OTP auto-submits at 6 digits', '');
@@ -3593,24 +3993,185 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     check(impWorkerHtml.includes('w-step-banner') && impWorkerHtml.includes('w.bannerConfirmed'), 'improve: worker page has a step banner (step 2 / confirmed / active)', '');
     check(impWorkerHtml.includes('acc>100') && impWorkerHtml.includes('wLocSchematic'), 'improve: worker location has the ≤100m accuracy gate and the schematic fallback', '');
     check(impWorkerHtml.includes('w-photo-preview') && impWorkerHtml.includes('wDownscale') && impWorkerHtml.includes('1280'), 'improve: worker photo has a preview and a 1280px downscale before upload', '');
-    check(impWorkerHtml.includes('w-otp-resend') && impWorkerHtml.includes('w.demoCode') && impWorkerHtml.includes("w-confirm').hidden=true"), 'improve: worker OTP has resend + the demo-code label, and the confirm button hides once confirmed', '');
+    check(impWorkerHtml.includes('w-otp-resend') && !impWorkerHtml.includes('w.demoCode') && !impWorkerHtml.includes('w-otp-note') && impWorkerHtml.includes("w-confirm').hidden=true"), 'P0-3: worker OTP has a resend button, shows NO code on the page (no demo-code label, no #w-otp-note), and the confirm button hides once confirmed', '');
+    // P0-3 (file-level): no OTP is rendered by the app or worker page,
+    // no demo banner / blocked card / script panel exists any more, and
+    // the demo actions live only as plain MORE-menu buttons.
+    check(!impAppJs.includes('sandboxCodeText') && !impAppJs.includes('otp.demoPrefix') && !impAppJs.includes('demo.banner') && !impAppJs.includes('demo.blocked') && !impAppJs.includes('demo.tryThis') && !impAppJs.includes('fetchDemoScript') && !impAppJs.includes('renderDemoChecklist') && !impAppJs.includes('demo-banner') && !impAppJs.includes('demo-checklist') && !impAppJs.includes('otp-note') && !impAppJs.includes('confirm-note'), 'P0-3: app.js renders no OTP and no demo scaffolding (no sandboxCodeText, demo banner/blocked/tryThis keys, demo-script fetch/render, otp-note or confirm-note)', '');
     check(impWorkerHtml.includes('data-chip="w.chipUnfinished"') && impWorkerHtml.includes('data-chip="w.chipPayWrong"') && impWorkerHtml.includes('data-chip="w.chipQuality"'), 'improve: worker dispute reasons are tappable chips', '');
     const impTripHtml = fs.readFileSync(path.resolve(ROOT_I, 'public', 'trip.html'), 'utf8');
     check(impTripHtml.includes('showFallback') && impTripHtml.includes('tileerror') && impTripHtml.includes('trip-refresh') && impTripHtml.includes('r.status===404||r.status===410') && impTripHtml.includes('backoffMs'), 'improve: trip page has the schematic fallback, poll backoff, 404/410 end handling and a Refresh button', '');
     const impPassHtml = fs.readFileSync(path.resolve(ROOT_I, 'public', 'passport.html'), 'utf8');
     check(impPassHtml.includes('pp-tab-1') && impPassHtml.includes('pp-tab-2') && impPassHtml.includes('pShowPanel'), 'improve: passport has two tabs with exactly one panel visible', '');
-    check(impPassHtml.includes("localStorage.getItem('dc_lang')||'bn'") && impPassHtml.includes('qr.onerror'), 'improve: passport defaults to bn and has a QR fallback', '');
+    check(impPassHtml.includes("localStorage.getItem('dc_lang')||'en'") && impPassHtml.includes('qr.onerror'), 'improve: passport defaults to en and has a QR fallback', '');
+    // --- P1-4 + P1-6 (file-level): defaults, localised labels, empty states. ---
+    check(impVerifyHtml.includes("localStorage.getItem('dc_lang')||'en'") && impVerifyHtml.includes("vT('v.rTrade')") && impVerifyHtml.includes("className='card guide'"), 'P1-4/P1-6: verify defaults to en, result rows use localised labels, no-fingerprint state is the neutral guide card', '');
+    check(impVerifyHtml.includes("vT('v.fpPh')") && impVerifyHtml.includes('vTaka(data.price)'), 'P1-4: verify placeholder is localised and verify money uses thousand separators', '');
+    check(impWorkerHtml.includes('wMsTitle') && impWorkerHtml.includes('wFmtDate') && impWorkerHtml.includes("getItem('dc_lang')||'bn'"), 'P1-4: worker page keeps the Bangla default and localises milestone titles + dates', '');
+    check(impPassHtml.includes('p-noid') && impPassHtml.includes('pShowNoId') && impPassHtml.includes('data-i18n="p.tab1"'), 'P1-4/P1-6: passport tabs are localised and the no/invalid-id neutral empty state exists', '');
+    check(impAppJs.includes('msTitleLabel') && impAppJs.includes('msKeyForTitle') && impAppJs.includes("if(typeof demoRender==='function')demoRender()"), 'P1-4: hirer milestones localise by title key and the demo player re-renders on a language toggle', '');
+    check(impAppJs.includes("'worker-name':{bn:'ওয়ার্কারের নাম',en:'Worker name'}"), 'P1-4: wizard worker-name placeholder is localised', '');
     const impIndexHtml = fs.readFileSync(path.resolve(ROOT_I, 'public', 'index.html'), 'utf8');
+    check(!impIndexHtml.includes('demo-banner') && !impIndexHtml.includes('otp-note') && !impIndexHtml.includes('confirm-note') && !impIndexHtml.includes('demo-checklist') && impIndexHtml.includes('more-demo-actions') && impIndexHtml.includes('id="demo-restart"') && impIndexHtml.includes('id="demo-exit"'), 'P0-3: index.html has no demo banner, OTP note, confirm note or demo checklist — and the MORE menu carries the plain Restart/Exit demo actions', '');
     check(/<button[^>]*id="jobs-empty"/.test(impIndexHtml), 'improve: jobs-empty is a tappable button, not a paragraph', '');
     check(impIndexHtml.includes('more-nav') && impIndexHtml.includes('data-panel="change"') && impIndexHtml.includes('data-panel="dispute"') && impIndexHtml.includes('data-panel="passport"') && impIndexHtml.includes('data-panel="billing"'), 'improve: More sheet has segmented nav (বদল | সমস্যা | পাসপোর্ট | বিল)', '');
     check(impIndexHtml.includes('caas-paid-pill') && impIndexHtml.includes('close-mode-otp') && impIndexHtml.includes('close-anyway'), 'improve: More sheet has the fee-paid pill and the two close-method radios', '');
-    check(impIndexHtml.includes('bid-cheapest-bar') && impIndexHtml.includes('position:sticky'), 'improve: bidding pick screen has the sticky cheapest bar', '');
     check(impIndexHtml.includes('id="pay-confirm"'), 'improve: job detail has a payment confirm step', '');
     check(impAppJs.includes('btn-pay-confirm'), 'improve: payment confirm step has its confirm button', '');
     check(impIndexHtml.includes('site-nomap') && impIndexHtml.includes('id="site-map"'), 'improve: site picker is lazy with a #site-nomap fallback line', '');
     check(impAppJs.includes('LOWEST pill is computed over LIVE bids only') && impAppJs.includes('bnToEn'), 'improve: LOWEST is computed over LIVE bids only, and bid amounts normalise Bengali digits', '');
     check(impAppJs.includes('latest payment in ANY state') && impAppJs.includes('btn-receipt-copy') && impAppJs.includes('btn-receipt-share') && impAppJs.includes('btn-receipt-print'), 'improve: receipt renders for any payment state, with Share/Print/Copy', '');
     check(impAppJs.includes("if(open&&!siteMap)initSiteMap()") && impAppJs.includes('reveal #new-details only once the prompt questions are done'), 'improve: site map initialises lazily on open; #new-details stays hidden until the prompt questions are done', '');
+  }
+
+  // =====================================================================
+  // P2 fix brief (2026-11-27) — P2-7 draft-state UX, P2-8 one demo / one
+  // dataset, P2-9 create wizard, P2-10 ResolvePack discoverability.
+  // 45 new checks (P2-7: 10, P2-8: 11, P2-9: 15, P2-10: 9).
+  // =====================================================================
+  console.log('== P2 fix brief: draft UX, demo seed, wizard, ResolvePack ==');
+  {
+    const ROOT_P2 = path.resolve(import.meta.dirname, '..', '..');
+    const p2IndexHtml = fs.readFileSync(path.resolve(ROOT_P2, 'public', 'index.html'), 'utf8');
+    const p2AppJs = fs.readFileSync(path.resolve(ROOT_P2, 'public', 'app.js'), 'utf8');
+    const p2Css = fs.readFileSync(path.resolve(ROOT_P2, 'public', 'style.css'), 'utf8');
+    const p2DemoJs = fs.readFileSync(path.resolve(ROOT_P2, 'server', 'routes', 'demo.js'), 'utf8');
+
+    // --- P2-7: draft-state UX (API rules untouched) ---
+    // The duplicate share-trip fab is gone from the page and has no
+    // selector wiring left in app.js (a comment may still name it).
+    check(!p2IndexHtml.includes('btn-share-trip-fab') && !p2AppJs.includes("$('btn-share-trip-fab')"), 'P2-7: duplicate #btn-share-trip-fab is gone from the page and its wiring — exactly one location action per screen');
+    const p27DraftJob = await req('/api/jobs', aj(token, { trade: 'ELECTRICIAN', workerPhone: '01900000095', workerName: 'Draft Worker', scope: 'Draft lock check', price: 3000, deadline: '2026-12-20', milestones: [{ title: 'Advance', amount: 3000 }], answers: SEED_ANSWERS, skippedTerms: [] }));
+    if (p27DraftJob.status !== 201) throw new Error('P2-7: DRAFT fixture job failed: ' + p27DraftJob.status);
+    const p27DraftId = p27DraftJob.body.job.id;
+    const p27Pay = await req(`/api/jobs/${p27DraftId}/payments`, aj(token, { amount: 1000, method: 'Cash', date: '2026-11-27' }));
+    check(p27Pay.status === 409 && (p27Pay.body?.error || '').includes('ACTIVE'), 'P2-7: payment on a DRAFT job is refused (409, ACTIVE only — API rules untouched)', 'status ' + p27Pay.status + ' ' + JSON.stringify(p27Pay.body));
+    const p27Change = await req(`/api/jobs/${p27DraftId}/changes`, aj(token, { priceDelta: 1000, reason: 'Draft change check' }));
+    check(p27Change.status === 409 && (p27Change.body?.error || '').includes('ACTIVE'), 'P2-7: ChangeLock on a DRAFT job is refused (409, ACTIVE only — API rules untouched)', 'status ' + p27Change.status + ' ' + JSON.stringify(p27Change.body));
+
+    // --- P2-8: one demo, one dataset ---
+    const p2SeedMod = await import(path.resolve(ROOT_P2, 'server', 'src', 'demo-seed.js'));
+    const p2Seed = p2SeedMod.DEMO_SEED;
+    check(p2Seed.hirerName === 'Rahim Uddin' && p2Seed.workerName === 'Karim Mistri' && p2Seed.trade === 'ELECTRICIAN' && p2Seed.scope === 'Apartment electrical rewiring — 2 bedrooms' && p2Seed.price === 18000, 'P2-8: DEMO_SEED carries the canonical demo record (Rahim Uddin / Karim Mistri, ELECTRICIAN, rewiring, ৳18,000)', JSON.stringify({ hirer: p2Seed.hirerName, worker: p2Seed.workerName, trade: p2Seed.trade, scope: p2Seed.scope, price: p2Seed.price }));
+    check(JSON.stringify(p2Seed.milestones) === JSON.stringify(SEED_MILESTONES), 'P2-8: DEMO_SEED milestones are 5000 / 7000 / 6000', JSON.stringify(p2Seed.milestones));
+    check(JSON.stringify(p2Seed.answers) === JSON.stringify(SEED_ANSWERS), 'P2-8: DEMO_SEED carries the 8 FairScope answers', JSON.stringify(Object.keys(p2Seed.answers)));
+    check(p2DemoJs.includes("require('../src/demo-seed')") && p2DemoJs.includes('DEMO_SEED') && !p2DemoJs.includes('Apartment electrical rewiring — 2 bedrooms'), 'P2-8: demo.js sources the seed from server/src/demo-seed.js (no seed literal left in the route)', '');
+    // Per-visitor seed on the main server: phones stay derived, never fixed.
+    const p2Visitor = 'abcdef0123456789abcdef0123456789';
+    const p2SeedRes = await req('/api/demo/seed', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-demo-token': 'test-demo-token', 'x-demo-visitor': p2Visitor }, body: '{}' });
+    if (p2SeedRes.status !== 200) throw new Error('P2-8: visitor seed failed: ' + p2SeedRes.status);
+    const p2HirerPhone = p2SeedRes.body.hirerPhone;
+    const p2WorkerPhone = p2SeedRes.body.workerPhone;
+    const p2JobId = p2SeedRes.body.job.id;
+    const p2WorkerToken = p2SeedRes.body.workerLink.split('token=')[1];
+    const p2HirerToken = p2SeedRes.body.hirerToken;
+    check(/^01[3-9][0-9]{8}$/.test(p2HirerPhone) && /^01[3-9][0-9]{8}$/.test(p2WorkerPhone), 'P2-8: seed phones are valid 11-digit BD numbers', JSON.stringify({ hirer: p2HirerPhone, worker: p2WorkerPhone }));
+    check(JSON.stringify(p2SeedRes.body.seed) === JSON.stringify(p2Seed), 'P2-8: seed response carries the DEMO_SEED dataset', JSON.stringify(p2SeedRes.body.seed));
+    const p2Detail = await req(`/api/jobs/${p2JobId}`, { headers: auth(p2HirerToken) });
+    if (p2Detail.status !== 200) throw new Error('P2-8: seeded job detail failed: ' + p2Detail.status);
+    const p2V1 = p2Detail.body.versions.find((v) => v.version_no === 1);
+    check(p2V1?.scope?.scope === p2Seed.scope && p2V1?.price === 18000 && JSON.stringify(p2V1?.scope?.milestones) === JSON.stringify(SEED_MILESTONES), 'P2-8: seeded job matches DEMO_SEED (scope / price 18000 / milestones)', JSON.stringify({ scope: p2V1?.scope?.scope, price: p2V1?.price }));
+    check(JSON.stringify(p2V1?.scope?.answers) === JSON.stringify(SEED_ANSWERS), 'P2-8: seeded job carries the 8 DEMO_SEED answers', JSON.stringify(p2V1?.scope?.answers));
+    const p2Me = await req('/api/me', { headers: auth(p2HirerToken) });
+    check(p2Me.status === 200 && p2Me.body?.user?.phone === p2HirerPhone && /^01[3-9][0-9]{8}$/.test(p2Me.body?.user?.phone || ''), 'P2-8: /api/me returns the full 11-digit phone for the seeded hirer', JSON.stringify(p2Me.body?.user));
+    // Seed parity is server-side: job card, worker page and passport all
+    // read passportData(), so the stats must agree on every surface.
+    const p2Stats = async () => {
+      const d = await req(`/api/jobs/${p2JobId}`, { headers: auth(p2HirerToken) });
+      const w = await req(`/api/worker/${p2WorkerToken}`);
+      const { DatabaseSync } = await import('node:sqlite');
+      const db = new DatabaseSync(path.resolve(ROOT_P2, 'server', 'data', 'dealcraft.db'));
+      const row = db.prepare('SELECT profile_id FROM PassportProfile WHERE worker_phone = ?').get(p2WorkerPhone);
+      db.close();
+      if (!row) throw new Error('P2-8: no PassportProfile row for the seeded worker');
+      const p = await req(`/api/passport/${row.profile_id}`);
+      return {
+        card: [d.body?.workerProfile?.completedJobs, d.body?.workerProfile?.distinctHirers],
+        worker: [w.body?.workerProfile?.completedJobs, w.body?.workerProfile?.distinctHirers],
+        passport: [p.body?.completedJobs, p.body?.distinctHirers],
+      };
+    };
+    const p2StatsDraft = await p2Stats();
+    check(JSON.stringify(p2StatsDraft.card) === '[0,0]' && JSON.stringify(p2StatsDraft.worker) === '[0,0]' && JSON.stringify(p2StatsDraft.passport) === '[0,0]', 'P2-8: stats agree 0/0 on DRAFT (job card, worker page, passport)', JSON.stringify(p2StatsDraft));
+    // Drive the seeded job to ACTIVE, mutually close it, add to passport.
+    const p2Hc = await req(`/api/jobs/${p2JobId}/hirer-confirm`, aj(p2HirerToken, { otpCode: p2SeedRes.body.sandboxOtps.hirerConfirm }));
+    if (p2Hc.status !== 200) throw new Error('P2-8: hirer confirm failed: ' + p2Hc.status);
+    const p2Charge = await req('/api/billing/caas', aj(p2HirerToken, { jobId: p2JobId }));
+    if (p2Charge.status !== 200) throw new Error('P2-8: CaaS charge failed: ' + p2Charge.status);
+    const p2ChargeV = await req(`/api/billing/caas/${p2Charge.body.chargeId}/verify`, aj(p2HirerToken, { otpCode: p2Charge.body.sandboxOtp }));
+    if (p2ChargeV.status !== 200) throw new Error('P2-8: CaaS verify failed: ' + p2ChargeV.status);
+    const p2WcOtp = await req(`/api/worker/${p2WorkerToken}/request-otp`, j({ purpose: 'worker-confirm' }));
+    if (p2WcOtp.status !== 200) throw new Error('P2-8: worker-confirm OTP failed: ' + p2WcOtp.status);
+    const p2Wc = await req(`/api/worker/${p2WorkerToken}/confirm`, j({ otpCode: p2WcOtp.body.sandbox.otp }));
+    if (p2Wc.status !== 200 || p2Wc.body?.job?.status !== 'ACTIVE') throw new Error('P2-8: worker confirm failed: ' + p2Wc.status);
+    // A ChangeLock while ACTIVE, so the closed record has two versions
+    // (the P2-10 checks below read the V2 pack). Worker proposes, hirer accepts.
+    const p2Change2 = await req(`/api/jobs/${p2JobId}/changes?token=${p2WorkerToken}`, j({ priceDelta: 2000, reason: 'Two extra points', details: { scope: 'Apartment electrical rewiring — 2 bedrooms + two extra points' } }));
+    if (p2Change2.status !== 201) throw new Error('P2-8: ChangeLock propose failed: ' + p2Change2.status);
+    const p2ChangeOk = await req(`/api/changes/${p2Change2.body.change.id}/respond`, aj(p2HirerToken, { decision: 'accept' }));
+    if (p2ChangeOk.status !== 200) throw new Error('P2-8: ChangeLock accept failed: ' + p2ChangeOk.status);
+    const p2CloseOtp = await req(`/api/worker/${p2WorkerToken}/request-otp`, j({ purpose: 'close-confirm' }));
+    if (p2CloseOtp.status !== 200) throw new Error('P2-8: close-confirm OTP failed: ' + p2CloseOtp.status);
+    const p2Close = await req(`/api/jobs/${p2JobId}/close`, aj(p2HirerToken, { confirmCompletion: true, force: true, workerOtpCode: p2CloseOtp.body.sandbox.otp }));
+    if (p2Close.status !== 200 || p2Close.body?.job?.status !== 'CLOSED') throw new Error('P2-8: mutual close failed: ' + p2Close.status);
+    const p2PassAdd = await req(`/api/passport/add?token=${p2WorkerToken}`, j({ jobId: p2JobId, showAmounts: true, showClient: false, showPhotos: false }));
+    if (p2PassAdd.status !== 201) throw new Error('P2-8: passport add failed: ' + p2PassAdd.status);
+    const p2StatsClosed = await p2Stats();
+    check(JSON.stringify(p2StatsClosed.card) === '[1,1]' && JSON.stringify(p2StatsClosed.worker) === '[1,1]' && JSON.stringify(p2StatsClosed.passport) === '[1,1]', 'P2-8: stats agree 1/1 after close + passport add (job card, worker page, passport)', JSON.stringify(p2StatsClosed));
+
+    // --- P2-9: create wizard ---
+    const p2ParseMod = await import(path.resolve(ROOT_P2, 'server', 'src', 'prompt-parse.js'));
+    const p2Parse = p2ParseMod.parsePrompt;
+    const p2DhakaToday = () => {
+      const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Dhaka', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' }).formatToParts(new Date());
+      const get = (t) => parts.find((p) => p.type === t).value;
+      return get('year') + '-' + get('month') + '-' + get('day');
+    };
+    const p2AddDays = (iso, n) => { const [y, m, d] = iso.split('-').map(Number); const dt = new Date(Date.UTC(y, m - 1, d + n)); return dt.getUTCFullYear() + '-' + String(dt.getUTCMonth() + 1).padStart(2, '0') + '-' + String(dt.getUTCDate()).padStart(2, '0'); };
+    const p2Friday = p2AddDays(p2DhakaToday(), (5 - new Date(p2DhakaToday() + 'T00:00:00Z').getUTCDay() + 7) % 7);
+    const p2Canon = p2Parse('2 bedroom flat rewiring, 18000, by Friday');
+    check(p2Canon.trade === 'ELECTRICIAN' && p2Canon.price === 18000 && p2Canon.deadline === p2Friday && p2Canon.scope === '2 bedroom flat rewiring' && JSON.stringify(p2Canon.missing) === '[]', 'P2-9: canonical line -> scope "2 bedroom flat rewiring" / 18000 / coming Friday / missing []', JSON.stringify(p2Canon));
+    check(p2Canon.description === '2 bedroom flat', 'P2-9: description stays byte-for-byte "2 bedroom flat" (the brief scope lives in the new scope field, not in description)', JSON.stringify(p2Canon.description));
+    const p2Bn = p2Parse('পুরো ফ্ল্যাটের রিওয়্যারিং, ১৮০০০ টাকা, শুক্রবারের মধ্যে');
+    check(p2Bn.trade === 'ELECTRICIAN' && p2Bn.price === 18000 && p2Bn.deadline === p2Friday && p2Bn.scope === 'পুরো ফ্ল্যাটের রিওয়্যারিং' && p2Bn.description === 'পুরো ফ্ল্যাটের' && !p2Bn.description.includes('মধ্যে'), 'P2-9: Bangla line parses (রিওয়্যারিং trade, 18000, Friday, scope intact, no "ের মধ্যে" garble)', JSON.stringify(p2Bn));
+    const p2Multi = p2Parse('2 bedroom flat rewiring, 18000, by Friday, rewiring again');
+    check(!p2Multi.description.includes('rewiring') && p2Multi.description === '2 bedroom flat, again', 'P2-9: a second trade-keyword occurrence is masked too (description never garbles)', JSON.stringify(p2Multi));
+    check(p2Bn.deadlineText === 'শুক্রবারের মধ্যে' && !p2Bn.scope.includes('মধ্যে'), 'P2-9: the weekday regex consumes the trailing "ের মধ্যে" (deadlineText keeps it, scope does not)', JSON.stringify({ deadlineText: p2Bn.deadlineText, scope: p2Bn.scope }));
+    const p2ClientSrc = fs.readFileSync(path.resolve(ROOT_P2, 'public', 'prompt-parse.js'), 'utf8');
+    const p2Sandbox = { window: {} };
+    vm.createContext(p2Sandbox);
+    vm.runInContext(p2ClientSrc, p2Sandbox);
+    const p2ClientParse = p2Sandbox.window.DealCraftPrompt.parsePrompt;
+    check(JSON.stringify(p2ClientParse('2 bedroom flat rewiring, 18000, by Friday')) === JSON.stringify(p2Canon) && JSON.stringify(p2ClientParse('পুরো ফ্ল্যাটের রিওয়্যারিং, ১৮০০০ টাকা, শুক্রবারের মধ্যে')) === JSON.stringify(p2Bn), 'P2-9: client module returns the identical result to the server module (canonical + Bangla)', '');
+    // Server-side prompt creation: the stored scope stays the pinned
+    // description (tvP9/tvP12) — the brief scope is additive, never a
+    // rewrite of the stored record.
+    const p2JobCanon = await req('/api/jobs', aj(token, { prompt: '2 bedroom flat rewiring, 18000, by Friday', workerPhone: '01900000096', workerName: 'Scope Worker', skippedTerms: [...fsScope.body.questions.ELECTRICIAN] }));
+    check(p2JobCanon.status === 201 && JSON.parse(p2JobCanon.body.version.scope_json).scope === '2 bedroom flat' && p2JobCanon.body?.version?.price === 18000, 'P2-9: POST /api/jobs canonical prompt -> 201, stored scope still "2 bedroom flat" (pinned), price 18000', 'status ' + p2JobCanon.status + ' ' + JSON.stringify(p2JobCanon.body?.version || null));
+    const p2JobBn = await req('/api/jobs', aj(token, { prompt: 'পুরো ফ্ল্যাটের রিওয়্যারিং, ১৮০০০ টাকা, শুক্রবারের মধ্যে', workerPhone: '01900000097', workerName: 'Bangla Scope Worker', skippedTerms: [...fsScope.body.questions.ELECTRICIAN] }));
+    check(p2JobBn.status === 201 && p2JobBn.body?.job?.trade === 'ELECTRICIAN' && p2JobBn.body?.version?.price === 18000 && JSON.parse(p2JobBn.body.version.scope_json).scope === 'পুরো ফ্ল্যাটের', 'P2-9: POST /api/jobs Bangla prompt -> 201, ELECTRICIAN / 18000 / scope "পুরো ফ্ল্যাটের"', 'status ' + p2JobBn.status + ' ' + JSON.stringify(p2JobBn.body?.version || null));
+    check(!p2IndexHtml.includes('id="trade-picker"') && p2IndexHtml.includes('id="bid-trade-picker"'), 'P2-9: #trade-picker button row is removed from view-new (the parsed trade chip is the one selector; the bid-post picker stays)', '');
+    check(['err-price', 'err-deadline', 'err-scope', 'err-worker-phone', 'err-pay-amount'].every((id) => p2IndexHtml.includes('id="' + id + '"') && p2IndexHtml.includes('class="field-err"')), 'P2-9: inline <p class="field-err"> elements sit under price / deadline / scope / worker-phone / pay-amount', '');
+    check(p2AppJs.includes('function fieldErr(') && p2AppJs.includes("fieldErr('err-price'") && p2AppJs.includes("fieldErr('err-worker-phone'") && p2AppJs.includes("fieldErr('err-pay-amount'") && p2Css.includes('.app-card p.field-err{color:#C23C00}'), 'P2-9: errors are wired via fieldErr() and .app-card p.field-err{color:#C23C00} beats .app-card p{color:#444} (errors no longer render grey)', '');
+    check(p2IndexHtml.includes('id="view-bid-info"') && p2IndexHtml.includes('A bid alone is never an agreement') && p2IndexHtml.includes('৳10 record fee') && p2AppJs.includes('showBidInfo') && p2AppJs.includes("showView('view-bid-info')"), 'P2-9: #view-bid-info explains bidding (what / how / what happens next, dual OTP, one ৳10 fee) and #hire-bids routes to it', '');
+
+    // --- P2-10: ResolvePack discoverability (API half; the row states are browser-checked) ---
+    check(p2IndexHtml.includes('id="more-resolvepack"'), 'P2-10: #more-resolvepack row lives in the MORE modal for every job', '');
+    check(p2AppJs.includes('function renderMoreResolvePack(') && p2AppJs.includes("btn-more-rp-pdf") && p2AppJs.includes('/resolvepack.json') && p2AppJs.includes('/api/verify?fp='), 'P2-10: the row wires Download PDF / Download JSON / Copy verify link to the same endpoints the suite checks', '');
+    // The suite's own demo job is deleted by the agent-D legacy-seed
+    // check long before this block runs, so the pack checks read the
+    // P2-8 job instead (closed, two versions, same seed dataset).
+    const p2PackRes = await fetch(BASE + `/api/jobs/${p2JobId}/resolvepack`, { headers: auth(p2HirerToken) });
+    const p2PackBuf = Buffer.from(await p2PackRes.arrayBuffer());
+    const p2PackText = (p2PackRes.status === 200 && (p2PackRes.headers.get('content-type') || '').includes('pdf')) ? pdfTextFromBytes(p2PackBuf) : '';
+    check(p2PackRes.status === 200 && p2PackBuf.subarray(0, 4).toString('latin1') === '%PDF' && p2PackBuf.length > 1000 && typeof p2PackText === 'string' && p2PackText.includes('Apartment electrical rewiring') && p2PackText.includes('Karim Mistri'), 'P2-10: ResolvePack PDF downloads on the closed job, parses via pdftotext, contains scope + worker', 'status ' + p2PackRes.status + ' bytes ' + p2PackBuf.length);
+    const p2PackJson = await req(`/api/jobs/${p2JobId}/resolvepack.json`, { headers: auth(p2HirerToken) });
+    check(p2PackJson.status === 200 && p2PackJson.body?.versions?.length === 2, 'P2-10: ResolvePack JSON has 2 versions', 'versions ' + (p2PackJson.body?.versions?.length ?? '?'));
+    const p2ClosedDetail = await req(`/api/jobs/${p2JobId}`, { headers: auth(p2HirerToken) });
+    const p2V2 = p2ClosedDetail.body?.versions?.find((v) => v.version_no === 2);
+    if (!p2V2) throw new Error('P2-10: closed job has no V2');
+    const p2Verify = await req('/api/verify?fp=' + encodeURIComponent(p2V2.fingerprint));
+    check(p2Verify.status === 200 && p2Verify.body?.match === true && p2Verify.body?.jobId === p2JobId, 'P2-10: /api/verify?fp= matches the closed job (the copy-verify-link target)', JSON.stringify(p2Verify.body));
   }
 
   console.log(`REGRESSION: PASS (${passed} assertions)`);
