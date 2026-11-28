@@ -532,8 +532,11 @@ function renderWorker(r){
      this same response (name/trade/verified/jobs/hirers/member-since). */
   wLastProfile=r.workerProfile||null;
   var wpBox=$('w-profile'); if(wpBox)wpBox.innerHTML=wLastProfile?wRenderProfileCard(wLastProfile):'';
-  /* Price/deadline/scope live on the current version, not on the job row. */
-  var ver=r.version||{};
+  /* Price/deadline/scope live on the current version, not on the job row.
+     The link endpoint returns a singular `version`; the job-detail
+     endpoint (used by My-jobs খুলুন) returns `versions` — take the
+     current one, or the record shows '—' for price/deadline. */
+  var ver=r.version||(r.versions&&r.versions.length?r.versions[r.versions.length-1]:{})||{};
   var scope={}; try{scope=typeof ver.scope_json==='string'?JSON.parse(ver.scope_json||'{}'):(ver.scope||{});}catch(e){}
   var price=ver.price, deadline=ver.deadline;
   wLastSummary={job:job,ver:ver,scope:scope,price:price,deadline:deadline};

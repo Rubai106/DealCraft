@@ -2006,7 +2006,7 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     // 612 after the dotenv fix); this check runs
     // mid-suite (live count here was 526 before it), so it pins only
     // that the README states the final total, not the live count.
-    const EXPECTED_COUNT = 980; // final measured total, CORRECTION BRIEF 2026-11-28 (973 before the brief: 871 FIX BRIEF 2026-11-28; 855 improvement pass; 783 after the map fix; 782 after trim verification; 612 pre-trim)
+    const EXPECTED_COUNT = 983; // final measured total, WORKER 401 FIX 2026-11-28 (980 before the fix; 973 CORRECTION BRIEF 2026-11-28; 871 FIX BRIEF 2026-11-28; 855 improvement pass; 783 after the map fix; 782 after trim verification; 612 pre-trim)
     const p1Readme = fs.readFileSync(path.resolve(ROOT_P1, 'README.md'), 'utf8');
     check(p1Readme.includes(EXPECTED_COUNT + ' assertions'), 'part 1: README shows the true assertion count (live count at this point: ' + passed + ', final suite total: ' + EXPECTED_COUNT + ')');
   }
@@ -2664,6 +2664,18 @@ check(abVerify2Again.status === 200 && abVerify2Again.body?.status === 'VERIFIED
     check(tvW2jobs.status === 200 && tvW2jobs.body.jobs.some((x) => x.id === tvW2jobId), 'worker accounts: confirm sessionToken works as Bearer on GET /api/worker/jobs', JSON.stringify(tvW2jobs.body));
     const tvW2tok = await req(`/api/worker/${tvW2token}`);
     check(tvW2tok.status === 200 && tvW2tok.body?.job?.id === tvW2jobId, 'worker accounts: per-job token flow still works after confirm', 'status ' + tvW2tok.status);
+    // W2b — worker My-jobs খুলুন (2026-11-28 live bug): the worker page's
+    // My-jobs list opens a job with GET /api/jobs/:id on the worker's own
+    // session. Before this fix requireJobAccess admitted only the hirer
+    // by session, so the click 401'd — and renderWorker read r.version,
+    // which the job-detail shape does not carry, so price/deadline
+    // showed '—' even on a successful open.
+    const tvW2d = await req(`/api/jobs/${tvW2jobId}`, { headers: auth(tvW2confirm.body.sessionToken) });
+    const tvW2ver = tvW2d.body?.versions?.length ? tvW2d.body.versions[tvW2d.body.versions.length - 1] : {};
+    check(tvW2d.status === 200 && tvW2ver.price === 3000 && tvW2ver.deadline === '2026-12-20' && tvW2ver.version_no === 1, 'worker accounts: worker session opens own job detail (My-jobs খুলুন) -> 200 with current version price/deadline', 'status ' + tvW2d.status + ' ' + JSON.stringify(tvW2d.body?.versions));
+    check(tvW2d.body?.job?.hirerName === 'Rahim Uddin' && tvW2d.body?.job?.hirerPhone === HIRER, 'worker accounts: worker-opened detail carries hirerName + hirerPhone (record + call button)', JSON.stringify(tvW2d.body?.job));
+    const tvW2other = await req(`/api/jobs/${tvW2jobId}`, { headers: auth(workerA) });
+    check(tvW2other.status === 401, 'worker accounts: another worker\'s session cannot open the job (401, no leak)', 'status ' + tvW2other.status);
     // W3 — logout deletes the session.
     const tvW3otpReq = await req('/api/auth/request-otp', j({ phone: '01900000043', name: 'Logout Test', role: 'hirer' }));
     const tvW3login = await req('/api/auth/verify-otp', j({ phone: '01900000043', code: tvW3otpReq.body.sandbox.otp }));

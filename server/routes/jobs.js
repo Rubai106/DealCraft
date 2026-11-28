@@ -160,6 +160,12 @@ router.get('/api/jobs/:id', requireJobAccess, (req, res) => {
   checkDeadlines().catch(() => {});
   const detail = jobDetail(req.job);
   detail.workerProfile = workerProfileFor(req.job.worker_phone, req.job.trade, req.job.worker_name);
+  // The worker opening their own job from My jobs needs the same hirer
+  // identity the link endpoint carries (worker.js), or the record shows
+  // '—' for the hirer and the one-tap call button hides.
+  const hirer = db.prepare('SELECT name, phone FROM User WHERE id = ?').get(req.job.hirer_id);
+  detail.job.hirerName = hirer ? hirer.name : null;
+  detail.job.hirerPhone = hirer ? hirer.phone : null;
   res.json(detail);
 });
 

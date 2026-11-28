@@ -454,19 +454,24 @@ function requireJobAccess(req, res, next) {
   if (!job) return err(res, 404, 'job not found');
   const user = authedUser(req);
   if (user && user.id === job.hirer_id) { req.user = user; req.job = job; return next(); }
+  // The worker is a party to the job too: their own session opens it, the
+  // same as their per-job link token. (Worker page, My-jobs খুলুন,
+  // 2026-11-28: the list fetched fine on the session, but opening from
+  // it 401'd — only the hirer passed this gate.)
+  if (user && user.phone === job.worker_phone) { req.user = user; req.workerSession = true; req.job = job; return next(); }
   const wt = workerTokenForJob(req, job.id);
   if (wt) { req.workerToken = wt; req.job = job; return next(); }
   return err(res, 401, 'authentication required');
 }
 
 function actorOf(req, job) {
-  if (req.workerToken) return 'worker:' + (job ? job.worker_phone : '');
+  if (req.workerToken || req.workerSession) return 'worker:' + (job ? job.worker_phone : '');
   if (req.user) return 'hirer:' + req.user.phone;
   return 'unknown';
 }
 
 function sideOf(req, job) {
-  if (req.workerToken) return 'worker';
+  if (req.workerToken || req.workerSession) return 'worker';
   if (req.user) return 'hirer';
   return null;
 }
